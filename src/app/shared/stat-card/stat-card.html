@@ -1,0 +1,10 @@
+<article class="card">
+  <div class="card__icon" aria-hidden="true">
+    <mat-icon>{{ icon() }}</mat-icon>
+  </div>
+  <p class="card__label">{{ label() }}</p>
+  <p class="card__value">{{ value() }}</p>
+  @if (hint()) {
+    <p class="card__hint">{{ hint() }}</p>
+  }
+</article>

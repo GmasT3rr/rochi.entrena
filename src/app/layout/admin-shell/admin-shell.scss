@@ -1,0 +1,147 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  height: 100%;
+  background: var(--hub-canvas);
+}
+
+.sidebar {
+  width: 272px;
+  border-right: 1px solid var(--hub-border);
+  background: var(--hub-surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.35rem 1.15rem 1rem;
+}
+
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.85rem;
+  background: var(--hub-accent-soft);
+  color: var(--hub-accent);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--hub-ink);
+  }
+
+  span {
+    color: var(--hub-muted);
+    font-size: 0.78rem;
+  }
+}
+
+.nav {
+  padding: 0.35rem 0.7rem 5.5rem;
+}
+
+.nav a {
+  margin-bottom: 0.2rem;
+  border-radius: 0.8rem;
+}
+
+.nav-item--active {
+  background: var(--hub-accent-soft) !important;
+  color: var(--hub-accent-strong) !important;
+}
+
+.sidebar__footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0.75rem 1.15rem 1.1rem;
+
+  p {
+    margin: 0.75rem 0 0;
+    color: var(--hub-muted);
+    font-size: 0.75rem;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 64px;
+  padding: 0 1rem;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--hub-canvas) 88%, white);
+  border-bottom: 1px solid var(--hub-border);
+  color: var(--hub-ink);
+}
+
+.topbar__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.topbar__spacer {
+  flex: 1;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.user__avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--hub-accent);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.user__name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 1.5rem 1.5rem 2rem;
+  outline: none;
+}
+
+@media (max-width: 599.98px) {
+  .user__name {
+    display: none;
+  }
+
+  .main {
+    padding: 1rem 0.9rem 1.5rem;
+  }
+}

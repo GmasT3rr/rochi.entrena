@@ -1,0 +1,104 @@
+@use '@angular/material' as mat;
+
+:root {
+  --hub-canvas: #f6f4f8;
+  --hub-surface: #ffffff;
+  --hub-ink: #2c2733;
+  --hub-muted: #6d6578;
+  --hub-border: #e6e1ec;
+  --hub-accent: #7c6bb5;
+  --hub-accent-strong: #5d4e91;
+  --hub-accent-soft: #efeaf8;
+}
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$violet-palette,
+        tertiary: mat.$azure-palette,
+      ),
+      typography: (
+        plain-family: Inter,
+        brand-family: Manrope,
+        bold-weight: 700,
+        medium-weight: 600,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  color-scheme: light;
+  margin: 0;
+  background-color: var(--hub-canvas);
+  color: var(--hub-ink);
+  font: var(--mat-sys-body-medium);
+  font-family: Inter, 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -3rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--hub-accent);
+  color: #fff;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0.75rem;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.hub-table {
+  width: 100%;
+  min-width: 640px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge--pagado {
+  background: #e8f6ee;
+  color: #1f7a45;
+}
+
+.badge--pendiente {
+  background: #f8f0dd;
+  color: #8a5a12;
+}
+
+.badge--vencido {
+  background: #fbeaea;
+  color: #a12d2d;
+}

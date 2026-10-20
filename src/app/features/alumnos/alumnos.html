@@ -1,0 +1,39 @@
+<app-page-header
+  title="Alumnos"
+  subtitle="Listado de ejemplo para visualizar la administración de alumnos presenciales y online."
+/>
+
+<mat-card appearance="outlined" class="table-card">
+  <mat-card-content>
+    <div class="table-wrap">
+      <table mat-table [dataSource]="alumnos" class="hub-table">
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let alumno">{{ alumno.nombre }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="modalidad">
+          <th mat-header-cell *matHeaderCellDef>Modalidad</th>
+          <td mat-cell *matCellDef="let alumno">{{ alumno.modalidad }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let alumno">
+            <span class="badge" [class]="alumno.estado === 'Activo' ? 'badge--pagado' : 'badge--pendiente'">
+              {{ alumno.estado }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="proximaCuota">
+          <th mat-header-cell *matHeaderCellDef>Próxima cuota</th>
+          <td mat-cell *matCellDef="let alumno">{{ alumno.proximaCuota | date: 'dd/MM/yyyy' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+      </table>
+    </div>
+  </mat-card-content>
+</mat-card>

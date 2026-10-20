@@ -1,0 +1,42 @@
+.card {
+  min-width: 0;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border: 1px solid var(--hub-border);
+  border-radius: 1rem;
+  background: var(--hub-surface);
+}
+
+.card__icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.85rem;
+  border-radius: 0.7rem;
+  background: var(--hub-accent-soft);
+  color: var(--hub-accent);
+}
+
+.card__label,
+.card__hint {
+  margin: 0;
+  color: var(--hub-muted);
+}
+
+.card__label {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.card__value {
+  margin: 0.35rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--hub-ink);
+}
+
+.card__hint {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+}

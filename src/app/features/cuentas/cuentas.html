@@ -1,0 +1,42 @@
+<app-page-header
+  title="Cuentas y pagos"
+  subtitle="Seguimiento visual de cuotas y pagos de ejemplo. Todavía no hay lógica de cobros."
+/>
+
+<mat-card appearance="outlined" class="table-card">
+  <mat-card-content>
+    <div class="table-wrap">
+      <table mat-table [dataSource]="pagos" class="hub-table">
+        <ng-container matColumnDef="alumno">
+          <th mat-header-cell *matHeaderCellDef>Alumno</th>
+          <td mat-cell *matCellDef="let pago">{{ pago.alumno }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="concepto">
+          <th mat-header-cell *matHeaderCellDef>Concepto</th>
+          <td mat-cell *matCellDef="let pago">{{ pago.concepto }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="vencimiento">
+          <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+          <td mat-cell *matCellDef="let pago">{{ pago.vencimiento | date: 'dd/MM/yyyy' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef>Monto</th>
+          <td mat-cell *matCellDef="let pago">{{ pago.monto | currency: 'ARS' : 'symbol' : '1.0-0' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let pago">
+            <span class="badge" [ngClass]="'badge--' + pago.estado.toLowerCase()">{{ pago.estado }}</span>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+      </table>
+    </div>
+  </mat-card-content>
+</mat-card>

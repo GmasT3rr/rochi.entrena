@@ -1,0 +1,76 @@
+<app-page-header
+  title="Resumen del día"
+  subtitle="Una vista rápida de alumnos, cobros y vencimientos. Los datos de esta etapa son de ejemplo."
+/>
+
+<section class="stats" aria-label="Indicadores principales">
+  <app-stat-card
+    label="Alumnos activos"
+    [value]="'' + resumen.alumnosActivos"
+    hint="Presenciales y online"
+    icon="groups"
+  />
+  <app-stat-card
+    label="Cuotas pendientes"
+    [value]="'' + resumen.cuotasPendientes"
+    hint="Requieren seguimiento"
+    icon="schedule"
+  />
+  <app-stat-card
+    label="Recaudado este mes"
+    [value]="(resumen.recaudadoMes | currency: 'ARS' : 'symbol' : '1.0-0') ?? ''"
+    hint="Octubre 2026"
+    icon="payments"
+  />
+  <app-stat-card
+    label="Próximos vencimientos"
+    [value]="'' + resumen.proximosVencimientos"
+    hint="En los próximos 7 días"
+    icon="event"
+  />
+</section>
+
+<section class="panels">
+  <mat-card appearance="outlined" class="panel">
+    <mat-card-header>
+      <mat-card-title>Actividad reciente</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <ul class="timeline">
+        @for (item of actividades; track item.id) {
+          <li>
+            <div>
+              <strong>{{ item.titulo }}</strong>
+              <p>{{ item.detalle }}</p>
+            </div>
+            <time [attr.datetime]="item.fecha.toISOString()">
+              {{ item.fecha | date: 'dd/MM/yyyy HH:mm' }}
+            </time>
+          </li>
+        }
+      </ul>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card appearance="outlined" class="panel">
+    <mat-card-header>
+      <mat-card-title>Cobros a seguir</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <ul class="follow-up">
+        @for (pago of vencimientos; track pago.id) {
+          <li>
+            <div>
+              <strong>{{ pago.alumno }}</strong>
+              <p>{{ pago.concepto }} · {{ pago.vencimiento | date: 'dd/MM/yyyy' }}</p>
+            </div>
+            <div class="follow-up__meta">
+              <span>{{ pago.monto | currency: 'ARS' : 'symbol' : '1.0-0' }}</span>
+              <span class="badge" [ngClass]="'badge--' + pago.estado.toLowerCase()">{{ pago.estado }}</span>
+            </div>
+          </li>
+        }
+      </ul>
+    </mat-card-content>
+  </mat-card>
+</section>

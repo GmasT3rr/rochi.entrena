@@ -1,0 +1,22 @@
+.settings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.setting {
+  border-radius: 1rem !important;
+  background: var(--hub-surface) !important;
+
+  p {
+    margin: 0;
+    color: var(--hub-muted);
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 959.98px) {
+  .settings {
+    grid-template-columns: 1fr;
+  }
+}
