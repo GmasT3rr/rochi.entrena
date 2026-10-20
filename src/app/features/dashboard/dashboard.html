@@ -1,8 +1,10 @@
-<app-page-header
+﻿<app-page-header
   title="Resumen del día"
-  subtitle="Una vista rápida de alumnos, cobros y vencimientos. Los datos de esta etapa son de ejemplo."
+  subtitle="Una vista rápida de alumnos, cobros y vencimientos."
 />
-
+@if (cuentas.error()) {
+  <p role="alert">{{ cuentas.error() }}</p>
+}
 <section class="stats" aria-label="Indicadores principales">
   <app-stat-card
     label="Alumnos activos"
@@ -12,65 +14,71 @@
   />
   <app-stat-card
     label="Cuotas pendientes"
-    [value]="'' + resumen.cuotasPendientes"
-    hint="Requieren seguimiento"
+    [value]="'' + cuentas.pendientes().length"
+    hint="Incluye parciales y vencidas"
     icon="schedule"
   />
   <app-stat-card
     label="Recaudado este mes"
-    [value]="(resumen.recaudadoMes | currency: 'ARS' : 'symbol' : '1.0-0') ?? ''"
-    hint="Octubre 2026"
+    [value]="(cuentas.ingresosMes() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+    [hint]="(cuentas.hoy() | date: 'MMMM yyyy') ?? ''"
     icon="payments"
   />
   <app-stat-card
     label="Próximos vencimientos"
-    [value]="'' + resumen.proximosVencimientos"
-    hint="En los próximos 7 días"
+    [value]="'' + cuentas.proximos().length"
+    hint="Desde hoy hasta los próximos 7 días"
     icon="event"
   />
 </section>
-
 <section class="panels">
-  <mat-card appearance="outlined" class="panel">
-    <mat-card-header>
-      <mat-card-title>Actividad reciente</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
+  <mat-card appearance="outlined" class="panel"
+    ><mat-card-header><mat-card-title>Actividad reciente</mat-card-title></mat-card-header
+    ><mat-card-content>
       <ul class="timeline">
-        @for (item of actividades; track item.id) {
+        @for (p of actividades(); track p.id) {
           <li>
             <div>
-              <strong>{{ item.titulo }}</strong>
-              <p>{{ item.detalle }}</p>
+              <strong
+                >Pago registrado · {{ p.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong
+              >
+              <p>{{ p.alumno }} · {{ p.concepto }}</p>
             </div>
-            <time [attr.datetime]="item.fecha.toISOString()">
-              {{ item.fecha | date: 'dd/MM/yyyy HH:mm' }}
-            </time>
+            <time [attr.datetime]="p.fecha">{{ p.fecha | date: 'dd/MM/yyyy' }}</time>
           </li>
+        } @empty {
+          <li>No hay pagos registrados.</li>
         }
       </ul>
-    </mat-card-content>
-  </mat-card>
-
-  <mat-card appearance="outlined" class="panel">
-    <mat-card-header>
-      <mat-card-title>Cobros a seguir</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
+    </mat-card-content></mat-card
+  >
+  <mat-card appearance="outlined" class="panel"
+    ><mat-card-header><mat-card-title>Cobros a seguir</mat-card-title></mat-card-header
+    ><mat-card-content>
       <ul class="follow-up">
-        @for (pago of vencimientos; track pago.id) {
+        @for (c of cuentas.cobros(); track c.id) {
           <li>
             <div>
-              <strong>{{ pago.alumno }}</strong>
-              <p>{{ pago.concepto }} · {{ pago.vencimiento | date: 'dd/MM/yyyy' }}</p>
+              <strong>{{ c.alumno }}</strong>
+              <p>{{ c.concepto }} · {{ c.vencimiento | date: 'dd/MM/yyyy' }}</p>
+              @if (c.abonado > 0) {
+                <p>Con pagos parciales</p>
+              }
             </div>
             <div class="follow-up__meta">
-              <span>{{ pago.monto | currency: 'ARS' : 'symbol' : '1.0-0' }}</span>
-              <span class="badge" [ngClass]="'badge--' + pago.estado.toLowerCase()">{{ pago.estado }}</span>
+              <span>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</span
+              ><span
+                class="badge"
+                [class.badge--vencido]="c.estado === 'Vencida'"
+                [class.badge--pendiente]="c.estado !== 'Vencida'"
+                >{{ c.estado }}</span
+              >
             </div>
           </li>
+        } @empty {
+          <li>No hay cuotas con saldo pendiente.</li>
         }
       </ul>
-    </mat-card-content>
-  </mat-card>
+    </mat-card-content></mat-card
+  >
 </section>

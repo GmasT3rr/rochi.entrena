@@ -1,42 +1,136 @@
-<app-page-header
+﻿<app-page-header
   title="Cuentas y pagos"
-  subtitle="Seguimiento visual de cuotas y pagos de ejemplo. Todavía no hay lógica de cobros."
+  subtitle="Gestioná cuotas, registrá pagos y controlá los saldos de tus alumnos."
 />
-
-<mat-card appearance="outlined" class="table-card">
-  <mat-card-content>
-    <div class="table-wrap">
-      <table mat-table [dataSource]="pagos" class="hub-table">
-        <ng-container matColumnDef="alumno">
-          <th mat-header-cell *matHeaderCellDef>Alumno</th>
-          <td mat-cell *matCellDef="let pago">{{ pago.alumno }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="concepto">
-          <th mat-header-cell *matHeaderCellDef>Concepto</th>
-          <td mat-cell *matCellDef="let pago">{{ pago.concepto }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="vencimiento">
-          <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
-          <td mat-cell *matCellDef="let pago">{{ pago.vencimiento | date: 'dd/MM/yyyy' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="monto">
-          <th mat-header-cell *matHeaderCellDef>Monto</th>
-          <td mat-cell *matCellDef="let pago">{{ pago.monto | currency: 'ARS' : 'symbol' : '1.0-0' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef>Estado</th>
-          <td mat-cell *matCellDef="let pago">
-            <span class="badge" [ngClass]="'badge--' + pago.estado.toLowerCase()">{{ pago.estado }}</span>
-          </td>
-        </ng-container>
-
+<div class="toolbar">
+  <mat-form-field appearance="outline" class="search"
+    ><mat-label>Buscar por alumno</mat-label
+    ><input matInput #buscar [value]="busqueda()" (input)="busqueda.set(buscar.value)"
+  /></mat-form-field>
+  <mat-form-field appearance="outline"
+    ><mat-label>Período</mat-label
+    ><mat-select [value]="periodo()" (selectionChange)="periodo.set($event.value)">
+      <mat-option value="">Todos</mat-option>
+      @for (p of periodos(); track p) {
+        <mat-option [value]="p">{{ p + '-01' | date: 'MMMM yyyy' }}</mat-option>
+      }
+    </mat-select></mat-form-field
+  >
+  <mat-form-field appearance="outline"
+    ><mat-label>Estado</mat-label
+    ><mat-select [value]="estado()" (selectionChange)="estado.set($event.value)">
+      <mat-option value="">Todos</mat-option>
+      @for (e of ['Pagada', 'Pendiente', 'Parcial', 'Vencida']; track e) {
+        <mat-option [value]="e">{{ e }}</mat-option>
+      }
+    </mat-select></mat-form-field
+  >
+  <mat-form-field appearance="outline"
+    ><mat-label>Modalidad</mat-label
+    ><mat-select [value]="modalidad()" (selectionChange)="modalidad.set($event.value)">
+      <mat-option value="">Todas</mat-option><mat-option value="Presencial">Presencial</mat-option
+      ><mat-option value="Online">Online</mat-option>
+    </mat-select></mat-form-field
+  >
+  <button mat-flat-button (click)="nueva()" [disabled]="!service.disponible()">Nueva cuota</button>
+</div>
+@if (service.error()) {
+  <p role="alert">{{ service.error() }}</p>
+}
+<p role="status">{{ service.mensaje() }}</p>
+<mat-card appearance="outlined" class="table-card"
+  ><mat-card-content>
+    <p class="result-count">{{ cuentas().length }} cuotas encontradas</p>
+    <div class="table-wrap" role="region" aria-label="Listado de cuentas" tabindex="0">
+      <table mat-table [dataSource]="cuentas()" class="hub-table">
+        <ng-container matColumnDef="alumno"
+          ><th mat-header-cell *matHeaderCellDef>Alumno</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.alumno }}<small>{{ c.modalidad }}</small>
+          </td></ng-container
+        >
+        <ng-container matColumnDef="concepto"
+          ><th mat-header-cell *matHeaderCellDef>Concepto / período</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.concepto }}<small>{{ c.periodo + '-01' | date: 'MMMM yyyy' }}</small>
+          </td></ng-container
+        >
+        <ng-container matColumnDef="importe"
+          ><th mat-header-cell *matHeaderCellDef>Importe total</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}
+          </td></ng-container
+        >
+        <ng-container matColumnDef="abonado"
+          ><th mat-header-cell *matHeaderCellDef>Abonado</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}
+          </td></ng-container
+        >
+        <ng-container matColumnDef="saldo"
+          ><th mat-header-cell *matHeaderCellDef>Saldo pendiente</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}
+          </td></ng-container
+        >
+        <ng-container matColumnDef="vencimiento"
+          ><th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+          <td mat-cell *matCellDef="let c">
+            {{ c.vencimiento | date: 'dd/MM/yyyy' }}
+          </td></ng-container
+        >
+        <ng-container matColumnDef="estado"
+          ><th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let c">
+            <span
+              class="badge"
+              [class.badge--pagado]="c.estado === 'Pagada'"
+              [class.badge--pendiente]="c.estado === 'Pendiente' || c.estado === 'Parcial'"
+              [class.badge--vencido]="c.estado === 'Vencida'"
+              >{{ c.estado }}</span
+            >
+            @if (c.estado === 'Vencida' && c.abonado > 0) {
+              <small>Con pagos parciales</small>
+            }
+          </td></ng-container
+        >
+        <ng-container matColumnDef="acciones"
+          ><th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let c">
+            <div class="row-actions">
+              <button
+                mat-button
+                (click)="detalle(c)"
+                [attr.aria-label]="'Ver detalle de ' + c.alumno + ', ' + c.concepto"
+              >
+                Detalle</button
+              ><button
+                mat-button
+                (click)="nueva(c)"
+                [attr.aria-label]="'Editar cuota de ' + c.alumno"
+              >
+                Editar
+              </button>
+              @if (c.saldo > 0) {
+                <button
+                  mat-button
+                  (click)="pago(c)"
+                  [attr.aria-label]="'Registrar pago de ' + c.alumno"
+                >
+                  Registrar pago
+                </button>
+              }
+            </div>
+          </td></ng-container
+        >
         <tr mat-header-row *matHeaderRowDef="columnas"></tr>
         <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+        <tr *matNoDataRow>
+          <td [attr.colspan]="columnas.length" class="empty">
+            No hay cuotas que coincidan. Podés crear una con “Nueva cuota”.
+          </td>
+        </tr>
       </table>
     </div>
-  </mat-card-content>
-</mat-card>
+  </mat-card-content></mat-card
+>

@@ -1,4 +1,4 @@
-﻿import { DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AlumnoRegistro, EstadoRegistroAlumno, ModalidadAlumno } from '../../core/alumno';
+import { CuentasService } from '../../core/services/cuentas-service';
 import { AlumnosService } from '../../core/services/alumnos-service';
 import { PageHeader } from '../../shared/page-header/page-header';
 import { AlumnoForm } from './alumno-form';
@@ -38,6 +39,7 @@ const normalizar = (texto: string) =>
 })
 export class Alumnos {
   readonly service = inject(AlumnosService);
+  readonly cuentasService = inject(CuentasService);
   private readonly dialog = inject(MatDialog);
   readonly busqueda = signal('');
   readonly modalidad = signal<ModalidadAlumno | ''>('');

@@ -1,0 +1,96 @@
+﻿<h2 mat-dialog-title>{{ titulo }}</h2>
+<form [formGroup]="data.tipo === 'cuota' ? cuotaForm : pagoForm" (ngSubmit)="guardar()">
+  <mat-dialog-content>
+    @if (data.tipo === 'cuota') {
+      <div class="form-grid" [formGroup]="cuotaForm">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Alumno</mat-label>
+          <mat-select formControlName="alumnoId" required>
+            @for (a of alumnos.alumnos(); track a.id) {
+              <mat-option [value]="a.id"
+                >{{ a.nombre }} {{ a.apellido }} · {{ a.modalidad }} · {{ a.estado }}</mat-option
+              >
+            }</mat-select
+          ><mat-error>Seleccioná un alumno existente.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Concepto</mat-label
+          ><input matInput formControlName="concepto" maxlength="150" required />
+          <mat-error>Ingresá un concepto.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Período</mat-label
+          ><input matInput type="month" formControlName="periodo" required />
+          <mat-error>Ingresá un mes y año válidos.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Importe total (ARS)</mat-label
+          ><input
+            matInput
+            type="number"
+            min="0.01"
+            step="0.01"
+            formControlName="importe"
+            required
+          />
+          <mat-error>Ingresá un importe positivo con hasta 2 decimales.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Vencimiento</mat-label
+          ><input matInput type="date" formControlName="vencimiento" required />
+          <mat-error>Ingresá una fecha válida.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Observaciones</mat-label
+          ><textarea matInput rows="3" formControlName="observaciones" maxlength="3000"></textarea>
+        </mat-form-field>
+      </div>
+    } @else {
+      <p>{{ data.cuota.concepto }} · {{ data.cuota.periodo }}</p>
+      <p>
+        Disponible para este pago:
+        <strong>{{ disponible | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+      </p>
+      <div class="form-grid" [formGroup]="pagoForm">
+        <mat-form-field appearance="outline">
+          <mat-label>Importe abonado (ARS)</mat-label
+          ><input
+            matInput
+            type="number"
+            min="0.01"
+            step="0.01"
+            formControlName="importe"
+            required
+          />
+          <mat-error>Ingresá un importe positivo con hasta 2 decimales.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de pago</mat-label
+          ><input matInput type="date" [max]="service.hoy()" formControlName="fecha" required />
+          <mat-error>Ingresá una fecha válida.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Medio de pago</mat-label>
+          <mat-select formControlName="medio">
+            <mat-option value="Efectivo">Efectivo</mat-option
+            ><mat-option value="Transferencia">Transferencia</mat-option
+            ><mat-option value="Otro">Otro</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Observaciones</mat-label
+          ><textarea matInput rows="3" formControlName="observaciones" maxlength="3000"></textarea>
+        </mat-form-field>
+      </div>
+    }
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="confirmando() || !service.disponible()">
+      Guardar
+    </button>
+  </mat-dialog-actions>
+</form>

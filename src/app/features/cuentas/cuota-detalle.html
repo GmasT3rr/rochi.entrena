@@ -1,0 +1,89 @@
+﻿<h2 mat-dialog-title>Detalle de cuota</h2>
+<mat-dialog-content>
+  @if (cuenta(); as c) {
+    <dl class="summary">
+      <div>
+        <dt>Alumno</dt>
+        <dd>{{ c.alumno }}</dd>
+      </div>
+      <div>
+        <dt>Concepto</dt>
+        <dd>{{ c.concepto }}</dd>
+      </div>
+      <div>
+        <dt>Período</dt>
+        <dd>{{ c.periodo + '-01' | date: 'MMMM yyyy' }}</dd>
+      </div>
+      <div>
+        <dt>Vencimiento</dt>
+        <dd>{{ c.vencimiento | date: 'dd/MM/yyyy' }}</dd>
+      </div>
+      <div>
+        <dt>Importe total</dt>
+        <dd>{{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Total abonado</dt>
+        <dd>{{ c.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Saldo pendiente</dt>
+        <dd>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Estado</dt>
+        <dd>
+          {{ c.estado
+          }}{{ c.estado === 'Vencida' && c.abonado > 0 ? ' · Con pagos parciales' : '' }}
+        </dd>
+      </div>
+      <div class="wide">
+        <dt>Observaciones</dt>
+        <dd>{{ c.observaciones || 'Sin observaciones' }}</dd>
+      </div>
+    </dl>
+    <div class="actions">
+      <button mat-button (click)="editar()">Editar cuota</button>
+      @if (c.saldo > 0) {
+        <button mat-flat-button (click)="pago()">Registrar pago</button>
+      }
+      @if (!c.pagos.length) {
+        <button mat-button (click)="eliminar()">Eliminar cuota</button>
+      }
+    </div>
+    <h3>Historial de pagos</h3>
+    <ul class="payments">
+      @for (p of c.pagos; track p.id) {
+        <li>
+          <div>
+            <strong>{{ p.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong> ·
+            {{ p.fecha | date: 'dd/MM/yyyy' }} · {{ p.medio }}
+            <p>{{ p.observaciones || 'Sin observaciones' }}</p>
+          </div>
+          <div class="actions">
+            <button mat-button (click)="pago(p)" [attr.aria-label]="'Editar pago del ' + p.fecha">
+              Editar pago</button
+            ><button
+              mat-button
+              (click)="eliminar(p)"
+              [attr.aria-label]="'Eliminar pago del ' + p.fecha"
+            >
+              Eliminar pago
+            </button>
+          </div>
+        </li>
+      } @empty {
+        <li>No hay pagos registrados para esta cuota.</li>
+      }
+    </ul>
+  } @else {
+    <p>La cuota ya no existe.</p>
+  }
+  @if (service.error()) {
+    <p role="alert">{{ service.error() }}</p>
+  }
+  <p role="status">{{ service.mensaje() }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end"
+  ><button mat-button mat-dialog-close>Cerrar</button></mat-dialog-actions
+>
