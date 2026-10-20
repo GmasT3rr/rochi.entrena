@@ -6,7 +6,7 @@
 <section class="stats" aria-label="Indicadores principales">
   <app-stat-card
     label="Alumnos activos"
-    [value]="'' + resumen.alumnosActivos"
+    [value]="'' + alumnosService.activos()"
     hint="Presenciales y online"
     icon="groups"
   />

@@ -1,0 +1,71 @@
+﻿<h2 mat-dialog-title>{{ alumno ? 'Editar alumno' : 'Agregar alumno' }}</h2>
+<form [formGroup]="form" (ngSubmit)="guardar()">
+  <mat-dialog-content>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre</mat-label>
+        <input
+          matInput
+          formControlName="nombre"
+          autocomplete="given-name"
+          maxlength="100"
+          required
+        />
+        <mat-error>Ingresá un nombre válido.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Apellido</mat-label>
+        <input
+          matInput
+          formControlName="apellido"
+          autocomplete="family-name"
+          maxlength="100"
+          required
+        />
+        <mat-error>Ingresá un apellido válido.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Teléfono</mat-label>
+        <input matInput formControlName="telefono" type="tel" autocomplete="tel" maxlength="40" />
+        <mat-error>Usá números, espacios o signos de teléfono.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="email" maxlength="254" />
+        <mat-error>Ingresá un email válido.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Modalidad</mat-label>
+        <mat-select formControlName="modalidad">
+          <mat-option value="Presencial">Presencial</mat-option>
+          <mat-option value="Online">Online</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="estado">
+          <mat-option value="Activo">Activo</mat-option>
+          <mat-option value="En pausa">En pausa</mat-option>
+          <mat-option value="Inactivo">Inactivo</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Fecha de ingreso</mat-label>
+        <input matInput formControlName="fechaIngreso" type="date" required />
+        <mat-error>Ingresá una fecha válida.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Observaciones</mat-label>
+        <textarea matInput formControlName="observaciones" rows="3" maxlength="3000"></textarea>
+        <mat-error>El máximo es de 3000 caracteres.</mat-error>
+      </mat-form-field>
+    </div>
+    @if (service.error()) {
+      <p role="alert">{{ service.error() }}</p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="confirmando()">Guardar</button>
+  </mat-dialog-actions>
+</form>
