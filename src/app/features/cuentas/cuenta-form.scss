@@ -15,3 +15,9 @@ p {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.period-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 0.65fr);
+  gap: 1rem;
+}

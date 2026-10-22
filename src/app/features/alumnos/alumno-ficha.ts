@@ -2,9 +2,10 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+
+import { AlumnosService } from '../../core/services/alumnos-service';
 import { CuentasService } from '../../core/services/cuentas-service';
 import { CuotaDetalle } from '../cuentas/cuota-detalle';
-import { AlumnosService } from '../../core/services/alumnos-service';
 
 @Component({
   selector: 'app-alumno-ficha',
@@ -40,29 +41,51 @@ import { AlumnosService } from '../../core/services/alumnos-service';
           <dd>{{ a.estado }}</dd>
           <dt>Fecha de ingreso</dt>
           <dd>{{ a.fechaIngreso | date: 'dd/MM/yyyy' }}</dd>
-          @if (cuentas.proximaCuota(a.id); as fecha) {
-            <dt>Próxima cuota</dt>
-            <dd>{{ fecha | date: 'dd/MM/yyyy' }}</dd>
-          }
           <dt>Observaciones</dt>
           <dd>{{ a.observaciones || 'Sin observaciones' }}</dd>
         </dl>
-        <h3>Cuotas y pagos</h3>
+        <h3>Configuración de cobro</h3>
         <p>
-          Saldo total pendiente:
-          <strong>{{ cuentas.saldoAlumno(a.id) | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+          Cuota mensual: {{ a.configuracionMensual?.habilitada ? 'Habilitada' : 'Deshabilitada' }}
         </p>
-        @for (c of cuentas.cuotasAlumno(a.id); track c.id) {
-          <div class="student-account">
-            <strong>{{ c.concepto }} · {{ c.periodo + '-01' | date: 'MMMM yyyy' }}</strong>
-            <p>{{ c.estado }} · Saldo: {{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</p>
-            <button mat-button (click)="detalle(c.id)">Ver cuota e historial de pagos</button>
-          </div>
-        } @empty {
-          <p>Sin cuotas.</p>
+        @if (a.configuracionMensual) {
+          <dl>
+            <dt>Importe mensual</dt>
+            <dd>{{ a.configuracionMensual!.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+            <dt>Día de vencimiento</dt>
+            <dd>{{ a.configuracionMensual!.diaVencimiento }} (o el último día del mes)</dd>
+          </dl>
         }
-        @if (cuentas.error()) {
-          <p role="alert">{{ cuentas.error() }}</p>
+        <p>Podés modificar esta configuración desde Editar alumno.</p>
+        <h3>Cuotas y pagos en PostgreSQL</h3>
+        <button
+          mat-button
+          (click)="cuentas.recargar()"
+          [disabled]="cuentas.cargando() || cuentas.guardando()"
+        >
+          Actualizar cuentas
+        </button>
+        @if (cuentas.cargando()) {
+          <p role="status">Cargando cuotas y pagos…</p>
+        } @else if (cuentas.errorCarga()) {
+          <p role="alert">{{ cuentas.error() || cuentas.errorCarga() }}</p>
+        } @else if (cuentas.disponible()) {
+          <p>
+            Saldo pendiente:
+            <strong>{{ cuentas.saldoAlumno(a.id) | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+          </p>
+          @if (cuentas.proximaCuota(a.id); as fecha) {
+            <p>Próximo vencimiento: {{ fecha | date: 'dd/MM/yyyy' }}</p>
+          }
+          @for (c of cuentas.cuotasAlumno(a.id); track c.id) {
+            <p>
+              {{ c.concepto }} · {{ c.periodo }} · {{ c.estado }} · Saldo
+              {{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}
+            </p>
+            <button mat-button (click)="detalle(c.id)">Ver cuota e historial de pagos</button>
+          } @empty {
+            <p>No hay cuotas registradas para este alumno.</p>
+          }
         }
       } @else {
         <p>No se encontró el alumno.</p>
@@ -76,6 +99,9 @@ import { AlumnosService } from '../../core/services/alumnos-service';
 export class AlumnoFicha {
   readonly cuentas = inject(CuentasService);
   private readonly dialog = inject(MatDialog);
+  constructor() {
+    void this.cuentas.recargar();
+  }
   detalle(id: string): void {
     this.dialog.open(CuotaDetalle, {
       data: id,
@@ -85,6 +111,6 @@ export class AlumnoFicha {
     });
   }
   private readonly id = inject<string>(MAT_DIALOG_DATA);
-  private readonly service = inject(AlumnosService);
+  readonly service = inject(AlumnosService);
   readonly alumno = computed(() => this.service.alumnos().find((a) => a.id === this.id));
 }

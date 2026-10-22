@@ -1,0 +1,33 @@
+mat-form-field {
+  margin-right: 0.75rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 440px;
+}
+th,
+td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--hub-border);
+}
+p,
+li {
+  line-height: 1.5;
+}
+li {
+  overflow-wrap: anywhere;
+}
+[role='alert'] {
+  color: var(--hub-error);
+}
+@media (max-width: 599.98px) {
+  mat-form-field {
+    width: 100%;
+    margin-right: 0;
+  }
+  mat-dialog-actions {
+    flex-wrap: wrap;
+  }
+}

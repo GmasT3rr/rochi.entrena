@@ -1,5 +1,8 @@
 ﻿import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { importeValido } from '../../core/cuentas';
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -23,6 +26,7 @@ import { ConfirmarAlumno } from './confirmar-alumno';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatCheckboxModule,
   ],
   templateUrl: './alumno-form.html',
   styleUrl: './alumno-form.scss',
@@ -34,6 +38,8 @@ export class AlumnoForm {
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   readonly confirmando = signal(false);
+  // Reutilizar el ID al reintentar una alta cuyo resultado de red sea incierto.
+  private readonly nuevoId = crypto.randomUUID();
   private readonly hoy = new Date();
   readonly form = this.fb.nonNullable.group({
     nombre: [
@@ -57,11 +63,42 @@ export class AlumnoForm {
       Validators.required,
     ],
     observaciones: [this.alumno?.observaciones ?? '', Validators.maxLength(3000)],
+    habilitarMensual: [this.alumno?.configuracionMensual?.habilitada ?? false],
+    importeMensual: this.fb.control<number | null>(
+      this.alumno?.configuracionMensual?.importe ?? null,
+      [
+        Validators.required,
+        (c: AbstractControl) => (importeValido(c.value) ? null : { importe: true }),
+      ],
+    ),
+    diaVencimiento: this.fb.control<number | null>(
+      this.alumno?.configuracionMensual?.diaVencimiento ?? null,
+      [
+        Validators.required,
+        Validators.min(1),
+        Validators.max(31),
+        (c: AbstractControl) => (Number.isInteger(c.value) ? null : { dia: true }),
+      ],
+    ),
   });
 
-  guardar(): void {
+  constructor() {
+    this.actualizarCobro(this.form.controls.habilitarMensual.value);
+    this.form.controls.habilitarMensual.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((habilitada) => this.actualizarCobro(habilitada));
+  }
+
+  private actualizarCobro(habilitada: boolean): void {
+    for (const control of [this.form.controls.importeMensual, this.form.controls.diaVencimiento]) {
+      if (habilitada) control.enable();
+      else control.disable();
+    }
+  }
+
+  async guardar(): Promise<void> {
     this.form.markAllAsTouched();
-    if (this.form.invalid || this.confirmando()) return;
+    if (this.form.invalid || this.confirmando() || this.service.guardando()) return;
     const estado = this.form.getRawValue().estado;
     if (
       this.alumno &&
@@ -83,10 +120,23 @@ export class AlumnoForm {
           this.confirmando.set(false);
           if (confirmado) this.persistir();
         });
-    } else this.persistir();
+    } else await this.persistir();
   }
 
-  private persistir(): void {
-    if (this.service.guardar(this.form.getRawValue(), this.alumno?.id)) this.ref.close(true);
+  private async persistir(): Promise<void> {
+    const anteriorDisableClose = this.ref.disableClose;
+    this.ref.disableClose = true;
+    try {
+      const { habilitarMensual, importeMensual, diaVencimiento, ...datos } = this.form.getRawValue();
+      const configuracionMensual = habilitarMensual
+        ? { habilitada: true, importe: importeMensual!, diaVencimiento: diaVencimiento! }
+        : this.alumno?.configuracionMensual
+          ? { ...this.alumno.configuracionMensual, habilitada: false }
+          : undefined;
+      const guardado = this.alumno
+        ? await this.service.guardar({ ...datos, configuracionMensual }, this.alumno.id)
+        : await this.service.guardar({ ...datos, configuracionMensual }, undefined, this.nuevoId);
+      if (guardado) this.ref.close(true);
+    } finally { this.ref.disableClose = anteriorDisableClose; }
   }
 }

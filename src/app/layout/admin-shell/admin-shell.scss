@@ -91,7 +91,7 @@
   height: 64px;
   padding: 0 1rem;
   gap: 0.5rem;
-  background: color-mix(in srgb, var(--hub-canvas) 88%, white);
+  background: color-mix(in srgb, var(--hub-canvas) 88%, var(--hub-surface));
   border-bottom: 1px solid var(--hub-border);
   color: var(--hub-ink);
 }
@@ -119,7 +119,7 @@
   height: 2rem;
   border-radius: 999px;
   background: var(--hub-accent);
-  color: white;
+  color: var(--hub-on-accent);
   font-size: 0.85rem;
   font-weight: 600;
 }

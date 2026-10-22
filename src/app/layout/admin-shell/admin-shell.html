@@ -11,9 +11,9 @@
     aria-label="Navegación principal"
   >
     <div class="brand">
-      <span class="brand__mark" aria-hidden="true">RH</span>
+      <span class="brand__mark" aria-hidden="true">TC</span>
       <div class="brand__text">
-        <strong>Rochy</strong>
+        <strong>TusCuentasFacil</strong>
         <span>Panel administrativo</span>
       </div>
     </div>
@@ -34,7 +34,7 @@
 
     <div class="sidebar__footer">
       <mat-divider />
-      <p>Espacio de trabajo de Rochy</p>
+      <p>Espacio de trabajo de TusCuentasFacil</p>
     </div>
   </mat-sidenav>
 
@@ -57,13 +57,21 @@
       <span class="topbar__spacer"></span>
 
       <div class="user" aria-label="Usuario actual">
-        <span class="user__avatar" aria-hidden="true">R</span>
-        <span class="user__name">Rochy</span>
+        <span class="user__avatar" aria-hidden="true">TC</span>
+        <span class="user__name">TusCuentasFacil</span>
       </div>
+      <button matIconButton type="button" aria-label="Cerrar sesión" [disabled]="signingOut()" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
     </mat-toolbar>
 
     <main id="contenido-principal" class="main" tabindex="-1">
-      <router-outlet />
+      @if (logoutError()) { <p role="alert">{{ logoutError() }}</p> }
+      @if (authorization.status() === 'authorized') {
+        <router-outlet />
+      } @else {
+        <p role="status">Comprobando permisos de acceso…</p>
+      }
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>

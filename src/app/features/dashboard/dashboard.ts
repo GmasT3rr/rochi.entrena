@@ -1,36 +1,51 @@
-﻿import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
-import { MatCard, MatCardContent, MatCardHeader, MatCardTitle } from '@angular/material/card';
-import { AlumnosService } from '../../core/services/alumnos-service';
-import { CuentasService } from '../../core/services/cuentas-service';
+import { Component, inject } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { PageHeader } from '../../shared/page-header/page-header';
+import { MatCard, MatCardContent } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
 import { StatCard } from '../../shared/stat-card/stat-card';
+import { ResumenDashboard } from '../../core/services/resumen-dashboard';
 
 @Component({
+  selector: 'app-dashboard',
   imports: [
+    PageHeader,
+    MatCard,
+    MatCardContent,
     CurrencyPipe,
     DatePipe,
-    MatCard,
-    MatCardHeader,
-    MatCardTitle,
-    MatCardContent,
-    PageHeader,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
     StatCard,
   ],
-  selector: 'app-dashboard',
-  styleUrl: './dashboard.scss',
   templateUrl: './dashboard.html',
+  styleUrl: './dashboard.scss',
 })
 export class Dashboard {
-  readonly alumnosService = inject(AlumnosService);
-  readonly cuentas = inject(CuentasService);
-  readonly actividades = computed(() =>
-    [...this.cuentas.pagos()]
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))
-      .slice(0, 4)
-      .map((p) => {
-        const c = this.cuentas.cuentas().find((c) => c.id === p.cuotaId);
-        return { ...p, alumno: c?.alumno ?? 'Alumno no disponible', concepto: c?.concepto ?? '' };
-      }),
-  );
+  readonly resumen = inject(ResumenDashboard);
+  readonly cuentas = this.resumen.cuentas;
+  readonly meses = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+
+  cambiarMes(mes: string): void {
+    this.resumen.elegirPeriodo(this.resumen.periodo().slice(0, 4) + '-' + mes);
+  }
+  cambiarAnio(valor: string): void {
+    if (/^\d{4}$/.test(valor)) this.resumen.elegirPeriodo(valor + this.resumen.periodo().slice(4));
+  }
 }

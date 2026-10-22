@@ -1,4 +1,4 @@
-﻿import { ModalidadAlumno } from './alumno';
+﻿import type { ModalidadAlumno } from './alumno';
 
 export interface Cuota {
   id: string;
@@ -105,4 +105,10 @@ export function validarCuentas(data: unknown): asserts data is CuentasData {
   for (const c of x.cuotas)
     if ((totales.get(c.id) ?? 0) > centavos(c.importe))
       throw Error('Los pagos superan el importe de una cuota.');
+}
+
+export interface VistaPreviaMensual {
+  periodo: string;
+  cuotas: DatosCuota[];
+  omitidos: { alumnoId: string; alumno: string; motivo: string }[];
 }

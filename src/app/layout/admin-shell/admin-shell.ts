@@ -9,6 +9,8 @@ import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/mat
 import { MatToolbar } from '@angular/material/toolbar';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { AuthService, authError } from '../../core/auth/auth-service';
+import { AdminAuthorization } from '../../core/auth/admin-authorization';
 
 interface NavItem {
   label: string;
@@ -38,10 +40,27 @@ interface NavItem {
   templateUrl: './admin-shell.html',
 })
 export class AdminShell {
+  readonly authorization = inject(AdminAuthorization);
+  readonly auth = inject(AuthService);
+  readonly signingOut = signal(false);
+  readonly logoutError = signal('');
+
+  async logout(): Promise<void> {
+    this.signingOut.set(true);
+    this.logoutError.set('');
+    try {
+      await this.auth.signOut();
+    } catch (error) {
+      this.logoutError.set(authError(error));
+    } finally {
+      this.signingOut.set(false);
+    }
+  }
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly router = inject(Router);
 
   readonly navItems: NavItem[] = [
+    { label: '❤️ Te quiero Rochy', path: '/te-quiero-rochy', icon: 'favorite' },
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
     { label: 'Alumnos', path: '/alumnos', icon: 'groups' },
     { label: 'Cuentas y pagos', path: '/cuentas', icon: 'account_balance_wallet' },

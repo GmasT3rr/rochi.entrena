@@ -1,12 +1,17 @@
 ﻿import { Injectable } from '@angular/core';
 import { AlumnoRegistro, esAlumno } from '../alumno';
+import { inject } from '@angular/core';
+import { DatosRepository } from './datos-repository';
 
 export const ALUMNOS_STORAGE_KEY = 'rochy.alumnos.v1';
 
 // Reemplazable por un repositorio HTTP cuando exista una API.
 @Injectable({ providedIn: 'root' })
 export class AlumnosRepository {
+  private readonly datos = inject(DatosRepository);
   cargar(): AlumnoRegistro[] | null {
+    const conjunto = this.datos.cargar();
+    if (conjunto) return conjunto.alumnos;
     const raw = localStorage.getItem(ALUMNOS_STORAGE_KEY);
     if (raw === null) return null;
     const data: unknown = JSON.parse(raw);
@@ -21,6 +26,11 @@ export class AlumnosRepository {
   }
 
   guardar(alumnos: readonly AlumnoRegistro[]): void {
+    const conjunto = this.datos.cargar();
+    if (conjunto) {
+      this.datos.reemplazar({ ...conjunto, alumnos: [...alumnos] });
+      return;
+    }
     localStorage.setItem(ALUMNOS_STORAGE_KEY, JSON.stringify(alumnos));
   }
 }

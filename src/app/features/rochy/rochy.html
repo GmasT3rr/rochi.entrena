@@ -1,0 +1,37 @@
+﻿<section class="romance" aria-labelledby="romance-title" (pointerdown)="tocar($event)">
+  <div class="halo halo--one" aria-hidden="true"></div>
+  <div class="halo halo--two" aria-hidden="true"></div>
+  <div class="message">
+    <span class="eyebrow">Un rinconcito para que recuerdes mi amor por vos jeje.</span>
+    <div class="big-heart" aria-hidden="true">♥</div>
+    <h2 id="romance-title">Te quiero Rochy ❤️</h2>
+    <p>Con vos, hasta los días simples se vuelven especiales.</p>
+    <button
+      mat-flat-button
+      type="button"
+      (pointerdown)="$event.stopPropagation()"
+      (click)="lluvia()"
+      [disabled]="reducido()"
+    >
+      Una lluvia de corazones
+    </button>
+    @if (reducido()) {
+      <span class="hint">Todo el cariño, con las animaciones en pausa.</span>
+    } @else {
+      <span class="hint">Tocá el fondo y dejá que el cariño vuele.</span>
+    }
+  </div>
+  <div class="particles" aria-hidden="true">
+    @for (c of corazones(); track c.id) {
+      <span
+        class="heart"
+        [class.heart--pink]="c.pink"
+        [style.left.%]="c.x"
+        [style.top.%]="c.y"
+        [style.font-size.px]="c.size"
+        [style.--drift]="c.dx + 'px'"
+        >♥</span
+      >
+    }
+  </div>
+</section>

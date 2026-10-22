@@ -1,18 +1,132 @@
-<app-page-header
-  title="Configuración"
-  subtitle="Preferencias generales del panel. En esta etapa se muestran solo valores de referencia."
-/>
+<app-page-header title="Configuración" subtitle="Preferencias y acceso a tu cuenta." />
 
-<section class="settings" aria-label="Ajustes generales">
-  @for (ajuste of ajustes; track ajuste.titulo) {
-    <mat-card appearance="outlined" class="setting">
-      <mat-card-header>
-        <mat-card-title>{{ ajuste.titulo }}</mat-card-title>
-        <mat-card-subtitle>{{ ajuste.detalle }}</mat-card-subtitle>
-      </mat-card-header>
+<div class="settings">
+  <section aria-labelledby="appearance-title">
+    <div class="section-heading">
+      <h2 id="appearance-title">Apariencia</h2>
+      <p>Elegí cómo querés ver TusCuentasFacil.</p>
+    </div>
+    <mat-card appearance="outlined">
       <mat-card-content>
-        <p>{{ ajuste.descripcion }}</p>
+        <div class="appearance">
+          <mat-form-field appearance="outline"
+            ><mat-label>Tema</mat-label>
+            <mat-select
+              [value]="apariencia.tema()"
+              (selectionChange)="apariencia.seleccionar($event.value)"
+            >
+              <mat-option value="light">Claro</mat-option
+              ><mat-option value="dark">Oscuro</mat-option
+              ><mat-option value="system">Automático (según sistema)</mat-option>
+            </mat-select>
+          </mat-form-field>
+          @if (apariencia.aviso()) {
+            <p role="status">{{ apariencia.aviso() }}</p>
+          }
+        </div>
       </mat-card-content>
     </mat-card>
-  }
-</section>
+  </section>
+
+  <section aria-labelledby="security-title">
+    <div class="section-heading">
+      <h2 id="security-title">Seguridad de la cuenta</h2>
+      <p>Actualizá tu contraseña de acceso.</p>
+    </div>
+    <mat-card appearance="outlined"
+      ><mat-card-content>
+        <form class="password-form" [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
+          <p class="muted">
+            Usá entre 12 y 128 caracteres con mayúsculas, minúsculas, números y símbolos.
+          </p>
+          @for (campo of campos; track campo.key) {
+            <mat-form-field appearance="outline">
+              <mat-label>{{ campo.label }}</mat-label>
+              <input
+                matInput
+                [type]="visibles()[campo.key] ? 'text' : 'password'"
+                [formControlName]="campo.key"
+                [autocomplete]="campo.autocomplete"
+                [readonly]="seguridad.ocupado()"
+                required
+              />
+              <button
+                matIconButton
+                matSuffix
+                type="button"
+                (click)="alternar(campo.key)"
+                [attr.aria-label]="
+                  (visibles()[campo.key] ? 'Ocultar ' : 'Mostrar ') + campo.label.toLowerCase()
+                "
+                [attr.aria-pressed]="visibles()[campo.key]"
+              >
+                <mat-icon>{{ visibles()[campo.key] ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
+          }
+          @if (seguridad.requiereCodigo()) {
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="seguridad.enviarCodigo()"
+              [disabled]="seguridad.ocupado()"
+            >
+              Enviar código de verificación
+            </button>
+            <mat-form-field appearance="outline"
+              ><mat-label>Código de verificación</mat-label
+              ><input
+                matInput
+                formControlName="codigo"
+                autocomplete="one-time-code"
+                [readonly]="seguridad.ocupado()"
+            /></mat-form-field>
+          }
+          @if (seguridad.error()) {
+            <p role="alert">{{ seguridad.error() }}</p>
+          }
+          @if (seguridad.mensaje()) {
+            <p role="status">{{ seguridad.mensaje() }}</p>
+          }
+          <button
+            mat-flat-button
+            type="submit"
+            [disabled]="seguridad.ocupado() || cerrandoSesion()"
+          >
+            {{ seguridad.ocupado() ? 'Procesando…' : 'Cambiar contraseña' }}
+          </button>
+        </form>
+      </mat-card-content></mat-card
+    >
+  </section>
+
+  <section aria-labelledby="session-title">
+    <div class="section-heading">
+      <h2 id="session-title">Sesión</h2>
+    </div>
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <div class="session">
+          <div class="session__details">
+            @if (correo()) {
+              <p class="session__email">{{ correo() }}</p>
+            }
+            <p class="muted">Cerrá tu sesión cuando termines de usar la aplicación.</p>
+          </div>
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="cerrarSesion()"
+            [disabled]="cerrandoSesion() || seguridad.ocupado()"
+          >
+            <mat-icon>logout</mat-icon>
+            {{ cerrandoSesion() ? 'Cerrando sesión…' : 'Cerrar sesión' }}
+          </button>
+        </div>
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  </section>
+</div>

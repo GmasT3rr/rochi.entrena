@@ -1,73 +1,97 @@
-﻿<app-page-header
-  title="Resumen del día"
-  subtitle="Una vista rápida de alumnos, cobros y vencimientos."
-/>
-@if (cuentas.error()) {
-  <p role="alert">{{ cuentas.error() }}</p>
-}
-<section class="stats" aria-label="Indicadores principales">
-  <app-stat-card
-    label="Alumnos activos"
-    [value]="'' + alumnosService.activos()"
-    hint="Presenciales y online"
-    icon="groups"
-  />
-  <app-stat-card
-    label="Cuotas pendientes"
-    [value]="'' + cuentas.pendientes().length"
-    hint="Incluye parciales y vencidas"
-    icon="schedule"
-  />
-  <app-stat-card
-    label="Recaudado este mes"
-    [value]="(cuentas.ingresosMes() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
-    [hint]="(cuentas.hoy() | date: 'MMMM yyyy') ?? ''"
-    icon="payments"
-  />
-  <app-stat-card
-    label="Próximos vencimientos"
-    [value]="'' + cuentas.proximos().length"
-    hint="Desde hoy hasta los próximos 7 días"
-    icon="event"
-  />
-</section>
-<section class="panels">
-  <mat-card appearance="outlined" class="panel"
-    ><mat-card-header><mat-card-title>Actividad reciente</mat-card-title></mat-card-header
+<app-page-header title="Dashboard" subtitle="Alumnos, cobros y saldos de tu actividad." />
+<div class="dashboard-toolbar">
+  <mat-form-field appearance="outline">
+    <mat-label>Mes</mat-label>
+    <mat-select
+      aria-label="Mes"
+      [value]="resumen.periodo().slice(5)"
+      (selectionChange)="cambiarMes($event.value)"
+    >
+      @for (mes of meses; track mes; let i = $index) {
+        <mat-option [value]="(i + 1).toString().padStart(2, '0')">{{ mes }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field appearance="outline" class="period-year">
+    <mat-label>Año</mat-label>
+    <input
+      matInput
+      type="number"
+      aria-label="Año"
+      min="1900"
+      max="9999"
+      step="1"
+      [value]="resumen.periodo().slice(0, 4)"
+      (input)="cambiarAnio($any($event.target).value)"
+      (blur)="$any($event.target).value = resumen.periodo().slice(0, 4)"
+    />
+  </mat-form-field>
+</div>
+@if (cuentas.cargando() || cuentas.guardando()) {
+  <p role="status">Actualizando resumen…</p>
+} @else if (cuentas.errorCarga()) {
+  <p role="alert">No pudimos cargar el resumen. Recargá la página para reintentar.</p>
+} @else if (!cuentas.disponible()) {
+  <p role="status">Cargando resumen…</p>
+} @else {
+  @if (resumen.vacio()) {
+    <p role="status">Todavía no hay datos para mostrar. Podés comenzar agregando alumnos.</p>
+  }
+  <h2>Alumnos actuales</h2>
+  <section class="stats" aria-label="Alumnos actuales">
+    <app-stat-card
+      label="Alumnos activos"
+      [value]="'' + resumen.activos().length"
+      hint="Situación actual, independiente del período"
+      icon="groups"
+    />
+    <app-stat-card
+      label="Activos presenciales"
+      [value]="'' + resumen.presenciales()"
+      icon="location_on"
+    />
+    <app-stat-card label="Activos online" [value]="'' + resumen.online()" icon="devices" />
+  </section>
+  <h2>Resumen del período</h2>
+  <p class="scope">
+    Los cobros corresponden a pagos recibidos durante el mes. Los saldos y estados corresponden a
+    cuotas del período seleccionado.
+  </p>
+  <section class="stats" aria-label="Indicadores del período">
+    <app-stat-card
+      label="Cobrado en el mes"
+      [value]="(resumen.ingresos() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+      hint="Incluye pagos parciales y cuotas de otros períodos"
+      icon="payments"
+    />
+    <app-stat-card
+      label="Pendiente de cobro"
+      [value]="(resumen.pendiente() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+      hint="Saldo de cuotas del período"
+      icon="account_balance_wallet"
+    />
+    <app-stat-card label="Cuotas vencidas" [value]="'' + resumen.vencidas()" icon="event_busy" />
+    <app-stat-card label="Cuotas pagadas" [value]="'' + resumen.pagadas()" icon="task_alt" />
+    <app-stat-card
+      label="Con pagos parciales"
+      [value]="'' + resumen.parciales()"
+      hint="Incluye cuotas vencidas con abonos"
+      icon="pie_chart"
+    />
+  </section>
+  <mat-card appearance="outlined" class="panel debt-panel"
     ><mat-card-content>
-      <ul class="timeline">
-        @for (p of actividades(); track p.id) {
-          <li>
-            <div>
-              <strong
-                >Pago registrado · {{ p.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong
-              >
-              <p>{{ p.alumno }} · {{ p.concepto }}</p>
-            </div>
-            <time [attr.datetime]="p.fecha">{{ p.fecha | date: 'dd/MM/yyyy' }}</time>
-          </li>
-        } @empty {
-          <li>No hay pagos registrados.</li>
-        }
-      </ul>
-    </mat-card-content></mat-card
-  >
-  <mat-card appearance="outlined" class="panel"
-    ><mat-card-header><mat-card-title>Cobros a seguir</mat-card-title></mat-card-header
-    ><mat-card-content>
+      <h2>Vencimientos y deudas del período</h2>
       <ul class="follow-up">
-        @for (c of cuentas.cobros(); track c.id) {
+        @for (c of resumen.deudas(); track c.id) {
           <li>
             <div>
               <strong>{{ c.alumno }}</strong>
-              <p>{{ c.concepto }} · {{ c.vencimiento | date: 'dd/MM/yyyy' }}</p>
-              @if (c.abonado > 0) {
-                <p>Con pagos parciales</p>
-              }
+              <p>{{ c.concepto }} · Vence {{ c.vencimiento | date: 'dd/MM/yyyy' }}</p>
             </div>
             <div class="follow-up__meta">
-              <span>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</span
-              ><span
+              <strong>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+              <span
                 class="badge"
                 [class.badge--vencido]="c.estado === 'Vencida'"
                 [class.badge--pendiente]="c.estado !== 'Vencida'"
@@ -76,9 +100,13 @@
             </div>
           </li>
         } @empty {
-          <li>No hay cuotas con saldo pendiente.</li>
+          <li>No hay saldos pendientes para este período.</li>
         }
       </ul>
+      <p class="scope">
+        Hasta 8 cuotas, ordenadas por vencimiento. Podés consultar el detalle completo en Cuentas y
+        pagos.
+      </p>
     </mat-card-content></mat-card
   >
-</section>
+}

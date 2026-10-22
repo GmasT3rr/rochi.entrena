@@ -31,9 +31,15 @@
       <mat-option value="Inactivo">Inactivo</mat-option>
     </mat-select>
   </mat-form-field>
-  <button mat-flat-button (click)="editar()">Agregar alumno</button>
+  <button mat-flat-button (click)="editar()" [disabled]="service.cargando() || service.guardando()">Agregar alumno</button>
+  <button mat-button (click)="service.recargar()" [disabled]="service.cargando() || service.guardando()">Actualizar</button>
 </div>
-@if (service.error()) {
+<p>Alumnos en PostgreSQL. Consultá sus cuotas, saldos y pagos desde la ficha individual.</p>
+@if (service.cargando()) { <p role="status">Cargando alumnos…</p> }
+@if (service.errorListado()) {
+  <p role="alert">{{ service.errorListado() }}</p>
+}
+@if (service.error() && service.error() !== service.errorListado()) {
   <p role="alert">{{ service.error() }}</p>
 }
 <p role="status" class="feedback">{{ mensaje() }}</p>
@@ -63,17 +69,6 @@
             </span>
           </td>
         </ng-container>
-        <ng-container matColumnDef="proximaCuota">
-          <th mat-header-cell *matHeaderCellDef>Próxima cuota</th>
-          <td mat-cell *matCellDef="let alumno">
-            {{
-              (cuentasService.proximaCuota(alumno.id) | date: 'dd/MM/yyyy') ||
-                (cuentasService.cuotasAlumno(alumno.id).length
-                  ? 'Sin cuotas pendientes'
-                  : 'Sin cuotas')
-            }}
-          </td>
-        </ng-container>
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef>Acciones</th>
           <td mat-cell *matCellDef="let alumno">
@@ -88,6 +83,7 @@
               <button
                 mat-button
                 (click)="editar(alumno)"
+                [disabled]="service.guardando() || service.cargando()"
                 [attr.aria-label]="'Editar a ' + alumno.nombre + ' ' + alumno.apellido"
               >
                 Editar
@@ -95,6 +91,7 @@
               <button
                 mat-button
                 (click)="cambiarEstado(alumno)"
+                [disabled]="service.guardando() || service.cargando()"
                 [attr.aria-label]="
                   (alumno.estado === 'Inactivo' ? 'Reactivar a ' : 'Dar de baja a ') +
                   alumno.nombre +
@@ -111,7 +108,7 @@
         <tr mat-row *matRowDef="let row; columns: columnas"></tr>
         <tr *matNoDataRow>
           <td [attr.colspan]="columnas.length" class="empty">
-            No hay alumnos que coincidan con la búsqueda.
+            {{ service.cargando() ? 'Cargando alumnos…' : service.errorListado() ? 'Listado no disponible. Actualizá para reintentar.' : service.alumnos().length ? 'No hay alumnos que coincidan con la búsqueda.' : 'Todavía no hay alumnos en PostgreSQL.' }}
           </td>
         </tr>
       </table>

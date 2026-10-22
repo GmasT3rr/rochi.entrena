@@ -39,7 +39,7 @@ Si todas están pagadas indica **Sin cuotas pendientes**; si nunca tuvo cuotas, 
 - Los estados no se persisten: se derivan de los pagos y vencimientos.
 - Las relaciones se validan al leer y guardar. Los datos corruptos no se reemplazan por ejemplos.
 - La clave de alumnos `rochy.alumnos.v1` no se reinicializa ni se modifica desde cuentas.
-- Solo si no existe almacenamiento de cuentas se crean hasta tres cuotas de demostración y dos pagos, vinculados a alumnos reales del prototipo, con observaciones que los identifican.
+- Si no existe almacenamiento de cuentas, se inicia vacío. No se crean cuotas ni pagos al abrir la aplicación.
 - Un listado guardado vacío se respeta y no vuelve a llenarse.
 - Ingresos del mes: suma de pagos cuya fecha pertenece al mes local actual.
 - Cuotas pendientes: todas las cuotas con saldo positivo, incluidas parciales y vencidas.
@@ -58,3 +58,34 @@ Los tests cubren cuotas, pagos completos y parciales, ediciones y bajas, precisi
 fechas, duplicados, relaciones, persistencia, indicadores y errores de almacenamiento.
 Los componentes no acceden directamente a localStorage; el repositorio concentra esa dependencia
 para permitir su sustitución al incorporar una API REST.
+
+## Configuración y generación mensual
+
+En **Agregar alumno** o **Editar alumno**, usar la sección **Configuración de cobro**.
+La casilla **Habilitar cuota mensual** comienza desmarcada. Al marcarla se muestran los campos
+obligatorios de importe mensual en ARS (positivo, hasta dos decimales) y día de vencimiento (entero de 1 a 31).
+Al desmarcarla se ocultan; una configuración previa conserva sus valores y queda deshabilitada.
+La ficha individual muestra el estado de la configuración, importe y vencimiento cuando está habilitada.
+Los alumnos anteriores siguen sin configuración hasta que Rochy la guarde; no se migran ni reinicializan datos.
+La configuración es un objeto opcional tipado en el alumno y no modifica cuotas ni pagos existentes.
+
+En Cuentas y pagos, usar **Generar cuotas del mes**, elegir mes y año y actualizar la vista previa.
+Se detallan los importes propios de cada alumno y los vencimientos, junto con todos los omitidos y sus motivos.
+Solo **Confirmar generación** guarda el lote, en una única escritura del repositorio de cuentas.
+El servicio vuelve a comprobar la vista previa; si cambiaron alumnos, configuración o cuotas, exige actualizarla.
+El concepto es **Cuota de entrenamiento** y la clave de duplicado es alumno, concepto normalizado y período.
+Los días inexistentes se ajustan al último día del mes, incluyendo febrero bisiesto.
+
+Las pruebas incluyen varios alumnos, falta de configuración, bajas, deshabilitación, duplicados manuales
+y masivos, meses de distinta duración, precios nuevos, historial y pagos intactos, recarga y fallas de almacenamiento.
+
+### Recorrido de prueba
+
+1. Agregar un alumno sin marcar la casilla: debe guardarse sin pedir importe ni vencimiento.
+2. Agregar otro con cuota mensual habilitada, importe y día 31. Probar antes campos vacíos, cero y día 32: no deben guardarse.
+3. Editar el primero y habilitar su cuota con otro importe. Consultar ambos en la ficha individual.
+4. Generar una vista previa de febrero de 2027, febrero de 2028, abril y enero: el día 31 debe ajustarse a 28, 29, 30 y 31 respectivamente.
+5. Cancelar una vista previa: no debe crear cuotas. Confirmar otra y repetir el mismo mes: no debe duplicarlas.
+6. Poner un alumno en pausa o inactivo: la vista previa debe indicar que se omite.
+7. Cambiar el importe desde Editar alumno y generar otro mes: el importe anterior y sus pagos deben mantenerse intactos.
+8. Recargar: verificar alumnos, configuración, cuotas y pagos. Probar también un alumno anterior sin configuración y la creación manual de cuotas.

@@ -2,11 +2,21 @@
   title="Cuentas y pagos"
   subtitle="Gestioná cuotas, registrá pagos y controlá los saldos de tus alumnos."
 />
+<p>Alumnos, cuotas, pagos y generación mensual de PostgreSQL.</p>
 <div class="toolbar">
   <mat-form-field appearance="outline" class="search"
     ><mat-label>Buscar por alumno</mat-label
     ><input matInput #buscar [value]="busqueda()" (input)="busqueda.set(buscar.value)"
   /></mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Alumno</mat-label>
+    <mat-select [value]="alumnoId()" (selectionChange)="alumnoId.set($event.value)">
+      <mat-option value="">Todos</mat-option>
+      @for (a of service.alumnos(); track a.id) {
+        <mat-option [value]="a.id">{{ a.nombre }} {{ a.apellido }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
   <mat-form-field appearance="outline"
     ><mat-label>Período</mat-label
     ><mat-select [value]="periodo()" (selectionChange)="periodo.set($event.value)">
@@ -32,8 +42,13 @@
       ><mat-option value="Online">Online</mat-option>
     </mat-select></mat-form-field
   >
+  <button mat-stroked-button (click)="generar()" [disabled]="!service.disponible()">
+    Generar cuotas del mes
+  </button>
   <button mat-flat-button (click)="nueva()" [disabled]="!service.disponible()">Nueva cuota</button>
+  <button mat-button (click)="service.recargar()" [disabled]="service.guardando() || service.cargando()">Actualizar</button>
 </div>
+@if (service.cargando()) { <p role="status">Consultando cuotas y pagos…</p> }
 @if (service.error()) {
   <p role="alert">{{ service.error() }}</p>
 }
@@ -107,6 +122,7 @@
               ><button
                 mat-button
                 (click)="nueva(c)"
+                [disabled]="!service.disponible()"
                 [attr.aria-label]="'Editar cuota de ' + c.alumno"
               >
                 Editar
@@ -115,6 +131,7 @@
                 <button
                   mat-button
                   (click)="pago(c)"
+                  [disabled]="!service.disponible()"
                   [attr.aria-label]="'Registrar pago de ' + c.alumno"
                 >
                   Registrar pago
@@ -127,7 +144,7 @@
         <tr mat-row *matRowDef="let row; columns: columnas"></tr>
         <tr *matNoDataRow>
           <td [attr.colspan]="columnas.length" class="empty">
-            No hay cuotas que coincidan. Podés crear una con “Nueva cuota”.
+            {{ service.cargando() ? 'Cargando cuotas y pagos…' : service.errorCarga() ? 'Listado no disponible. Actualizá para reintentar.' : service.cuotas().length ? 'No hay cuotas que coincidan con los filtros.' : 'Todavía no hay cuotas en PostgreSQL. Podés crear una con “Nueva cuota”.' }}
           </td>
         </tr>
       </table>

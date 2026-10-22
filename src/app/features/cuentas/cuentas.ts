@@ -1,5 +1,5 @@
 ﻿import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,11 +8,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { CuentasService } from '../../core/services/cuentas-service';
-import { CuentaVista, EstadoCuota, normalizarConcepto } from '../../core/cuentas';
-import { ModalidadAlumno } from '../../core/alumno';
+import { CuentaVista, normalizarConcepto } from '../../core/cuentas';
 import { PageHeader } from '../../shared/page-header/page-header';
 import { CuentaForm } from './cuenta-form';
 import { CuotaDetalle } from './cuota-detalle';
+import { GenerarMensual } from './generar-mensual';
 
 @Component({
   imports: [
@@ -34,10 +34,11 @@ import { CuotaDetalle } from './cuota-detalle';
 export class Cuentas {
   readonly service = inject(CuentasService);
   private readonly dialog = inject(MatDialog);
-  readonly busqueda = signal('');
-  readonly periodo = signal('');
-  readonly estado = signal<EstadoCuota | ''>('');
-  readonly modalidad = signal<ModalidadAlumno | ''>('');
+  readonly busqueda = this.service.filtros.busqueda;
+  readonly periodo = this.service.filtros.periodo;
+  readonly estado = this.service.filtros.estado;
+  readonly modalidad = this.service.filtros.modalidad;
+  readonly alumnoId = this.service.filtros.alumnoId;
   readonly periodos = computed(() =>
     [...new Set(this.service.cuotas().map((c) => c.periodo))].sort().reverse(),
   );
@@ -47,6 +48,7 @@ export class Cuentas {
       .filter(
         (c) =>
           normalizarConcepto(c.alumno).includes(normalizarConcepto(this.busqueda())) &&
+          (!this.alumnoId() || c.alumnoId === this.alumnoId()) &&
           (!this.periodo() || c.periodo === this.periodo()) &&
           (!this.estado() || c.estado === this.estado()) &&
           (!this.modalidad() || c.modalidad === this.modalidad()),
@@ -62,7 +64,16 @@ export class Cuentas {
     'estado',
     'acciones',
   ];
+  generar(): void {
+    if (!this.service.disponible()) return;
+    this.dialog.open(GenerarMensual, {
+      width: '720px',
+      maxWidth: 'calc(100vw - 24px)',
+      maxHeight: '90dvh',
+    });
+  }
   nueva(cuota?: CuentaVista): void {
+    if (!this.service.disponible()) return;
     this.dialog.open(CuentaForm, {
       data: { tipo: 'cuota', cuota },
       width: '680px',
@@ -79,6 +90,7 @@ export class Cuentas {
     });
   }
   pago(cuota: CuentaVista): void {
+    if (!this.service.disponible()) return;
     this.dialog.open(CuentaForm, {
       data: { tipo: 'pago', cuota },
       width: '600px',

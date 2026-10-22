@@ -9,6 +9,23 @@
   --hub-accent: #7c6bb5;
   --hub-accent-strong: #5d4e91;
   --hub-accent-soft: #efeaf8;
+  --hub-error: #a12d2d;
+  --hub-on-accent: #fff;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --hub-canvas: #17141d;
+  --hub-surface: #211e29;
+  --hub-ink: #f0eaf6;
+  --hub-muted: #c0b6cb;
+  --hub-border: #494051;
+  --hub-accent: #c9b8f0;
+  --hub-accent-strong: #ddccff;
+  --hub-accent-soft: #393044;
+  --hub-error: #ffb4ab;
+  --hub-on-accent: #241a37;
 }
 
 html {
@@ -16,6 +33,7 @@ html {
   @include mat.theme(
     (
       color: (
+        theme-type: color-scheme,
         primary: mat.$violet-palette,
         tertiary: mat.$azure-palette,
       ),
@@ -37,7 +55,7 @@ body {
 }
 
 body {
-  color-scheme: light;
+  color-scheme: inherit;
   margin: 0;
   background-color: var(--hub-canvas);
   color: var(--hub-ink);
@@ -59,7 +77,7 @@ body {
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   background: var(--hub-accent);
-  color: #fff;
+  color: var(--hub-on-accent);
   text-decoration: none;
 }
 
@@ -102,3 +120,9 @@ body {
   background: #fbeaea;
   color: #a12d2d;
 }
+
+:root[data-theme='dark'] .badge--pagado { background: #193a2a; color: #a3e3b9; }
+:root[data-theme='dark'] .badge--pendiente { background: #40341b; color: #f5d894; }
+:root[data-theme='dark'] .badge--vencido { background: #48252a; color: #ffb4ab; }
+html { background: var(--hub-canvas); }
+[role='alert'] { color: var(--hub-error); }

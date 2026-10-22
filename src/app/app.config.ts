@@ -20,7 +20,7 @@ class AppTitleStrategy extends TitleStrategy {
   private readonly title = inject(Title);
 
   override updateTitle(): void {
-    this.title.setTitle('Rochy');
+    this.title.setTitle('TusCuentasFacil');
   }
 }
 

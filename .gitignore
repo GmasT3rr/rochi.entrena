@@ -11,6 +11,32 @@
 npm-debug.log
 yarn-error.log
 
+# Credenciales y configuración privada (las plantillas sí pueden versionarse).
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+*.local
+*.private
+*.private.*
+.npmrc
+.netrc
+.pgpass
+.aws/
+.supabase/
+supabase/.temp/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+*.log
+
 # IDEs and editors
 .idea/
 .project

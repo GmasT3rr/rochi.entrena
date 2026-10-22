@@ -60,12 +60,51 @@
         <mat-error>El máximo es de 3000 caracteres.</mat-error>
       </mat-form-field>
     </div>
+    <section aria-labelledby="configuracion-cobro">
+      <h3 id="configuracion-cobro">Configuración de cobro</h3>
+      <mat-checkbox formControlName="habilitarMensual">Habilitar cuota mensual</mat-checkbox>
+      @if (form.controls.habilitarMensual.value) {
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Importe mensual en ARS</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="importeMensual"
+              min="0.01"
+              max="999999999.99"
+              step="0.01"
+              required
+            />
+            <mat-error>Ingresá un importe mayor a cero con hasta dos decimales.</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Día de vencimiento</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="diaVencimiento"
+              min="1"
+              max="31"
+              step="1"
+              required
+            />
+            <mat-error>Ingresá un día entero del 1 al 31.</mat-error>
+          </mat-form-field>
+        </div>
+        <p>
+          Si el día no existe en el mes, se usará su último día. Los cambios se aplican solo a
+          cuotas nuevas.
+        </p>
+      }
+      <p>Esta configuración se guarda en PostgreSQL. Generá las cuotas del mes desde Cuentas y pagos, con vista previa y confirmación.</p>
+    </section>
     @if (service.error()) {
       <p role="alert">{{ service.error() }}</p>
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close>Cancelar</button>
-    <button mat-flat-button type="submit" [disabled]="confirmando()">Guardar</button>
+    <button mat-button type="button" mat-dialog-close [disabled]="service.guardando()">Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="confirmando() || service.guardando() || service.cargando()">{{ service.guardando() ? 'Guardando…' : 'Guardar' }}</button>
   </mat-dialog-actions>
 </form>

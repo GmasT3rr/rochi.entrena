@@ -1,5 +1,5 @@
 ﻿import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -24,7 +24,12 @@ export class CuotaDetalle {
   private readonly dialog = inject(MatDialog);
   private readonly ref = inject(MatDialogRef<CuotaDetalle>);
   readonly cuenta = computed(() => this.service.cuentas().find((c) => c.id === this.id));
+  readonly confirmando = signal(false);
+  constructor() {
+    void this.service.recargar();
+  }
   editar(): void {
+    if (!this.service.disponible()) return;
     const cuota = this.cuenta();
     if (!cuota) return;
     this.dialog.open(CuentaForm, {
@@ -35,6 +40,7 @@ export class CuotaDetalle {
     });
   }
   pago(pago?: PagoCuota): void {
+    if (!this.service.disponible()) return;
     const cuota = this.cuenta();
     if (!cuota) return;
     this.dialog.open(CuentaForm, {
@@ -45,6 +51,9 @@ export class CuotaDetalle {
     });
   }
   eliminar(pago?: PagoCuota): void {
+    if (!this.service.disponible() || this.confirmando()) return;
+    const version = pago ? this.service.versionPago(pago.id) : this.service.versionCuota(this.id);
+    this.confirmando.set(true);
     this.dialog
       .open(ConfirmarAlumno, {
         width: '420px',
@@ -57,10 +66,14 @@ export class CuotaDetalle {
         },
       })
       .afterClosed()
-      .subscribe((ok) => {
-        if (!ok) return;
-        if (pago) this.service.eliminarPago(pago.id);
-        else if (this.service.eliminarCuota(this.id)) this.ref.close();
+      .subscribe(async (ok) => {
+        try {
+          if (!ok) return;
+          if (pago) await this.service.eliminarPago(pago.id, version);
+          else if (await this.service.eliminarCuota(this.id, version)) this.ref.close();
+        } finally {
+          this.confirmando.set(false);
+        }
       });
   }
 }

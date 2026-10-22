@@ -1,0 +1,122 @@
+<h2 mat-dialog-title>Generar cuotas del mes</h2>
+<mat-dialog-content>
+  <p>
+    Se usarán los alumnos activos y la configuración mensual vigente de PostgreSQL. Las cuotas
+    existentes conservarán sus importes.
+  </p>
+  <mat-form-field appearance="outline">
+    <mat-label>Período</mat-label>
+    <input
+      matInput
+      type="month"
+      [formControl]="periodo"
+      min="1900-01"
+      max="9999-12"
+      [readonly]="cargando() || generando()"
+    />
+  </mat-form-field>
+  <button
+    mat-stroked-button
+    type="button"
+    (click)="previsualizar()"
+    [disabled]="cargando() || generando() || service.guardando() || service.cargando()"
+  >
+    {{ cargando() ? 'Consultando…' : 'Actualizar vista previa' }}
+  </button>
+  @if (cargando()) {
+    <p role="status">Consultando alumnos, configuraciones y cuotas existentes…</p>
+  }
+  @if (vista(); as v) {
+    <h3>Vista previa · {{ v.periodo + '-01' | date: 'MMMM yyyy' }}</h3>
+    <p>{{ v.cuotas.length }} cuotas por generar · {{ v.omitidos.length }} alumnos omitidos</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Alumno</th>
+            <th>Importe</th>
+            <th>Vencimiento</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of v.cuotas; track c.alumnoId) {
+            <tr>
+              <td>{{ c.alumno }}</td>
+              <td>{{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</td>
+              <td>{{ c.vencimiento | date: 'dd/MM/yyyy' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3">No hay cuotas nuevas para este período.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <h3>Alumnos omitidos</h3>
+    <ul>
+      @for (o of v.omitidos; track o.alumnoId) {
+        <li>{{ o.alumno }}: {{ o.motivo }}</li>
+      } @empty {
+        <li>No hay alumnos omitidos.</li>
+      }
+    </ul>
+    @if (v.cuotas.length) {
+      <p>
+        Los días que no existan en el mes se ajustan a su último día. Si la vista cambia, deberás
+        actualizarla antes de confirmar.
+      </p>
+      <mat-checkbox
+        [checked]="confirmado()"
+        [disabled]="generando()"
+        (change)="confirmado.set($event.checked)"
+        >Confirmo la generación de estas cuotas.</mat-checkbox
+      >
+    }
+  }
+  @if (resultado(); as r) {
+    <section
+      aria-label="Resultado de generación"
+      [attr.role]="r.estado === 'revertida' ? 'alert' : 'status'"
+    >
+      <h3>Resultado · {{ r.periodo }}</h3>
+      <p>
+        {{ r.generadas }} cuotas generadas · {{ r.omitidas }} omitidas · {{ r.fallidas }} fallidas
+      </p>
+      @if (r.estado === 'revertida') {
+        <p>
+          Se revirtió todo el lote. Las cuotas indicadas como fallidas no se generaron. No se
+          modificaron cuotas anteriores.
+        </p>
+      }
+      <ul>
+        @for (o of r.detalleOmitidos; track $index) {
+          <li>{{ o.alumno }}: {{ o.motivo }}</li>
+        }
+      </ul>
+    </section>
+  }
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+  }
+  @if (generando()) {
+    <p role="status">Generando en PostgreSQL. Esperá el resultado antes de cerrar.</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close [disabled]="generando()">Cerrar</button>
+  <button
+    mat-flat-button
+    type="button"
+    (click)="generar()"
+    [disabled]="
+      !vista()?.cuotas?.length ||
+      !confirmado() ||
+      cargando() ||
+      generando() ||
+      !service.disponible()
+    "
+  >
+    {{ generando() ? 'Generando…' : 'Confirmar generación' }}
+  </button>
+</mat-dialog-actions>

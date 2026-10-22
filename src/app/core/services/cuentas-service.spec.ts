@@ -1,7 +1,7 @@
-﻿import { TestBed } from '@angular/core/testing';
-import { CuentasService } from './cuentas-service';
+import { TestBed } from '@angular/core/testing';
+import { CuentasLocalesService as CuentasService } from './cuentas-locales-service';
 import { CuentasRepository, CUENTAS_STORAGE_KEY } from './cuentas-repository';
-import { AlumnosService } from './alumnos-service';
+import { AlumnosLocalService as AlumnosService } from './alumnos-local-service';
 import { ALUMNOS_STORAGE_KEY } from './alumnos-repository';
 import { DatosCuota, DatosPago, fechaValida } from '../cuentas';
 
@@ -59,15 +59,15 @@ describe('Cuentas: cuotas, pagos y persistencia', () => {
     });
     const original = localStorage.getItem(ALUMNOS_STORAGE_KEY);
     const service = TestBed.inject(CuentasService);
-    expect(service.cuotas()).toHaveLength(3);
-    expect(service.pagos()).toHaveLength(2);
+    expect(service.cuotas()).toHaveLength(0);
+    expect(service.pagos()).toHaveLength(0);
     expect(service.cuotas().every((c) => alumnos.alumnos().some((a) => a.id === c.alumnoId))).toBe(
       true,
     );
     expect(localStorage.getItem(ALUMNOS_STORAGE_KEY)).toBe(original);
     const guardado = localStorage.getItem(CUENTAS_STORAGE_KEY);
     TestBed.resetTestingModule();
-    expect(TestBed.inject(CuentasService).cuotas()).toHaveLength(3);
+    expect(TestBed.inject(CuentasService).cuotas()).toHaveLength(0);
     expect(localStorage.getItem(CUENTAS_STORAGE_KEY)).toBe(guardado);
   });
   it('conserva un conjunto vacío almacenado', () => {
@@ -249,5 +249,117 @@ describe('Cuentas: cuotas, pagos y persistencia', () => {
     expect(s.cuentas()[0].saldo).toBe(50000);
     expect(s.pagos()).toHaveLength(0);
     expect(s.error()).toBeTruthy();
+  });
+});
+
+describe('Generación mensual confirmada', () => {
+  it('omite alumnos en pausa aunque tengan cobro mensual habilitado', () => {
+    const { s, a, uno } = preparar();
+    a.guardar({ ...uno, estado: 'En pausa', configuracionMensual: {
+      habilitada: true, importe: 12000, diaVencimiento: 31,
+    } }, uno.id);
+    const vista = s.previsualizarMensual('2027-02');
+    expect(vista.cuotas.some(c => c.alumnoId === uno.id)).toBe(false);
+    expect(vista.omitidos.find(o => o.alumnoId === uno.id)?.motivo).toBe('Alumno inactivo o en pausa');
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    vacio();
+    TestBed.configureTestingModule({});
+  });
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+  function preparar() {
+    const a = TestBed.inject(AlumnosService);
+    const [uno, dos, tres, cuatro] = a.alumnos();
+    a.cambiarEstado(uno.id, 'Activo');
+    a.cambiarEstado(dos.id, 'Activo');
+    a.configurarMensual(uno.id, { importe: 12345.67, diaVencimiento: 31, habilitada: true });
+    a.configurarMensual(dos.id, { importe: 23000, diaVencimiento: 15, habilitada: true });
+    a.configurarMensual(tres.id, { importe: 100, diaVencimiento: 1, habilitada: true });
+    a.cambiarEstado(tres.id, 'Inactivo');
+    a.configurarMensual(cuatro.id, { importe: 200, diaVencimiento: 1, habilitada: false });
+    return { a, uno, dos, s: TestBed.inject(CuentasService) };
+  }
+  it('previsualiza sin guardar, omite alumnos no elegibles y genera varios importes propios sin duplicar', () => {
+    const { s } = preparar();
+    const original = localStorage.getItem(CUENTAS_STORAGE_KEY);
+    const v = s.previsualizarMensual('2027-02');
+    expect(v.cuotas).toHaveLength(2);
+    expect(v.cuotas.map((c) => c.importe)).toEqual([12345.67, 23000]);
+    expect(v.omitidos.map((o) => o.motivo)).toEqual(
+      expect.arrayContaining([
+        'Alumno inactivo o en pausa',
+        'Sin configuración mensual',
+        'Generación mensual deshabilitada',
+      ]),
+    );
+    expect(localStorage.getItem(CUENTAS_STORAGE_KEY)).toBe(original);
+    expect(s.generarMensual(v)).toBe(true);
+    expect(s.generarMensual(v)).toBe(false);
+    expect(s.previsualizarMensual('2027-02').cuotas).toHaveLength(0);
+    expect(s.cuotas()).toHaveLength(2);
+  });
+  it.each([
+    ['2027-02', '28'],
+    ['2028-02', '29'],
+    ['2027-04', '30'],
+    ['2027-01', '31'],
+  ])('ajusta el día 31 en %s', (periodo, dia) => {
+    const { s } = preparar();
+    expect(s.previsualizarMensual(periodo).cuotas[0].vencimiento).toBe(periodo + '-' + dia);
+  });
+  it('conserva cuotas históricas y pagos, aplica nuevos precios y persiste después de recargar', () => {
+    const { s, a, uno } = preparar();
+    s.generarMensual(s.previsualizarMensual('2026-01'));
+    s.guardarPago(pago(s.cuotas()[0].id, 100, { fecha: '2026-01-10' }));
+    const historicas = JSON.stringify(s.cuotas());
+    const pagos = JSON.stringify(s.pagos());
+    a.configurarMensual(uno.id, { importe: 18000, diaVencimiento: 20, habilitada: true });
+    expect(JSON.stringify(s.cuotas())).toBe(historicas);
+    expect(s.previsualizarMensual('2026-02').cuotas[0].importe).toBe(18000);
+    s.generarMensual(s.previsualizarMensual('2026-02'));
+    expect(JSON.stringify(s.pagos())).toBe(pagos);
+    const guardado = localStorage.getItem(CUENTAS_STORAGE_KEY);
+    TestBed.resetTestingModule();
+    const recargado = TestBed.inject(CuentasService);
+    expect(recargado.cuotas()).toHaveLength(4);
+    expect(JSON.stringify(recargado.pagos())).toBe(pagos);
+    expect(localStorage.getItem(CUENTAS_STORAGE_KEY)).toBe(guardado);
+    expect(
+      TestBed.inject(AlumnosService)
+        .alumnos()
+        .find((a) => a.id === uno.id)?.configuracionMensual?.importe,
+    ).toBe(18000);
+  });
+  it('rechaza vistas desactualizadas, períodos y configuraciones inválidas', () => {
+    const { s, a, uno } = preparar();
+    const v = s.previsualizarMensual('2027-02');
+    expect(a.configurarMensual(uno.id, { importe: -1, diaVencimiento: 32, habilitada: true })).toBe(
+      false,
+    );
+    expect(a.configurarMensual(uno.id, { importe: 1, diaVencimiento: 1.5, habilitada: true })).toBe(
+      false,
+    );
+    a.configurarMensual(uno.id, { importe: 999, diaVencimiento: 1, habilitada: true });
+    expect(s.generarMensual(v)).toBe(false);
+    expect(s.cuotas()).toHaveLength(0);
+    expect(() => s.previsualizarMensual('2027-13')).toThrow();
+  });
+  it('reconoce duplicados manuales normalizados y mantiene todo intacto si falla el guardado', () => {
+    const { s, uno } = preparar();
+    cuota(s, { alumnoId: uno.id, concepto: ' CUÓTA  DE entrenamiento ', periodo: '2027-02' });
+    const v = s.previsualizarMensual('2027-02');
+    expect(v.cuotas).toHaveLength(1);
+    const original = localStorage.getItem(CUENTAS_STORAGE_KEY);
+    vi.spyOn(TestBed.inject(CuentasRepository), 'guardar').mockImplementation(() => {
+      throw Error('Sin espacio');
+    });
+    expect(s.generarMensual(v)).toBe(false);
+    expect(s.cuotas()).toHaveLength(1);
+    expect(localStorage.getItem(CUENTAS_STORAGE_KEY)).toBe(original);
   });
 });

@@ -1,11 +1,29 @@
 import { Routes } from '@angular/router';
 import { AdminShell } from './layout/admin-shell/admin-shell';
+import { sessionGuard } from './core/auth/auth-guard';
 
 export const routes: Routes = [
   {
+    path: 'acceso-no-autorizado',
+    title: 'Acceso no autorizado',
+    loadComponent: () => import('./features/login/unauthorized').then((m) => m.Unauthorized),
+  },
+  {
+    path: 'login',
+    title: 'Iniciar sesión',
+    loadComponent: () => import('./features/login/login').then((m) => m.Login),
+  },
+  {
     path: '',
     component: AdminShell,
+    canActivate: [sessionGuard],
+    canActivateChild: [sessionGuard],
     children: [
+      {
+        path: 'te-quiero-rochy',
+        title: 'Te quiero Rochy ❤️',
+        loadComponent: () => import('./features/rochy/rochy').then((m) => m.Rochy),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',

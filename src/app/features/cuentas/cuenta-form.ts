@@ -1,4 +1,4 @@
-﻿import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -19,8 +19,8 @@ import {
   importeValido,
   centavos,
 } from '../../core/cuentas';
-import { AlumnosService } from '../../core/services/alumnos-service';
 import { CuentasService } from '../../core/services/cuentas-service';
+import { FechaArgentinaInput } from './fecha-argentina-input';
 import { ConfirmarAlumno } from '../alumnos/confirmar-alumno';
 
 export type CuentaFormData =
@@ -32,6 +32,7 @@ const periodo = (c: AbstractControl) => (periodoValido(c.value) ? null : { perio
   selector: 'app-cuenta-form',
   imports: [
     CurrencyPipe,
+    FechaArgentinaInput,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -45,13 +46,52 @@ const periodo = (c: AbstractControl) => (periodoValido(c.value) ? null : { perio
 export class CuentaForm {
   readonly data = inject<CuentaFormData>(MAT_DIALOG_DATA);
   readonly service = inject(CuentasService);
-  readonly alumnos = inject(AlumnosService);
+  readonly alumnos = this.service;
   private readonly ref = inject(MatDialogRef<CuentaForm>);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
+  readonly meses = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ];
+  readonly mesPeriodo = this.fb.nonNullable.control(
+    (this.data.cuota?.periodo ?? this.service.hoy().slice(0, 7)).slice(5),
+    Validators.required,
+  );
+  readonly anioPeriodo = this.fb.nonNullable.control(
+    (this.data.cuota?.periodo ?? this.service.hoy().slice(0, 7)).slice(0, 4),
+    [
+      Validators.required,
+      Validators.pattern(/^\d{4}$/),
+      Validators.min(1900),
+      Validators.max(9999),
+    ],
+  );
+  actualizarPeriodo(): void {
+    this.cuotaForm.controls.periodo.setValue(
+      String(this.anioPeriodo.value) + '-' + this.mesPeriodo.value,
+    );
+    this.cuotaForm.controls.periodo.markAsTouched();
+  }
   readonly error = signal('');
   readonly confirmando = signal(false);
   readonly pago = this.data.tipo === 'pago' ? this.data.pago : undefined;
+  private readonly nuevoId = crypto.randomUUID();
+  private readonly versionInicial = this.pago
+    ? this.service.versionPago(this.pago.id)
+    : this.data.tipo === 'cuota' && this.data.cuota
+      ? this.service.versionCuota(this.data.cuota.id)
+      : undefined;
   readonly cuotaForm = this.fb.nonNullable.group({
     alumnoId: [this.data.cuota?.alumnoId ?? '', Validators.required],
     concepto: [
@@ -81,11 +121,19 @@ export class CuentaForm {
     const cuenta = this.service.cuentas().find((c) => c.id === this.data.cuota?.id);
     return ((cuenta ? centavos(cuenta.saldo) : 0) + centavos(this.pago?.importe ?? 0)) / 100;
   }
-  guardar(): void {
+  constructor() {
+    if (this.data.tipo === 'cuota' && this.data.cuota) this.cuotaForm.controls.alumnoId.disable();
+  }
+  async guardar(): Promise<void> {
     this.error.set('');
     const form = this.data.tipo === 'cuota' ? this.cuotaForm : this.pagoForm;
     form.markAllAsTouched();
-    if (form.invalid || this.confirmando()) return;
+    if (this.data.tipo === 'cuota') {
+      this.mesPeriodo.markAsTouched();
+      this.anioPeriodo.markAsTouched();
+      if (this.mesPeriodo.invalid || this.anioPeriodo.invalid) return;
+    }
+    if (form.invalid || this.confirmando() || !this.service.disponible()) return;
     if (this.data.tipo === 'pago' && this.pago) {
       this.confirmando.set(true);
       this.dialog
@@ -102,21 +150,34 @@ export class CuentaForm {
           this.confirmando.set(false);
           if (ok) this.persistir();
         });
-    } else this.persistir();
+    } else await this.persistir();
   }
-  private persistir(): void {
-    let ok: boolean;
-    if (this.data.tipo === 'cuota') {
-      const values = this.cuotaForm.getRawValue();
-      ok = this.service.guardarCuota({ ...values, importe: values.importe! }, this.data.cuota?.id);
-    } else {
-      const values = this.pagoForm.getRawValue();
-      ok = this.service.guardarPago(
-        { ...values, importe: values.importe!, cuotaId: this.data.cuota.id },
-        this.pago?.id,
-      );
+  private async persistir(): Promise<void> {
+    const anteriorDisableClose = this.ref.disableClose;
+    this.ref.disableClose = true;
+    try {
+      let ok: boolean;
+      if (this.data.tipo === 'cuota') {
+        const values = this.cuotaForm.getRawValue();
+        ok = await this.service.guardarCuota(
+          { ...values, importe: values.importe! },
+          this.data.cuota?.id,
+          this.nuevoId,
+          this.versionInicial,
+        );
+      } else {
+        const values = this.pagoForm.getRawValue();
+        ok = await this.service.guardarPago(
+          { ...values, importe: values.importe!, cuotaId: this.data.cuota.id },
+          this.pago?.id,
+          this.nuevoId,
+          this.versionInicial,
+        );
+      }
+      if (ok) this.ref.close(true);
+      else this.error.set(this.service.error());
+    } finally {
+      this.ref.disableClose = anteriorDisableClose;
     }
-    if (ok) this.ref.close(true);
-    else this.error.set(this.service.error());
   }
 }

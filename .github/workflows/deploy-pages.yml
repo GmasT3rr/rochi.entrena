@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run application tests
+        run: npm test -- --watch=false
+
+      - name: Test theme initialization
+        run: node --test --test-isolation=none scripts/theme-init.test.mjs
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 

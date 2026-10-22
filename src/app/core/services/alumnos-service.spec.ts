@@ -1,5 +1,5 @@
-﻿import { TestBed } from '@angular/core/testing';
-import { AlumnosService } from './alumnos-service';
+import { TestBed } from '@angular/core/testing';
+import { AlumnosLocalService as AlumnosService } from './alumnos-local-service';
 import { AlumnosRepository, ALUMNOS_STORAGE_KEY } from './alumnos-repository';
 import { DatosAlumno } from '../alumno';
 

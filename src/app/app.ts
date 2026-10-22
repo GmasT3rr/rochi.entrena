@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { AparienciaService } from './core/services/apariencia-service';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -7,4 +8,6 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.scss',
   templateUrl: './app.html',
 })
-export class App {}
+export class App {
+  private readonly apariencia = inject(AparienciaService);
+}

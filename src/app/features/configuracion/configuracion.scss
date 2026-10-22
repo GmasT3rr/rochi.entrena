@@ -1,22 +1,119 @@
 .settings {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 2rem;
+  max-width: 860px;
+}
+.appearance {
+  padding: 1.3rem 0;
+}
+.appearance mat-form-field {
+  width: min(100%, 340px);
+}
+.password-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 480px;
+  padding: 1.3rem 0;
+}
+.password-form p {
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
 }
 
-.setting {
-  border-radius: 1rem !important;
-  background: var(--hub-surface) !important;
+.section-heading {
+  margin-bottom: 0.85rem;
+
+  h2 {
+    margin: 0;
+    color: var(--hub-ink);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
 
   p {
-    margin: 0;
+    margin: 0.4rem 0 0;
     color: var(--hub-muted);
-    line-height: 1.5;
   }
 }
 
-@media (max-width: 959.98px) {
-  .settings {
+mat-card {
+  border-radius: 1rem;
+  background: var(--hub-surface);
+}
+
+mat-card-content {
+  padding: 0 1.5rem;
+}
+.preferences {
+  margin: 0;
+}
+
+.preference {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 2fr;
+  gap: 1rem;
+  padding: 1.3rem 0;
+
+  & + & {
+    border-top: 1px solid var(--hub-border);
+  }
+  dt {
+    font-weight: 500;
+  }
+  dd {
+    margin: 0;
+  }
+}
+
+.description {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--hub-muted);
+  font-size: 0.85rem;
+}
+
+.muted {
+  color: var(--hub-muted);
+}
+.session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.3rem 0;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+  button {
+    flex-shrink: 0;
+  }
+}
+.session__details {
+  min-width: 0;
+}
+.session__email {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.35rem !important;
+}
+.error {
+  color: var(--hub-error);
+  margin: 0 0 1rem;
+}
+
+@media (max-width: 599.98px) {
+  mat-card-content {
+    padding: 0 1rem;
+  }
+  .preference {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .session {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
   }
 }

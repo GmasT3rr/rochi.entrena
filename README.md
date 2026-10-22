@@ -1,5 +1,11 @@
 # Rochy Hub
 
+Estado de la migración financiera de TusCuentasFacil: [Cuentas y pagos en PostgreSQL](docs/cuentas-postgresql.md) y [generación mensual](docs/generacion-mensual-postgresql.md). Las migraciones SQL correspondientes requieren revisión y ejecución manual; Dashboard sigue pendiente.
+
+La autenticación preliminar y su configuración están documentadas en
+[docs/autenticacion.md](docs/autenticacion.md). Sin sesión, las rutas del panel
+redirigen a `/#/login`. Todavía faltan autorización administrativa, MFA y pruebas RLS.
+
 Panel administrativo web para Rochy Entrena. Esta primera etapa incluye la estructura base, el layout y pantallas de referencia con datos ficticios.
 
 ## Requisitos
