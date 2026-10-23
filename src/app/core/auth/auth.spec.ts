@@ -29,7 +29,7 @@ describe('Autenticación preliminar', () => {
   it('bloquea las rutas durante recuperación y ante errores de inicialización', async () => {
     authRuntime.session.set({ user: { id: 'test' } } as Session);
     authRuntime.recovery.set(true);
-    expect(await guard()).not.toBe(true);
+    expect(TestBed.inject(Router).serializeUrl(await guard() as never)).toBe('/nueva-contrasena');
     authRuntime.recovery.set(false);
     authRuntime.error.set('Error');
     expect(await guard()).not.toBe(true);

@@ -1,0 +1,95 @@
+<main class="login">
+  <section class="card" aria-labelledby="password-title" [attr.aria-busy]="checking() || busy()">
+    <span class="brand" aria-hidden="true">TC</span>
+    <p class="eyebrow">TusCuentasFacil · Panel administrativo</p>
+    <h1 id="password-title">
+      {{ auth.passwordFlow()?.kind === 'invite' ? 'Creá tu contraseña' : 'Nueva contraseña' }}
+    </h1>
+    @if (checking()) {
+      <p role="status">Verificando tu enlace y tu sesión…</p>
+    } @else if (saved()) {
+      <p role="status">Tu contraseña se guardó correctamente.</p>
+      <button mat-flat-button [disabled]="busy()" (click)="goToLogin()">
+        Ir al inicio de sesión
+      </button>
+    } @else if (valid()) {
+      <p class="muted">
+        Elegí una contraseña para acceder con tu cuenta. No necesitás la contraseña anterior.
+      </p>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <p id="password-rules" class="muted">
+          Usá entre 12 y 128 caracteres con mayúscula, minúscula, número y símbolo.
+        </p>
+        <mat-form-field appearance="outline">
+          <mat-label>Nueva contraseña</mat-label>
+          <input
+            matInput
+            [type]="visible() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="new-password"
+            required
+            maxlength="128"
+            aria-describedby="password-rules"
+            [readonly]="busy()"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            [disabled]="busy()"
+            [attr.aria-label]="visible() ? 'Ocultar contraseñas' : 'Mostrar contraseñas'"
+            [attr.aria-pressed]="visible()"
+            (click)="visible.set(!visible())"
+          >
+            <mat-icon>{{ visible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <mat-error>Revisá los requisitos de seguridad.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Confirmar contraseña</mat-label>
+          <input
+            matInput
+            [type]="visible() ? 'text' : 'password'"
+            formControlName="confirmation"
+            autocomplete="new-password"
+            required
+            maxlength="128"
+            [readonly]="busy()"
+          />
+          @if (
+            form.controls.confirmation.touched && form.controls.confirmation.hasError('required')
+          ) {
+            <mat-error>Repetí tu contraseña.</mat-error>
+          }
+        </mat-form-field>
+        @if (form.controls.confirmation.touched && form.hasError('mismatch')) {
+          <p role="alert">Las contraseñas no coinciden.</p>
+        }
+        <button mat-flat-button type="submit" [disabled]="busy() || !valid()">
+          {{ busy() ? 'Guardando…' : 'Guardar contraseña' }}
+        </button>
+      </form>
+    } @else {
+      <p class="muted">
+        Necesitás un enlace de invitación o recuperación vigente para establecer tu contraseña.
+      </p>
+      <button mat-stroked-button [disabled]="busy()" (click)="verify()">Volver a verificar</button>
+    }
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+    }
+    @if (!checking() && !saved()) {
+      <button mat-button type="button" [disabled]="busy()" (click)="goToLogin(true)">
+        Solicitar otro enlace
+      </button>
+      <button mat-button type="button" [disabled]="busy()" (click)="goToLogin()">
+        Volver al inicio de sesión
+      </button>
+    }
+    <p class="muted notice">
+      Este proceso conserva tu cuenta y sus permisos. El registro público está deshabilitado.
+    </p>
+  </section>
+</main>

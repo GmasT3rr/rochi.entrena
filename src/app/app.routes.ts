@@ -5,6 +5,11 @@ import { sessionGuard } from './core/auth/auth-guard';
 
 export const routes: Routes = [
   {
+    path: 'nueva-contrasena',
+    title: 'Establecer contraseña',
+    loadComponent: () => import('./features/login/nueva-contrasena').then((m) => m.NuevaContrasena),
+  },
+  {
     path: 'acceso-no-autorizado',
     title: 'Acceso no autorizado',
     loadComponent: () => import('./features/login/unauthorized').then((m) => m.Unauthorized),

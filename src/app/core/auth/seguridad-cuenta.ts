@@ -19,13 +19,8 @@ export const VERIFICADOR_PASSWORD = new InjectionToken<() => SupabaseClient>(
       }),
   },
 );
-export const passwordFuerte = (password: string): boolean =>
-  password.length >= 12 &&
-  password.length <= 128 &&
-  /\p{Ll}/u.test(password) &&
-  /\p{Lu}/u.test(password) &&
-  /\p{N}/u.test(password) &&
-  /[^\p{L}\p{N}\s]/u.test(password);
+import { passwordFuerte } from './password-policy';
+export { passwordFuerte } from './password-policy';
 
 @Injectable({ providedIn: 'root' })
 export class SeguridadCuenta {
