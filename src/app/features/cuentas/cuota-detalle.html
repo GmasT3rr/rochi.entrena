@@ -1,6 +1,14 @@
-﻿<h2 mat-dialog-title>Detalle de cuota</h2>
+﻿<div class="dialog-heading">
+  <h2 mat-dialog-title>Detalle de cuota</h2>
+  <button mat-icon-button mat-dialog-close aria-label="Cerrar detalle de cuota">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
 <mat-dialog-content>
-  @if (cuenta(); as c) {
+  @if (service.cargando()) {
+    <app-loading-layout variant="pagos" label="Cargando detalle y pagos" />
+  } @else if (cuenta(); as c) {
+    <h3 class="section-title">Resumen</h3>
     <dl class="summary">
       <div>
         <dt>Alumno</dt>
@@ -45,15 +53,45 @@
     <div class="actions">
       <button mat-button (click)="editar()" [disabled]="!service.disponible()">Editar cuota</button>
       @if (c.saldo > 0) {
-        <button mat-flat-button (click)="pago()" [disabled]="!service.disponible()">Registrar pago</button>
+        <button mat-flat-button (click)="pago()" [disabled]="!service.disponible()">
+          Registrar pago
+        </button>
       }
       @if (!c.pagos.length) {
-        <button mat-button (click)="eliminar()" [disabled]="!service.disponible() || confirmando()">Eliminar cuota</button>
+        <button
+          mat-button
+          class="delete-action"
+          (click)="eliminar()"
+          [disabled]="!service.disponible() || confirmando()"
+        >
+          Eliminar cuota
+        </button>
       }
     </div>
     <h3>Historial de pagos</h3>
+    <div class="payment-filters">
+      <label
+        >Buscar pago<input
+          type="search"
+          [value]="busquedaPagos()"
+          (input)="busquedaPagos.set($any($event.target).value)"
+          placeholder="Fecha, medio u observaciones"
+      /></label>
+      <label
+        >Ordenar pagos<select
+          [value]="ordenPagos().active + ':' + ordenPagos().direction"
+          (change)="ordenarPagos($any($event.target).value)"
+        >
+          <option value="fecha:desc">Más recientes</option>
+          <option value="fecha:asc">Más antiguos</option>
+          <option value="importe:desc">Mayor importe</option>
+          <option value="importe:asc">Menor importe</option>
+          <option value="medio:asc">Medio de pago A–Z</option>
+        </select></label
+      >
+    </div>
     <ul class="payments">
-      @for (p of c.pagos; track p.id) {
+      @for (p of pagosVisibles(); track p.id) {
         <li>
           <div>
             <strong>{{ p.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong> ·
@@ -61,10 +99,16 @@
             <p>{{ p.observaciones || 'Sin observaciones' }}</p>
           </div>
           <div class="actions">
-            <button mat-button (click)="pago(p)" [disabled]="!service.disponible()" [attr.aria-label]="'Editar pago del ' + p.fecha">
+            <button
+              mat-button
+              (click)="pago(p)"
+              [disabled]="!service.disponible()"
+              [attr.aria-label]="'Editar pago del ' + p.fecha"
+            >
               Editar pago</button
             ><button
               mat-button
+              class="delete-action"
               (click)="eliminar(p)"
               [disabled]="!service.disponible() || confirmando()"
               [attr.aria-label]="'Eliminar pago del ' + p.fecha"
@@ -74,17 +118,37 @@
           </div>
         </li>
       } @empty {
-        <li>No hay pagos registrados para esta cuota.</li>
+        <li>
+          {{
+            c.pagos.length
+              ? 'No hay pagos que coincidan con la búsqueda.'
+              : 'No hay pagos registrados para esta cuota.'
+          }}
+        </li>
       }
     </ul>
   } @else {
-    <p>{{ service.cargando() ? 'Cargando cuota…' : service.errorCarga() ? 'No se pudo consultar la cuota. Actualizá para reintentar.' : 'La cuota ya no existe.' }}</p>
+    <p>
+      {{
+        service.cargando()
+          ? 'Cargando cuota…'
+          : service.errorCarga()
+            ? 'No se pudo consultar la cuota. Actualizá para reintentar.'
+            : 'La cuota ya no existe.'
+      }}
+    </p>
   }
   @if (service.error()) {
     <p role="alert">{{ service.error() }}</p>
   }
   <p role="status">{{ service.mensaje() }}</p>
-  <button mat-button (click)="service.recargar()" [disabled]="service.cargando() || service.guardando()">Actualizar datos</button>
+  <button
+    mat-button
+    (click)="service.recargar()"
+    [disabled]="service.cargando() || service.guardando()"
+  >
+    Actualizar datos
+  </button>
 </mat-dialog-content>
 <mat-dialog-actions align="end"
   ><button mat-button mat-dialog-close>Cerrar</button></mat-dialog-actions

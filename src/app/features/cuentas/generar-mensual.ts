@@ -1,3 +1,4 @@
+import { ToastService } from '../../core/services/toast-service';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -29,6 +30,7 @@ import { errorFinanciero } from '../../core/services/cuentas-remotas-service';
   styleUrl: './generar-mensual.scss',
 })
 export class GenerarMensual {
+  private readonly toast = inject(ToastService);
   readonly service = inject(CuentasService);
   private readonly auth = inject(AuthService);
   private readonly ref = inject(MatDialogRef<GenerarMensual>);
@@ -69,6 +71,7 @@ export class GenerarMensual {
     this.confirmado.set(false);
     if (!periodoValido(this.periodo.value)) {
       this.error.set('Seleccioná un mes y año válidos (1900 a 9999).');
+      this.toast.mostrar(this.error(), 'advertencia');
       return;
     }
     const periodo = this.periodo.value;
@@ -87,6 +90,7 @@ export class GenerarMensual {
         this.vista.set(vista);
     } catch (error) {
       this.error.set(errorFinanciero(error));
+      this.toast.mostrar(this.error(), 'error');
     } finally {
       this.cargando.set(false);
     }

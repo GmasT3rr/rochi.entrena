@@ -1,0 +1,96 @@
+﻿:host {
+  display: block;
+  min-width: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.panel {
+  padding: 1rem;
+  background: var(--hub-surface);
+  border: 1px solid var(--hub-border);
+  border-radius: 0.85rem;
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: 0.85rem;
+  min-width: 0;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.metric {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.donuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.distribution {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.legend {
+  display: grid;
+  flex: 1 1 150px;
+  gap: 1rem;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: center;
+  min-height: 3.5rem;
+  border-bottom: 1px solid var(--hub-border);
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.row--head {
+  min-height: 2.5rem;
+}
+.name {
+  display: grid;
+  gap: 0.5rem;
+}
+@media (max-width: 1050px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 699.98px) {
+  .donuts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .row {
+    gap: 0.5rem;
+  }
+  .income > app-skeleton:nth-last-child(2) {
+    height: 180px !important;
+  }
+}
+@media (max-width: 359px) {
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,6 +1,10 @@
 @use '@angular/material' as mat;
 
 :root {
+  --hub-section-gap: 1rem;
+  --hub-card-padding: 1rem;
+  --hub-card-radius: 0.85rem;
+  --hub-page-padding: 1.5rem;
   --hub-canvas: #f6f4f8;
   --hub-surface: #ffffff;
   --hub-ink: #2c2733;
@@ -121,8 +125,75 @@ body {
   color: #a12d2d;
 }
 
-:root[data-theme='dark'] .badge--pagado { background: #193a2a; color: #a3e3b9; }
-:root[data-theme='dark'] .badge--pendiente { background: #40341b; color: #f5d894; }
-:root[data-theme='dark'] .badge--vencido { background: #48252a; color: #ffb4ab; }
-html { background: var(--hub-canvas); }
-[role='alert'] { color: var(--hub-error); }
+:root[data-theme='dark'] .badge--pagado {
+  background: #193a2a;
+  color: #a3e3b9;
+}
+:root[data-theme='dark'] .badge--pendiente {
+  background: #40341b;
+  color: #f5d894;
+}
+:root[data-theme='dark'] .badge--vencido {
+  background: #48252a;
+  color: #ffb4ab;
+}
+html {
+  background: var(--hub-canvas);
+}
+[role='alert'] {
+  color: var(--hub-error);
+}
+
+/* Shared feedback and navigation, respecting the existing theme. */
+.hub-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hub-toast span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.hub-toast > mat-icon {
+  flex-shrink: 0;
+}
+.hub-toast-panel {
+  --mat-snack-bar-container-color: #24354b;
+  --mat-snack-bar-supporting-text-color: #fff;
+  color: #fff;
+}
+.hub-toast--exito {
+  --mat-snack-bar-container-color: #185a36;
+}
+.hub-toast--error {
+  --mat-snack-bar-container-color: #8c2028;
+}
+.hub-toast--advertencia {
+  --mat-snack-bar-container-color: #624500;
+}
+.hub-toast button {
+  color: inherit;
+}
+.dashboard-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.hub-table td[data-label*='Importe'],
+.hub-table td[data-label*='Saldo'],
+.hub-table td[data-label='Abonado'] {
+  font-variant-numeric: tabular-nums;
+}
+:focus-visible {
+  outline: 2px solid var(--hub-primary, #536dfe);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

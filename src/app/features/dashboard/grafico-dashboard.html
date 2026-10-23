@@ -1,0 +1,105 @@
+﻿<div class="chart" role="group" [attr.aria-label]="titulo()">
+  @if (monetario()) {
+    <div class="line-scroll" tabindex="0" aria-label="Evolución mensual de cobros">
+      <div class="line-chart" [class.line-chart--dense]="datos().length > 12">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          @for (y of [12, 45, 78]; track y) {
+            <line x1="10" x2="96" [attr.y1]="y" [attr.y2]="y" class="grid-line" />
+          }
+          @if (puntos().length > 1) {
+            <polygon [attr.points]="'10,78 ' + linea() + ' 96,78'" class="income-area" />
+          }
+          <polyline [attr.points]="linea()" class="income-line" />
+        </svg>
+        @for (escala of [1, 0.5, 0]; track escala) {
+          <span class="axis-value" [style.top.%]="78 - escala * 66">{{
+            maximo() * escala | currency: 'ARS' : 'symbol' : '1.0-0'
+          }}</span>
+        }
+        @for (punto of puntos(); track punto.label; let i = $index) {
+          <button
+            type="button"
+            class="point"
+            [style.left.%]="punto.x"
+            [style.top.%]="punto.y"
+            [matTooltip]="detalle(punto)"
+            #tip="matTooltip"
+            (click)="tip.toggle()"
+            [attr.aria-label]="detalle(punto)"
+          >
+            <span></span>
+          </button>
+          @if (punto.etiqueta) {
+            <span
+              class="month-label"
+              [class.month-label--secondary]="i !== 0 && i !== puntos().length - 1"
+              [style.left.%]="punto.x"
+              >{{ punto.label + '-01' | date: 'MMM yy' }}</span
+            >
+          }
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="donut-layout">
+      <div class="donut">
+        <svg viewBox="0 0 120 120" [attr.aria-label]="titulo()">
+          <circle cx="60" cy="60" r="46" class="donut-track" />
+          @for (segmento of segmentos(); track segmento.label) {
+            @if (segmento.valor > 0) {
+              <circle
+                cx="60"
+                cy="60"
+                r="46"
+                pathLength="100"
+                class="donut-segment"
+                [class.dimmed]="destacado() !== null && destacado() !== segmento.label"
+                [attr.stroke]="segmento.color"
+                [attr.stroke-dasharray]="segmento.porcentaje + ' ' + (100 - segmento.porcentaje)"
+                [attr.stroke-dashoffset]="-segmento.offset"
+                [matTooltip]="detalle(segmento)"
+                #tip="matTooltip"
+                (click)="tip.toggle()"
+                tabindex="0"
+                role="img"
+                [attr.aria-label]="detalle(segmento)"
+              />
+            }
+          }
+        </svg>
+        <div class="donut-total" aria-hidden="true">
+          <strong>{{ total() }}</strong
+          ><span>Total</span>
+        </div>
+      </div>
+      <div class="legend">
+        @for (segmento of segmentos(); track segmento.label) {
+          <button
+            type="button"
+            class="legend-item"
+            [matTooltip]="detalle(segmento)"
+            #tip="matTooltip"
+            (mouseenter)="destacado.set(segmento.label)"
+            (mouseleave)="destacado.set(null)"
+            (focus)="destacado.set(segmento.label)"
+            (blur)="destacado.set(null)"
+            (click)="tip.toggle()"
+            [attr.aria-label]="detalle(segmento)"
+          >
+            <span class="swatch" [style.background]="segmento.color"></span>
+            <span>{{ segmento.label }}</span
+            ><strong
+              >{{ segmento.valor }}
+              <small>({{ segmento.porcentaje | number: '1.1-1' }}%)</small></strong
+            >
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>
+@if (total() === 0) {
+  <p class="empty">
+    {{ monetario() ? 'No hay cobros en estos meses.' : 'Sin registros para esta distribución.' }}
+  </p>
+}

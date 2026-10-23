@@ -1,53 +1,28 @@
-﻿.table-card {
-  border-radius: 1rem !important;
-  background: var(--hub-surface) !important;
+@use '../../shared/data-table' as table;
+@include table.styles;
+.mobile-action {
+  display: none;
 }
-.toolbar {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.toolbar mat-form-field {
-  width: 170px;
-}
-.toolbar .search {
-  flex: 1;
-  min-width: 220px;
-}
-.toolbar > button {
-  margin-top: 0.5rem;
-}
-.hub-table {
-  min-width: 1200px;
-}
-small {
-  display: block;
+.menu-note {
+  padding: 0.5rem 1rem;
+  margin: 0;
+  max-width: 16rem;
   color: var(--hub-muted);
-  margin-top: 0.25rem;
+  font-size: 0.75rem;
 }
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  min-width: 160px;
-}
-.result-count,
-.empty {
-  color: var(--hub-muted);
-}
-.empty {
-  padding: 2rem 1rem;
-  text-align: center;
-}
-@media (max-width: 599.98px) {
-  .toolbar mat-form-field,
-  .toolbar .search {
-    width: 100%;
-    flex: 1 1 100%;
-    min-width: 0;
+@media (max-width: 1100px) {
+  .desktop-action {
+    display: none;
   }
-  .toolbar > button {
-    width: 100%;
-    margin: 0 0 1rem;
+  .mobile-action {
+    display: inline-flex;
+  }
+  .hub-table .mat-column-acciones {
+    width: 80px;
+  }
+}
+@media (max-width: 850px) {
+  .hub-table .mat-column-acciones {
+    width: auto;
   }
 }

@@ -1,3 +1,4 @@
+import { EMPTY } from 'rxjs';
 import { By } from '@angular/platform-browser';
 import { MatSelect } from '@angular/material/select';
 import { TestBed } from '@angular/core/testing';
@@ -43,7 +44,15 @@ describe('Formulario de cuotas y pagos remotos', () => {
       providers: [
         { provide: CuentasService, useValue: service },
         { provide: MAT_DIALOG_DATA, useValue: data },
-        { provide: MatDialogRef, useValue: { close, disableClose: false } },
+        {
+          provide: MatDialogRef,
+          useValue: {
+            close,
+            disableClose: false,
+            backdropClick: () => EMPTY,
+            keydownEvents: () => EMPTY,
+          },
+        },
         { provide: MatDialog, useValue: { open } },
       ],
     });

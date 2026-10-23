@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { MatSelect } from '@angular/material/select';
@@ -88,7 +89,7 @@ describe('Dashboard remoto', () => {
     };
     TestBed.configureTestingModule({
       imports: [Dashboard],
-      providers: [{ provide: CuentasService, useValue: cuentas }],
+      providers: [provideRouter([]), { provide: CuentasService, useValue: cuentas }],
     });
     const fixture = TestBed.createComponent(Dashboard);
     fixture.detectChanges();
@@ -188,6 +189,54 @@ describe('Dashboard remoto', () => {
     TestBed.configureTestingModule({ providers: [{ provide: CuentasService, useValue: cuentas }] });
     expect(TestBed.inject(ResumenDashboard).periodo()).toBe('2027-01');
   });
+  it('distingue cobros de cuotas, estados excluyentes y deudores unicos', () => {
+    const { resumen } = crear();
+    expect(resumen.emitido()).toBe(350);
+    expect(resumen.abonadoPeriodo()).toBe(250);
+    expect(resumen.cobranza()).toBeCloseTo((250 / 350) * 100);
+    expect(resumen.ingresos()).toBe(160);
+    expect(resumen.deudaVencida()).toBe(30);
+    expect(resumen.alumnosConDeuda()).toBe(2);
+    expect(resumen.estados().map((d) => d.valor)).toEqual([1, 1, 0, 1]);
+    expect(resumen.estados().reduce((n, d) => n + d.valor, 0)).toBe(3);
+    expect(resumen.modalidades().map((d) => d.valor)).toEqual([1, 1]);
+    expect(resumen.comparacionIngresos()).toEqual({
+      anterior: 100,
+      diferencia: 60,
+      porcentaje: 60,
+    });
+  });
+  it('agrupa pagos por fecha, rellena meses sin movimientos y cruza anios', () => {
+    const { resumen, cuentas } = crear();
+    expect(resumen.evolucion()).toHaveLength(12);
+    expect(resumen.evolucion().slice(-2)).toEqual([
+      { label: '2026-09', valor: 100 },
+      { label: '2026-10', valor: 160 },
+    ]);
+    resumen.mesesEvolucion.set(3);
+    expect(resumen.evolucion()).toHaveLength(3);
+    expect(resumen.evolucion()[0].label).toBe('2026-08');
+    resumen.mesesEvolucion.set(6);
+    expect(resumen.evolucion()).toHaveLength(6);
+    resumen.mesesEvolucion.set(24);
+    expect(resumen.evolucion()).toHaveLength(24);
+    expect(resumen.evolucion()[0].label).toBe('2024-11');
+    expect(resumen.periodo()).toBe('2026-10');
+    expect(resumen.ingresos()).toBe(160);
+    expect(resumen.estados().map((d) => d.valor)).toEqual([1, 1, 0, 1]);
+    resumen.mesesEvolucion.set(12);
+    expect(resumen.evolucion()[0]).toEqual({ label: '2025-11', valor: 0 });
+    resumen.elegirPeriodo('2027-01');
+    expect(resumen.evolucion().at(-1)).toEqual({ label: '2027-01', valor: 0 });
+    expect(resumen.cobranza()).toBeNull();
+    expect(resumen.deudaVencida()).toBe(0);
+    expect(resumen.alumnosConDeuda()).toBe(0);
+    expect(resumen.comparacionIngresos()?.porcentaje).toBeNull();
+    resumen.elegirPeriodo('1900-01');
+    expect(resumen.evolucion()).toEqual([{ label: '1900-01', valor: 0 }]);
+    expect(resumen.comparacionIngresos()).toBeNull();
+    expect(cuentas.recargar).not.toHaveBeenCalled();
+  });
   it('diferencia carga y error sin mostrar importes inventados', () => {
     const { fixture, cuentas } = crear();
     cuentas.cargando.set(true);
@@ -198,6 +247,7 @@ describe('Dashboard remoto', () => {
     cuentas.errorCarga.set('offline');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role=alert]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-grafico-dashboard')).toBeNull();
     expect(fixture.nativeElement.querySelector('app-stat-card')).toBeNull();
   });
   it('muestra estado vacío y refleja cambios remotos al actualizar', () => {
@@ -210,7 +260,7 @@ describe('Dashboard remoto', () => {
     cuentas.pagos.set([]);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Todavía no hay datos');
-    expect(fixture.nativeElement.querySelector('button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.dashboard-toolbar button')).toBeNull();
     expect(cuentas.recargar).not.toHaveBeenCalled();
   });
 });

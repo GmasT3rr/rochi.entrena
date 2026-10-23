@@ -97,14 +97,24 @@
           cuotas nuevas.
         </p>
       }
-      <p>Esta configuración se guarda en PostgreSQL. Generá las cuotas del mes desde Cuentas y pagos, con vista previa y confirmación.</p>
+      <p>
+        Podés generar las cuotas del mes desde Cuentas y pagos, revisando primero la vista previa.
+      </p>
     </section>
     @if (service.error()) {
       <p role="alert">{{ service.error() }}</p>
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close [disabled]="service.guardando()">Cancelar</button>
-    <button mat-flat-button type="submit" [disabled]="confirmando() || service.guardando() || service.cargando()">{{ service.guardando() ? 'Guardando…' : 'Guardar' }}</button>
+    <button mat-button type="button" mat-dialog-close [disabled]="service.guardando()">
+      Cancelar
+    </button>
+    <button
+      mat-flat-button
+      type="submit"
+      [disabled]="confirmando() || service.guardando() || service.cargando()"
+    >
+      {{ service.guardando() ? 'Guardando…' : 'Guardar' }}
+    </button>
   </mat-dialog-actions>
 </form>

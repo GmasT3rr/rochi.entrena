@@ -1,3 +1,6 @@
+import { DestroyRef } from '@angular/core';
+import { CambiosPendientes } from '../../core/services/cambios-pendientes';
+import { ToastService } from '../../core/services/toast-service';
 import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -45,6 +48,7 @@ const periodo = (c: AbstractControl) => (periodoValido(c.value) ? null : { perio
 })
 export class CuentaForm {
   readonly data = inject<CuentaFormData>(MAT_DIALOG_DATA);
+  private readonly toast = inject(ToastService);
   readonly service = inject(CuentasService);
   readonly alumnos = this.service;
   private readonly ref = inject(MatDialogRef<CuentaForm>);
@@ -122,6 +126,19 @@ export class CuentaForm {
     return ((cuenta ? centavos(cuenta.saldo) : 0) + centavos(this.pago?.importe ?? 0)) / 100;
   }
   constructor() {
+    inject(CambiosPendientes).proteger(
+      this.ref,
+      () =>
+        this.data.tipo === 'cuota'
+          ? {
+              ...this.cuotaForm.getRawValue(),
+              mes: this.mesPeriodo.value,
+              anio: this.anioPeriodo.value,
+            }
+          : this.pagoForm.getRawValue(),
+      () => this.service.guardando() || this.confirmando(),
+      inject(DestroyRef),
+    );
     if (this.data.tipo === 'cuota' && this.data.cuota) this.cuotaForm.controls.alumnoId.disable();
   }
   async guardar(): Promise<void> {
@@ -133,6 +150,8 @@ export class CuentaForm {
       this.anioPeriodo.markAsTouched();
       if (this.mesPeriodo.invalid || this.anioPeriodo.invalid) return;
     }
+    if (form.invalid)
+      this.toast.mostrar('Revisá los campos marcados antes de guardar.', 'advertencia');
     if (form.invalid || this.confirmando() || !this.service.disponible()) return;
     if (this.data.tipo === 'pago' && this.pago) {
       this.confirmando.set(true);

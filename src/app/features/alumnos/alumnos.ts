@@ -1,4 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { MatSortModule } from '@angular/material/sort';
+import { ordenar } from '../../core/services/orden-tabla';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { LoadingLayout } from '../../shared/skeleton/loading-layout';
+import { Component, computed, inject, signal, DestroyRef } from '@angular/core';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,7 +11,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { AlumnoRegistro, EstadoRegistroAlumno, ModalidadAlumno } from '../../core/alumno';
+import { AlumnoRegistro } from '../../core/alumno';
 import { AlumnosService } from '../../core/services/alumnos-service';
 import { PageHeader } from '../../shared/page-header/page-header';
 import { AlumnoForm } from './alumno-form';
@@ -21,6 +26,10 @@ const normalizar = (texto: string) =>
 
 @Component({
   imports: [
+    MatSortModule,
+    LoadingLayout,
+    MatIconModule,
+    MatTooltipModule,
     MatCard,
     MatCardContent,
     MatTableModule,
@@ -37,21 +46,38 @@ const normalizar = (texto: string) =>
 export class Alumnos {
   readonly service = inject(AlumnosService);
   private readonly dialog = inject(MatDialog);
-  readonly busqueda = signal('');
-  readonly modalidad = signal<ModalidadAlumno | ''>('');
-  readonly estado = signal<EstadoRegistroAlumno | ''>('');
+  readonly orden = this.service.orden;
+  readonly busqueda = this.service.filtros.busqueda;
+  readonly modalidad = this.service.filtros.modalidad;
+  readonly estado = this.service.filtros.estado;
+  constructor() {
+    this.service.refrescarSiNecesario();
+    const refrescar = () => {
+      if (!document.hidden) this.service.refrescarSiNecesario();
+    };
+    window.addEventListener('focus', refrescar);
+    document.addEventListener('visibilitychange', refrescar);
+    inject(DestroyRef).onDestroy(() => {
+      window.removeEventListener('focus', refrescar);
+      document.removeEventListener('visibilitychange', refrescar);
+    });
+  }
   readonly mensaje = signal('');
   readonly columnas = ['nombre', 'modalidad', 'estado', 'acciones'];
   readonly alumnos = computed(() => {
     const texto = normalizar(this.busqueda().trim());
-    return this.service
-      .alumnos()
-      .filter(
-        (a) =>
-          (!this.modalidad() || a.modalidad === this.modalidad()) &&
-          (!this.estado() || a.estado === this.estado()) &&
-          normalizar(`${a.nombre} ${a.apellido} ${a.email} ${a.telefono}`).includes(texto),
-      );
+    return ordenar(
+      this.service
+        .alumnos()
+        .filter(
+          (a) =>
+            (!this.modalidad() || a.modalidad === this.modalidad()) &&
+            (!this.estado() || a.estado === this.estado()) &&
+            normalizar(`${a.nombre} ${a.apellido} ${a.email} ${a.telefono}`).includes(texto),
+        ),
+      this.orden(),
+      (a, k) => (k === 'nombre' ? a.nombre + ' ' + a.apellido : a[k as 'modalidad' | 'estado']),
+    );
   });
 
   editar(alumno: AlumnoRegistro | null = null): void {
@@ -59,6 +85,7 @@ export class Alumnos {
     this.service.error.set('');
     this.dialog
       .open(AlumnoForm, {
+        closeOnNavigation: false,
         data: alumno,
         width: '680px',
         maxWidth: 'calc(100vw - 24px)',
@@ -93,7 +120,10 @@ export class Alumnos {
       .afterClosed()
       .subscribe(async (confirmado) => {
         this.mensaje.set('');
-        if (confirmado && await this.service.cambiarEstado(alumno.id, baja ? 'Inactivo' : 'Activo')) {
+        if (
+          confirmado &&
+          (await this.service.cambiarEstado(alumno.id, baja ? 'Inactivo' : 'Activo'))
+        ) {
           this.mensaje.set(baja ? 'Alumno dado de baja.' : 'Alumno reactivado.');
         }
       });

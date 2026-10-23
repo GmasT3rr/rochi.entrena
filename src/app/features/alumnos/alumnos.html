@@ -31,87 +31,152 @@
       <mat-option value="Inactivo">Inactivo</mat-option>
     </mat-select>
   </mat-form-field>
-  <button mat-flat-button (click)="editar()" [disabled]="service.cargando() || service.guardando()">Agregar alumno</button>
-  <button mat-button (click)="service.recargar()" [disabled]="service.cargando() || service.guardando()">Actualizar</button>
+  <button mat-flat-button (click)="editar()" [disabled]="service.cargando() || service.guardando()">
+    Agregar alumno
+  </button>
 </div>
-<p>Alumnos en PostgreSQL. Consultá sus cuotas, saldos y pagos desde la ficha individual.</p>
-@if (service.cargando()) { <p role="status">Cargando alumnos…</p> }
+
 @if (service.errorListado()) {
-  <p role="alert">{{ service.errorListado() }}</p>
+  <div role="alert">
+    <p>{{ service.errorListado() }}</p>
+    @if (service.listadoCargado()) {
+      <p>Se muestra la última lista confirmada.</p>
+    }
+    <button
+      mat-stroked-button
+      (click)="service.recargar()"
+      [disabled]="service.cargando() || service.guardando()"
+    >
+      Reintentar
+    </button>
+  </div>
 }
 @if (service.error() && service.error() !== service.errorListado()) {
   <p role="alert">{{ service.error() }}</p>
 }
 <p role="status" class="feedback">{{ mensaje() }}</p>
-<mat-card appearance="outlined" class="table-card">
-  <mat-card-content>
-    <p class="result-count">{{ alumnos().length }} alumnos encontrados</p>
-    <div class="table-wrap" role="region" aria-label="Listado de alumnos" tabindex="0">
-      <table mat-table [dataSource]="alumnos()" class="hub-table">
-        <ng-container matColumnDef="nombre">
-          <th mat-header-cell *matHeaderCellDef>Nombre</th>
-          <td mat-cell *matCellDef="let alumno">{{ alumno.nombre }} {{ alumno.apellido }}</td>
-        </ng-container>
-        <ng-container matColumnDef="modalidad">
-          <th mat-header-cell *matHeaderCellDef>Modalidad</th>
-          <td mat-cell *matCellDef="let alumno">{{ alumno.modalidad }}</td>
-        </ng-container>
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef>Estado</th>
-          <td mat-cell *matCellDef="let alumno">
-            <span
-              class="badge"
-              [class.badge--pagado]="alumno.estado === 'Activo'"
-              [class.badge--pendiente]="alumno.estado === 'En pausa'"
-              [class.badge--vencido]="alumno.estado === 'Inactivo'"
+@if (service.cargando() && !service.listadoCargado()) {
+  <app-loading-layout variant="alumnos" label="Cargando alumnos" />
+} @else {
+  <mat-card appearance="outlined" class="table-card" [attr.aria-busy]="service.cargando()">
+    <mat-card-content>
+      @if (service.cargando()) {
+        <p role="status">Actualizando alumnos…</p>
+      }
+      @if (!service.errorListado()) {
+        <p class="result-count">{{ alumnos().length }} alumnos encontrados</p>
+      }
+      <div class="table-wrap" role="region" aria-label="Listado de alumnos" tabindex="0">
+        <table
+          matSort
+          [matSortActive]="orden().active"
+          [matSortDirection]="orden().direction"
+          (matSortChange)="orden.set($event)"
+          mat-table
+          [dataSource]="alumnos()"
+          class="hub-table"
+        >
+          <ng-container matColumnDef="nombre">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              mat-sort-header="nombre"
+              sortActionDescription="Ordenar"
             >
-              {{ alumno.estado }}
-            </span>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef>Acciones</th>
-          <td mat-cell *matCellDef="let alumno">
-            <div class="row-actions">
-              <button
-                mat-button
-                (click)="ficha(alumno)"
-                [attr.aria-label]="'Ver ficha de ' + alumno.nombre + ' ' + alumno.apellido"
+              Nombre
+            </th>
+            <td mat-cell *matCellDef="let alumno" data-label="Nombre">
+              {{ alumno.nombre }} {{ alumno.apellido }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="modalidad">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              mat-sort-header="modalidad"
+              sortActionDescription="Ordenar"
+            >
+              Modalidad
+            </th>
+            <td mat-cell *matCellDef="let alumno" data-label="Modalidad">{{ alumno.modalidad }}</td>
+          </ng-container>
+          <ng-container matColumnDef="estado">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              mat-sort-header="estado"
+              sortActionDescription="Ordenar"
+            >
+              Estado
+            </th>
+            <td mat-cell *matCellDef="let alumno" data-label="Estado">
+              <span
+                class="badge"
+                [class.badge--pagado]="alumno.estado === 'Activo'"
+                [class.badge--pendiente]="alumno.estado === 'En pausa'"
+                [class.badge--vencido]="alumno.estado === 'Inactivo'"
               >
-                Ver ficha
-              </button>
-              <button
-                mat-button
-                (click)="editar(alumno)"
-                [disabled]="service.guardando() || service.cargando()"
-                [attr.aria-label]="'Editar a ' + alumno.nombre + ' ' + alumno.apellido"
-              >
-                Editar
-              </button>
-              <button
-                mat-button
-                (click)="cambiarEstado(alumno)"
-                [disabled]="service.guardando() || service.cargando()"
-                [attr.aria-label]="
-                  (alumno.estado === 'Inactivo' ? 'Reactivar a ' : 'Dar de baja a ') +
-                  alumno.nombre +
-                  ' ' +
-                  alumno.apellido
-                "
-              >
-                {{ alumno.estado === 'Inactivo' ? 'Reactivar' : 'Dar de baja' }}
-              </button>
-            </div>
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-        <tr mat-row *matRowDef="let row; columns: columnas"></tr>
-        <tr *matNoDataRow>
-          <td [attr.colspan]="columnas.length" class="empty">
-            {{ service.cargando() ? 'Cargando alumnos…' : service.errorListado() ? 'Listado no disponible. Actualizá para reintentar.' : service.alumnos().length ? 'No hay alumnos que coincidan con la búsqueda.' : 'Todavía no hay alumnos en PostgreSQL.' }}
-          </td>
-        </tr>
-      </table>
-    </div>
-  </mat-card-content>
-</mat-card>
+                {{ alumno.estado }}
+              </span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+            <td mat-cell *matCellDef="let alumno" data-label="Acciones">
+              <div class="row-actions">
+                <button
+                  mat-icon-button
+                  matTooltip="Ver ficha"
+                  (click)="ficha(alumno)"
+                  [attr.aria-label]="'Ver ficha de ' + alumno.nombre + ' ' + alumno.apellido"
+                >
+                  <mat-icon>person_search</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matTooltip="Editar alumno"
+                  (click)="editar(alumno)"
+                  [disabled]="service.guardando() || service.cargando()"
+                  [attr.aria-label]="'Editar a ' + alumno.nombre + ' ' + alumno.apellido"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  [matTooltip]="alumno.estado === 'Inactivo' ? 'Reactivar' : 'Dar de baja'"
+                  (click)="cambiarEstado(alumno)"
+                  [disabled]="service.guardando() || service.cargando()"
+                  [attr.aria-label]="
+                    (alumno.estado === 'Inactivo' ? 'Reactivar a ' : 'Dar de baja a ') +
+                    alumno.nombre +
+                    ' ' +
+                    alumno.apellido
+                  "
+                >
+                  <mat-icon>{{
+                    alumno.estado === 'Inactivo' ? 'person_add' : 'person_off'
+                  }}</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+          <tr *matNoDataRow>
+            <td [attr.colspan]="columnas.length" class="empty">
+              {{
+                service.cargando()
+                  ? 'Cargando alumnos…'
+                  : service.errorListado()
+                    ? 'Listado no disponible. Usá Reintentar.'
+                    : service.alumnos().length
+                      ? 'No hay alumnos que coincidan con la búsqueda.'
+                      : 'Todavía no hay alumnos.'
+              }}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+}

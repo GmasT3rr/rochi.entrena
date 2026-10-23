@@ -2,12 +2,12 @@
 
 <div class="settings">
   <section aria-labelledby="appearance-title">
-    <div class="section-heading">
-      <h2 id="appearance-title">Apariencia</h2>
-      <p>Elegí cómo querés ver TusCuentasFacil.</p>
-    </div>
     <mat-card appearance="outlined">
       <mat-card-content>
+        <div class="section-heading">
+          <h2 id="appearance-title">Apariencia</h2>
+          <p>Elegí cómo querés ver TusCuentasFacil.</p>
+        </div>
         <div class="appearance">
           <mat-form-field appearance="outline"
             ><mat-label>Tema</mat-label>
@@ -29,12 +29,12 @@
   </section>
 
   <section aria-labelledby="security-title">
-    <div class="section-heading">
-      <h2 id="security-title">Seguridad de la cuenta</h2>
-      <p>Actualizá tu contraseña de acceso.</p>
-    </div>
     <mat-card appearance="outlined"
       ><mat-card-content>
+        <div class="section-heading">
+          <h2 id="security-title">Seguridad de la cuenta</h2>
+          <p>Actualizá tu contraseña de acceso.</p>
+        </div>
         <form class="password-form" [formGroup]="passwordForm" (ngSubmit)="cambiarPassword()">
           <p class="muted">
             Usá entre 12 y 128 caracteres con mayúsculas, minúsculas, números y símbolos.
@@ -101,11 +101,11 @@
   </section>
 
   <section aria-labelledby="session-title">
-    <div class="section-heading">
-      <h2 id="session-title">Sesión</h2>
-    </div>
     <mat-card appearance="outlined">
       <mat-card-content>
+        <div class="section-heading">
+          <h2 id="session-title">Sesión</h2>
+        </div>
         <div class="session">
           <div class="session__details">
             @if (correo()) {

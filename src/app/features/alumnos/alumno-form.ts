@@ -1,4 +1,7 @@
-﻿import { Component, inject, signal } from '@angular/core';
+import { DestroyRef } from '@angular/core';
+import { CambiosPendientes } from '../../core/services/cambios-pendientes';
+import { ToastService } from '../../core/services/toast-service';
+import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -33,6 +36,7 @@ import { ConfirmarAlumno } from './confirmar-alumno';
 })
 export class AlumnoForm {
   readonly alumno = inject<AlumnoRegistro | null>(MAT_DIALOG_DATA);
+  private readonly toast = inject(ToastService);
   readonly service = inject(AlumnosService);
   private readonly ref = inject(MatDialogRef<AlumnoForm>);
   private readonly dialog = inject(MatDialog);
@@ -83,6 +87,12 @@ export class AlumnoForm {
   });
 
   constructor() {
+    inject(CambiosPendientes).proteger(
+      this.ref,
+      () => this.form.getRawValue(),
+      () => this.service.guardando() || this.confirmando(),
+      inject(DestroyRef),
+    );
     this.actualizarCobro(this.form.controls.habilitarMensual.value);
     this.form.controls.habilitarMensual.valueChanges
       .pipe(takeUntilDestroyed())
@@ -98,6 +108,8 @@ export class AlumnoForm {
 
   async guardar(): Promise<void> {
     this.form.markAllAsTouched();
+    if (this.form.invalid)
+      this.toast.mostrar('Revisá los campos marcados antes de guardar.', 'advertencia');
     if (this.form.invalid || this.confirmando() || this.service.guardando()) return;
     const estado = this.form.getRawValue().estado;
     if (
@@ -127,7 +139,8 @@ export class AlumnoForm {
     const anteriorDisableClose = this.ref.disableClose;
     this.ref.disableClose = true;
     try {
-      const { habilitarMensual, importeMensual, diaVencimiento, ...datos } = this.form.getRawValue();
+      const { habilitarMensual, importeMensual, diaVencimiento, ...datos } =
+        this.form.getRawValue();
       const configuracionMensual = habilitarMensual
         ? { habilitada: true, importe: importeMensual!, diaVencimiento: diaVencimiento! }
         : this.alumno?.configuracionMensual
@@ -137,6 +150,8 @@ export class AlumnoForm {
         ? await this.service.guardar({ ...datos, configuracionMensual }, this.alumno.id)
         : await this.service.guardar({ ...datos, configuracionMensual }, undefined, this.nuevoId);
       if (guardado) this.ref.close(true);
-    } finally { this.ref.disableClose = anteriorDisableClose; }
+    } finally {
+      this.ref.disableClose = anteriorDisableClose;
+    }
   }
 }

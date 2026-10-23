@@ -32,6 +32,73 @@ export class ResumenDashboard {
       /* Conservar en memoria. */
     }
   }
+  readonly mesesEvolucion = signal<3 | 6 | 12 | 24>(12);
+  readonly evolucion = computed(() => {
+    const [anio, mes] = this.periodo().split('-').map(Number);
+    const ultimo = anio * 12 + mes - 1;
+    const porMes = new Map<string, number>();
+    for (const pago of this.cuentas.pagos()) {
+      const periodo = pago.fecha.slice(0, 7);
+      porMes.set(periodo, (porMes.get(periodo) ?? 0) + centavos(pago.importe));
+    }
+    return Array.from(
+      { length: this.mesesEvolucion() },
+      (_, i) => ultimo - this.mesesEvolucion() + 1 + i,
+    )
+      .filter((indice) => indice >= 1900 * 12)
+      .map((indice) => {
+        const periodo =
+          Math.floor(indice / 12)
+            .toString()
+            .padStart(4, '0') +
+          '-' +
+          ((indice % 12) + 1).toString().padStart(2, '0');
+        return { label: periodo, valor: (porMes.get(periodo) ?? 0) / 100 };
+      });
+  });
+  readonly emitido = computed(
+    () => this.cuotas().reduce((n, c) => n + centavos(c.importe), 0) / 100,
+  );
+  readonly abonadoPeriodo = computed(
+    () => this.cuotas().reduce((n, c) => n + centavos(c.abonado), 0) / 100,
+  );
+  readonly cobranza = computed(() =>
+    this.emitido() ? (this.abonadoPeriodo() / this.emitido()) * 100 : null,
+  );
+  readonly deudaVencida = computed(
+    () =>
+      this.cuotas()
+        .filter((c) => c.estado === 'Vencida')
+        .reduce((n, c) => n + centavos(c.saldo), 0) / 100,
+  );
+  readonly alumnosConDeuda = computed(
+    () =>
+      new Set(
+        this.cuotas()
+          .filter((c) => c.saldo > 0)
+          .map((c) => c.alumnoId),
+      ).size,
+  );
+  readonly estados = computed(() =>
+    ['Pagada', 'Parcial', 'Pendiente', 'Vencida'].map((estado, i) => ({
+      label: ['Pagadas', 'Parciales', 'Pendientes', 'Vencidas'][i],
+      valor: this.cuotas().filter((c) => c.estado === estado).length,
+    })),
+  );
+  readonly modalidades = computed(() => [
+    { label: 'Presenciales', valor: this.presenciales() },
+    { label: 'Online', valor: this.online() },
+  ]);
+  readonly comparacionIngresos = computed(() => {
+    const evolucion = this.evolucion();
+    if (evolucion.length < 2) return null;
+    const anterior = evolucion[evolucion.length - 2].valor;
+    return {
+      anterior,
+      diferencia: this.ingresos() - anterior,
+      porcentaje: anterior ? ((this.ingresos() - anterior) / anterior) * 100 : null,
+    };
+  });
   readonly activos = computed(() => this.cuentas.alumnos().filter((a) => a.estado === 'Activo'));
   readonly presenciales = computed(
     () => this.activos().filter((a) => a.modalidad === 'Presencial').length,

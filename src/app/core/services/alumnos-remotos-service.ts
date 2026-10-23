@@ -1,3 +1,5 @@
+import { Sort } from '@angular/material/sort';
+import { ToastService } from './toast-service';
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { AlumnoRegistro, ConfiguracionMensual, DatosAlumno, esAlumno } from '../alumno';
 import { AuthService } from '../auth/auth-service';
@@ -5,53 +7,113 @@ import { AlumnosSupabaseRepository } from './alumnos-supabase-repository';
 
 @Injectable({ providedIn: 'root' })
 export class AlumnosService {
+  readonly orden = signal<Sort>({ active: 'nombre', direction: 'asc' });
+  private readonly toast = inject(ToastService);
   private readonly repository = inject(AlumnosSupabaseRepository);
   private readonly auth = inject(AuthService);
   private readonly datos = signal<readonly AlumnoRegistro[]>([]);
   readonly alumnos = this.datos.asReadonly();
-  readonly activos = computed(() => this.alumnos().filter(a => a.estado === 'Activo').length);
+  readonly activos = computed(() => this.alumnos().filter((a) => a.estado === 'Activo').length);
   readonly cargando = signal(false);
   readonly guardando = signal(false);
   readonly error = signal('');
   readonly errorListado = signal('');
   readonly mensaje = signal('');
+  readonly listadoCargado = signal(false);
+  readonly filtros = {
+    busqueda: signal(''),
+    modalidad: signal<import('../alumno').ModalidadAlumno | ''>(''),
+    estado: signal<import('../alumno').EstadoRegistroAlumno | ''>(''),
+  };
+  private ultimaCarga = 0;
+  private ultimoIntento = 0;
   private generation = 0;
+  refrescarSiNecesario(): void {
+    if (!this.auth.session() || this.cargando() || this.guardando()) return;
+    const ahora = Date.now();
+    if (this.listadoCargado() && ahora - this.ultimaCarga < 60000) return;
+    if (this.errorListado() && ahora - this.ultimoIntento < 30000) return;
+    void this.recargar();
+  }
   constructor() {
     effect(() => {
       const token = this.auth.session()?.access_token;
       untracked(() => {
         this.generation++;
-        this.datos.set([]); this.error.set(''); this.errorListado.set(''); this.mensaje.set('');
+        this.listadoCargado.set(false);
+        this.ultimaCarga = 0;
+        this.ultimoIntento = 0;
+        this.cargando.set(false);
+        this.datos.set([]);
+        this.error.set('');
+        this.errorListado.set('');
+        this.mensaje.set('');
         if (token) void this.recargar();
         else this.cargando.set(false);
       });
     });
   }
   async recargar(): Promise<void> {
-    if (this.guardando()) return;
+    if (this.guardando() || this.cargando()) return;
+    this.ultimoIntento = Date.now();
     const generation = ++this.generation;
-    this.cargando.set(true); this.error.set(''); this.errorListado.set(''); this.mensaje.set('');
+    this.cargando.set(true);
+    this.error.set('');
+    this.errorListado.set('');
+    this.mensaje.set('');
     try {
       const alumnos = await this.repository.listar();
-      if (generation === this.generation) this.datos.set(alumnos);
+      if (generation === this.generation) {
+        this.datos.set(alumnos);
+        this.listadoCargado.set(true);
+        this.ultimaCarga = Date.now();
+      }
     } catch (error) {
-      if (generation === this.generation) { this.datos.set([]); this.fallo(error, false); this.errorListado.set(this.error()); }
-    } finally { if (generation === this.generation) this.cargando.set(false); }
+      if (generation === this.generation) {
+        if ((error as { code?: string })?.code === '42501') {
+          this.datos.set([]);
+          this.listadoCargado.set(false);
+        }
+        this.fallo(error, false);
+        this.errorListado.set(this.error());
+      }
+    } finally {
+      if (generation === this.generation) this.cargando.set(false);
+    }
   }
   async obtener(id: string): Promise<AlumnoRegistro | null> {
-    try { return await this.repository.obtener(id); }
-    catch (error) { this.fallo(error, false); return null; }
+    try {
+      return await this.repository.obtener(id);
+    } catch (error) {
+      this.fallo(error, false);
+      return null;
+    }
   }
   async guardar(datos: DatosAlumno, id?: string, nuevoId?: string): Promise<boolean> {
-    const anterior = id ? this.alumnos().find(a => a.id === id) : undefined;
-    if (id && !anterior) { this.error.set('El alumno no está disponible. Actualizá el listado.'); return false; }
-    const limpio = Object.fromEntries(Object.entries(datos).map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value]));
-    const alumno = { ...anterior, ...limpio, id: id ?? nuevoId ?? crypto.randomUUID() } as AlumnoRegistro;
-    if (!esAlumno(alumno)) { this.error.set('Revisá los datos del alumno y su configuración mensual.'); return false; }
+    const anterior = id ? this.alumnos().find((a) => a.id === id) : undefined;
+    if (id && !anterior) {
+      this.error.set('El alumno no está disponible. Actualizá el listado.');
+      return false;
+    }
+    const limpio = Object.fromEntries(
+      Object.entries(datos).map(([key, value]) => [
+        key,
+        typeof value === 'string' ? value.trim() : value,
+      ]),
+    );
+    const alumno = {
+      ...anterior,
+      ...limpio,
+      id: id ?? nuevoId ?? crypto.randomUUID(),
+    } as AlumnoRegistro;
+    if (!esAlumno(alumno)) {
+      this.error.set('Revisá los datos del alumno y su configuración mensual.');
+      return false;
+    }
     return this.persistir(() => this.repository.guardar(alumno, !id));
   }
   async configurarMensual(id: string, configuracion: ConfiguracionMensual): Promise<boolean> {
-    const alumno = this.alumnos().find(a => a.id === id);
+    const alumno = this.alumnos().find((a) => a.id === id);
     if (!alumno) return false;
     return this.guardar({ ...alumno, configuracionMensual: configuracion }, id);
   }
@@ -61,27 +123,48 @@ export class AlumnosService {
   private async persistir(operacion: () => Promise<AlumnoRegistro>): Promise<boolean> {
     if (this.guardando() || this.cargando()) return false;
     const generation = this.generation;
-    this.guardando.set(true); this.error.set(''); this.mensaje.set('');
+    this.guardando.set(true);
+    this.error.set('');
+    this.mensaje.set('');
     try {
       const alumno = await operacion();
       if (generation !== this.generation) return false;
-      this.datos.update(alumnos => alumnos.some(a => a.id === alumno.id)
-        ? alumnos.map(a => a.id === alumno.id ? alumno : a) : [...alumnos, alumno]);
-      this.mensaje.set('Cambio confirmado en PostgreSQL.');
+      this.datos.update((alumnos) =>
+        alumnos.some((a) => a.id === alumno.id)
+          ? alumnos.map((a) => (a.id === alumno.id ? alumno : a))
+          : [...alumnos, alumno],
+      );
+      this.mensaje.set('Cambios guardados.');
+      this.toast.mostrar('Cambios guardados.', 'exito');
+      this.ultimaCarga = 0;
       return true;
-    } catch (error) { if (generation === this.generation) this.fallo(error); return false; }
-    finally { this.guardando.set(false); }
+    } catch (error) {
+      if (generation === this.generation) this.fallo(error);
+      return false;
+    } finally {
+      this.guardando.set(false);
+    }
   }
   private fallo(error: unknown, guardado = true): void {
     const code = (error as { code?: string })?.code;
-    this.error.set(code === '42501' ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
-      : code === 'PGRST202' && guardado ? 'La API no encuentra guardar_alumno_con_configuracion(p_id, p_crear, p_datos). Revisá la migración 002 y la caché de esquema. No se confirmó ningún cambio.'
-      : code === 'PGRST200' ? 'No se encuentra la relación entre alumnos y configuraciones_mensuales (PGRST200). Revisá la FK y la caché de esquema; no es un listado vacío.'
-      : code === 'PGRST201' ? 'La relación de configuración mensual es ambigua (PGRST201). Revisá las relaciones instaladas.'
-      : code === '42703' ? 'La consulta utiliza una columna que no existe en el esquema instalado (42703). Revisá las columnas de alumnos y configuraciones_mensuales.'
-      : code === 'PGRST205' || code === '42P01' ? 'La API no encuentra una tabla requerida. Revisá alumnos, configuraciones_mensuales y la caché de esquema.'
-      : code === 'PGRST103' ? 'Supabase rechazó el rango de paginación (PGRST103). Actualizá el listado para reintentar.'
-      : code === 'TCF_RESPUESTA_INVALIDA' ? 'La respuesta del listado no tiene el formato o conteo esperado. No se considera una tabla vacía.'
-      : 'No se pudo confirmar la operación con Supabase. Revisá la conexión y actualizá el listado antes de reintentar.');
+    this.error.set(
+      code === '42501'
+        ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
+        : [
+              'PGRST202',
+              'PGRST200',
+              'PGRST201',
+              '42703',
+              'PGRST205',
+              '42P01',
+              'PGRST103',
+              'TCF_RESPUESTA_INVALIDA',
+            ].includes(code ?? '')
+          ? 'No pudimos completar la consulta. Reintentá; si el problema continúa, contactá al administrador.'
+          : guardado
+            ? 'No se pudo guardar el cambio. Revisá la conexión e intentá nuevamente.'
+            : 'No se pudo actualizar el listado. Revisá la conexión y reintentá.',
+    );
+    this.toast.mostrar(this.error(), 'error');
   }
 }

@@ -1,3 +1,5 @@
+import { Router } from '@angular/router';
+import { MatDialogRef } from '@angular/material/dialog';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -57,7 +59,10 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
           </dl>
         }
         <p>Podés modificar esta configuración desde Editar alumno.</p>
-        <h3>Cuotas y pagos en PostgreSQL</h3>
+        <h3>Cuotas y pagos</h3>
+        <button mat-stroked-button (click)="verCuentas(a.id)">
+          Ver todas las cuotas del alumno
+        </button>
         <button
           mat-button
           (click)="cuentas.recargar()"
@@ -97,6 +102,11 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
   `,
 })
 export class AlumnoFicha {
+  private readonly router = inject(Router);
+  private readonly ref = inject(MatDialogRef<AlumnoFicha>);
+  async verCuentas(id: string): Promise<void> {
+    if (await this.router.navigate(['/cuentas'], { queryParams: { alumno: id } })) this.ref.close();
+  }
   readonly cuentas = inject(CuentasService);
   private readonly dialog = inject(MatDialog);
   constructor() {

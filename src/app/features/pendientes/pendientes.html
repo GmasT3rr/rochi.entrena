@@ -1,0 +1,78 @@
+<app-page-header
+  title="Centro de pendientes"
+  subtitle="Saldos actuales de tus alumnos, sin limitar por período."
+/>
+<div class="toolbar">
+  <a mat-button routerLink="/dashboard">Volver al Dashboard</a
+  ><button
+    mat-stroked-button
+    (click)="service.recargar()"
+    [disabled]="service.cargando() || service.guardando()"
+  >
+    Actualizar
+  </button>
+</div>
+@if (service.cargando() || service.guardando()) {
+  <app-loading-layout variant="cuentas" label="Cargando pendientes" />
+} @else if (service.errorCarga()) {
+  <p role="alert">No pudimos cargar los pendientes. Usá Actualizar para reintentar.</p>
+} @else if (service.disponible()) {
+  <p>
+    Saldo total pendiente: <strong>{{ total() | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+  </p>
+  <nav class="pending-categories" aria-label="Filtrar pendientes">
+    <button mat-stroked-button [attr.aria-pressed]="categoria() === ''" (click)="categoria.set('')">
+      Todos ({{ pendientes().length }})
+    </button>
+    @for (c of categorias; track c.id) {
+      <button
+        mat-stroked-button
+        [attr.aria-pressed]="categoria() === c.id"
+        (click)="categoria.set(c.id)"
+      >
+        {{ c.label }} ({{ contar(c.id) }})
+      </button>
+    }
+  </nav>
+  <p class="scope">
+    Próximas: vencen hoy o en los próximos 7 días. Cada cuota se cuenta en una sola categoría; los
+    pagos parciales también se indican en cada cuota.
+  </p>
+  <label class="pending-search"
+    >Buscar alumno o concepto<input
+      type="search"
+      [value]="busqueda()"
+      (input)="busqueda.set($any($event.target).value)"
+  /></label>
+  <div class="pending-list">
+    @for (p of visibles(); track p.cuota.id) {
+      <article class="pending-item">
+        <div>
+          <h2>{{ p.cuota.alumno }}</h2>
+          <p>{{ p.cuota.concepto }} · {{ p.cuota.periodo }}</p>
+          <p>Vence {{ p.cuota.vencimiento | date: 'dd/MM/yyyy' }} · {{ etiqueta(p.categoria) }}</p>
+          @if (p.cuota.abonado > 0) {
+            <p>Con pagos parciales</p>
+          }
+        </div>
+        <strong>{{ p.cuota.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+        <div>
+          <button mat-button (click)="detalle(p.cuota)">Ver cuota y pagos</button
+          ><button mat-flat-button (click)="pagar(p.cuota)" [disabled]="!service.disponible()">
+            Registrar pago
+          </button>
+        </div>
+      </article>
+    } @empty {
+      <p role="status">
+        {{
+          pendientes().length
+            ? 'No hay pendientes que coincidan con los filtros.'
+            : 'Estás al día: no hay cuotas con saldo pendiente.'
+        }}
+      </p>
+    }
+  </div>
+} @else {
+  <app-loading-layout variant="cuentas" label="Cargando pendientes" />
+}

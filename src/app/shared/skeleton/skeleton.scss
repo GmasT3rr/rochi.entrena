@@ -1,0 +1,43 @@
+﻿:host {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  max-width: 100%;
+  border-radius: 0.5rem;
+  background: #e8e8ed;
+}
+:host-context([data-theme='dark']) {
+  background: #35343d;
+}
+:host::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #ffffff75, transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+:host-context([data-theme='dark'])::after {
+  background: linear-gradient(90deg, transparent, #ffffff12, transparent);
+}
+:host(.circle) {
+  border-radius: 50%;
+}
+:host(.card) {
+  border-radius: 0.85rem;
+}
+:host(.line) {
+  border-radius: 0.25rem;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :host::after {
+    animation: none;
+    display: none;
+  }
+}

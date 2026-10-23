@@ -89,6 +89,7 @@
   top: 0;
   z-index: 2;
   height: 64px;
+  flex-shrink: 0;
   padding: 0 1rem;
   gap: 0.5rem;
   background: color-mix(in srgb, var(--hub-canvas) 88%, var(--hub-surface));
@@ -124,15 +125,43 @@
   font-weight: 600;
 }
 
-.user__name {
-  font-size: 0.9rem;
+.user__details {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  max-width: clamp(8rem, 22vw, 20rem);
+}
+.user__role {
+  font-size: 0.68rem;
   font-weight: 500;
+  color: var(--hub-muted);
+  line-height: 1.1;
+}
+.user__email {
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user {
+  min-width: 0;
+}
+.user__avatar {
+  flex-shrink: 0;
+}
+.topbar__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .main {
   flex: 1;
   min-width: 0;
-  padding: 1.5rem 1.5rem 2rem;
+  padding: var(--hub-page-padding) var(--hub-page-padding) 2rem;
   outline: none;
 }
 

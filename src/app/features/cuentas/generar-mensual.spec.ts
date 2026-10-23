@@ -111,7 +111,8 @@ describe('Diálogo mensual de PostgreSQL', () => {
     const { component } = dialogo();
     previsualizarMensual.mockRejectedValue({ code: 'TCF_MENSUAL_RPC' });
     await component.previsualizar();
-    expect(component.error()).toContain('004');
+    expect(component.error()).toContain('no está disponible');
+    expect(component.error()).not.toMatch(/RPC|004|PostgreSQL/);
     expect(component.vista()).toBeNull();
     expect(component.resultado()).toBeNull();
   });

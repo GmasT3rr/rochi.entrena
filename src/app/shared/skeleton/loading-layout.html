@@ -1,0 +1,74 @@
+﻿<p class="sr-only" role="status">{{ label() }}</p>
+<div aria-hidden="true">
+  @if (variant() === 'dashboard') {
+    <div class="metrics">
+      @for (i of [0, 1, 2, 3]; track i) {
+        <div class="panel metric">
+          <app-skeleton width="65%" height=".75rem" shape="line" /><app-skeleton
+            width="80%"
+            height="1.5rem"
+          /><app-skeleton width="55%" height=".6rem" shape="line" />
+        </div>
+      }
+    </div>
+    <div class="panel income">
+      <div class="heading">
+        <app-skeleton width="11rem" /><app-skeleton width="8rem" height="3.5rem" />
+      </div>
+      <app-skeleton width="45%" height=".7rem" shape="line" /><app-skeleton
+        height="200px"
+        shape="card"
+      /><app-skeleton width="45%" height=".7rem" shape="line" />
+    </div>
+    <div class="donuts">
+      @for (i of [0, 1]; track i) {
+        <div class="panel">
+          <app-skeleton width="60%" /><app-skeleton width="80%" height=".7rem" shape="line" />
+          <div class="distribution">
+            <app-skeleton shape="circle" width="200px" height="200px" />
+            <div class="legend">
+              @for (j of [0, 1, 2]; track j) {
+                <app-skeleton height="1rem" />
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+  @if (variant() === 'pagos') {
+    <div class="panel">
+      <div class="metrics">
+        @for (i of [0, 1, 2, 3]; track i) {
+          <div class="metric">
+            <app-skeleton width="65%" height=".7rem" /><app-skeleton width="80%" height="1.3rem" />
+          </div>
+        }
+      </div>
+    </div>
+  }
+  <div class="panel table">
+    <app-skeleton width="12rem" height="1rem" />
+    <div class="row row--head">
+      <app-skeleton width="70%" height=".7rem" /><app-skeleton
+        width="65%"
+        height=".7rem"
+      /><app-skeleton width="60%" height=".7rem" /><app-skeleton width="70%" height=".7rem" />
+    </div>
+    @for (i of filas; track i) {
+      <div class="row">
+        <div class="name">
+          <app-skeleton [width]="i % 2 ? '70%' : '85%'" /><app-skeleton
+            width="55%"
+            height=".65rem"
+            shape="line"
+          />
+        </div>
+        <app-skeleton width="75%" /><app-skeleton width="70%" height="1.5rem" /><app-skeleton
+          width="80%"
+          height="1.8rem"
+        />
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,64 @@
+.toolbar,
+.pending-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.pending-categories [aria-pressed='true'] {
+  outline: 2px solid var(--hub-primary, #536dfe);
+  outline-offset: 2px;
+}
+.scope {
+  color: var(--hub-muted);
+}
+.pending-search {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin: 20px 0;
+}
+.pending-search input {
+  padding: 12px;
+  border: 1px solid var(--hub-muted);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.pending-list {
+  display: grid;
+  gap: 16px;
+}
+.pending-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--hub-border, #8885);
+  border-radius: 12px;
+  background: var(--hub-surface);
+}
+h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+p {
+  margin: 8px 0;
+}
+.pending-item strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.pending-item > div:last-child {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (max-width: 700px) {
+  .pending-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

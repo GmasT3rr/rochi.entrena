@@ -1,96 +1,183 @@
-<app-page-header title="Dashboard" subtitle="Alumnos, cobros y saldos de tu actividad." />
-<div class="dashboard-toolbar">
-  <mat-form-field appearance="outline">
-    <mat-label>Mes</mat-label>
-    <mat-select
-      aria-label="Mes"
-      [value]="resumen.periodo().slice(5)"
-      (selectionChange)="cambiarMes($event.value)"
-    >
-      @for (mes of meses; track mes; let i = $index) {
-        <mat-option [value]="(i + 1).toString().padStart(2, '0')">{{ mes }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-  <mat-form-field appearance="outline" class="period-year">
-    <mat-label>Año</mat-label>
-    <input
-      matInput
-      type="number"
-      aria-label="Año"
-      min="1900"
-      max="9999"
-      step="1"
-      [value]="resumen.periodo().slice(0, 4)"
-      (input)="cambiarAnio($any($event.target).value)"
-      (blur)="$any($event.target).value = resumen.periodo().slice(0, 4)"
-    />
-  </mat-form-field>
-</div>
+<app-page-header title="Dashboard" subtitle="Tu actividad de un vistazo">
+  <div class="dashboard-toolbar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Mes</mat-label>
+      <mat-select
+        aria-label="Mes"
+        [value]="resumen.periodo().slice(5)"
+        (selectionChange)="cambiarMes($event.value)"
+      >
+        @for (mes of meses; track mes; let i = $index) {
+          <mat-option [value]="(i + 1).toString().padStart(2, '0')">{{ mes }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="period-year">
+      <mat-label>Año</mat-label>
+      <input
+        matInput
+        type="number"
+        aria-label="Año"
+        min="1900"
+        max="9999"
+        step="1"
+        [value]="resumen.periodo().slice(0, 4)"
+        (input)="cambiarAnio($any($event.target).value)"
+        (blur)="$any($event.target).value = resumen.periodo().slice(0, 4)"
+      />
+    </mat-form-field>
+  </div>
+</app-page-header>
+<nav class="dashboard-shortcuts" aria-label="Accesos directos">
+  <a mat-stroked-button routerLink="/alumnos">Alumnos</a
+  ><a mat-stroked-button routerLink="/cuentas" [queryParams]="{ periodo: resumen.periodo() }"
+    >Cuotas y pagos del período</a
+  ><a mat-flat-button routerLink="/pendientes">Ver todos los pendientes</a>
+</nav>
 @if (cuentas.cargando() || cuentas.guardando()) {
-  <p role="status">Actualizando resumen…</p>
+  <app-loading-layout variant="dashboard" label="Actualizando resumen" />
 } @else if (cuentas.errorCarga()) {
-  <p role="alert">No pudimos cargar el resumen. Recargá la página para reintentar.</p>
+  <p role="alert">No pudimos cargar el resumen. Usá Reintentar para volver a consultar.</p>
+  <button mat-stroked-button (click)="cuentas.recargar()">Reintentar</button>
 } @else if (!cuentas.disponible()) {
-  <p role="status">Cargando resumen…</p>
+  <app-loading-layout variant="dashboard" label="Cargando resumen" />
 } @else {
   @if (resumen.vacio()) {
     <p role="status">Todavía no hay datos para mostrar. Podés comenzar agregando alumnos.</p>
   }
-  <h2>Alumnos actuales</h2>
-  <section class="stats" aria-label="Alumnos actuales">
-    <app-stat-card
-      label="Alumnos activos"
-      [value]="'' + resumen.activos().length"
-      hint="Situación actual, independiente del período"
-      icon="groups"
-    />
-    <app-stat-card
-      label="Activos presenciales"
-      [value]="'' + resumen.presenciales()"
-      icon="location_on"
-    />
-    <app-stat-card label="Activos online" [value]="'' + resumen.online()" icon="devices" />
-  </section>
-  <h2>Resumen del período</h2>
-  <p class="scope">
-    Los cobros corresponden a pagos recibidos durante el mes. Los saldos y estados corresponden a
-    cuotas del período seleccionado.
-  </p>
   <section class="stats" aria-label="Indicadores del período">
     <app-stat-card
+      enlace="/cuentas"
+      [compact]="true"
       label="Cobrado en el mes"
       [value]="(resumen.ingresos() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
-      hint="Incluye pagos parciales y cuotas de otros períodos"
+      hint="Pagos recibidos en el mes"
       icon="payments"
     />
     <app-stat-card
+      enlace="/cuentas"
+      [parametros]="{ periodo: resumen.periodo() }"
+      [compact]="true"
       label="Pendiente de cobro"
       [value]="(resumen.pendiente() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
       hint="Saldo de cuotas del período"
       icon="account_balance_wallet"
     />
-    <app-stat-card label="Cuotas vencidas" [value]="'' + resumen.vencidas()" icon="event_busy" />
-    <app-stat-card label="Cuotas pagadas" [value]="'' + resumen.pagadas()" icon="task_alt" />
     <app-stat-card
-      label="Con pagos parciales"
-      [value]="'' + resumen.parciales()"
-      hint="Incluye cuotas vencidas con abonos"
-      icon="pie_chart"
+      enlace="/cuentas"
+      [parametros]="{ periodo: resumen.periodo() }"
+      [compact]="true"
+      label="Porcentaje de cobranza"
+      [value]="
+        resumen.cobranza() === null ? 'No aplica' : (resumen.cobranza() | number: '1.1-1') + '%'
+      "
+      hint="Abonado a las cuotas / importe emitido"
+      icon="percent"
     />
+    <app-stat-card
+      enlace="/cuentas"
+      [parametros]="{ periodo: resumen.periodo() }"
+      [compact]="true"
+      label="Deuda vencida"
+      [value]="(resumen.deudaVencida() | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+      hint="Saldo vencido del período"
+      icon="event_busy"
+    />
+  </section>
+  <section class="charts" aria-label="Análisis de actividad">
+    <mat-card appearance="outlined" class="income-chart"
+      ><mat-card-content>
+        <div class="chart-heading">
+          <h2>Evolución de ingresos</h2>
+          <mat-form-field appearance="outline"
+            ><mat-label>Mostrar</mat-label>
+            <mat-select
+              [value]="resumen.mesesEvolucion()"
+              (selectionChange)="resumen.mesesEvolucion.set($event.value)"
+            >
+              <mat-option [value]="3">3 meses</mat-option
+              ><mat-option [value]="6">6 meses</mat-option
+              ><mat-option [value]="12">12 meses</mat-option>
+              <mat-option [value]="24">24 meses</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <p class="scope">Cobros por fecha de pago · ARS</p>
+        <app-grafico-dashboard
+          titulo="Ingresos mensuales en ARS"
+          [datos]="resumen.evolucion()"
+          [monetario]="true"
+        />
+        @if (resumen.comparacionIngresos(); as comparacion) {
+          <p class="comparison">
+            Respecto al mes anterior:
+            <strong>{{ comparacion.diferencia | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+            @if (comparacion.porcentaje !== null) {
+              ({{ comparacion.porcentaje | number: '1.1-1' }}%)
+            } @else {
+              <span>· Sin base de cobros para calcular variación porcentual.</span>
+            }
+          </p>
+        }
+      </mat-card-content></mat-card
+    >
+    <mat-card appearance="outlined"
+      ><mat-card-content>
+        <h2>Estado de cuotas del período</h2>
+        <p class="scope">Las vencidas incluyen cuotas con abonos.</p>
+        <app-grafico-dashboard
+          titulo="Estados de cuotas"
+          [datos]="resumen.estados()"
+        /> </mat-card-content
+    ></mat-card>
+    <mat-card appearance="outlined"
+      ><mat-card-content>
+        <div class="section-heading">
+          <h2>Alumnos activos</h2>
+          <span class="count-pill">{{ resumen.activos().length }} en total</span>
+        </div>
+        <p class="scope">Distribución actual, independiente del período seleccionado.</p>
+        <app-grafico-dashboard
+          titulo="Modalidad de alumnos activos"
+          [datos]="resumen.modalidades()"
+        /> </mat-card-content
+    ></mat-card>
   </section>
   <mat-card appearance="outlined" class="panel debt-panel"
     ><mat-card-content>
-      <h2>Vencimientos y deudas del período</h2>
-      <ul class="follow-up">
-        @for (c of resumen.deudas(); track c.id) {
-          <li>
-            <div>
-              <strong>{{ c.alumno }}</strong>
-              <p>{{ c.concepto }} · Vence {{ c.vencimiento | date: 'dd/MM/yyyy' }}</p>
+      <div class="section-heading">
+        <h2>Vencimientos y deudas</h2>
+        <span class="count-pill">{{ resumen.alumnosConDeuda() }} alumnos con deuda</span>
+      </div>
+      <p class="scope">Período seleccionado · Hasta 8 cuotas por vencimiento</p>
+      <div
+        matSort
+        [matSortActive]="ordenDeudas().active"
+        [matSortDirection]="ordenDeudas().direction"
+        (matSortChange)="ordenDeudas.set($event)"
+        class="debt-table"
+        role="table"
+        aria-label="Vencimientos del período"
+      >
+        <div class="debt-row debt-head" role="row">
+          <span role="columnheader" mat-sort-header="alumno">Alumno / Concepto</span
+          ><span role="columnheader" mat-sort-header="vencimiento">Vencimiento</span
+          ><span role="columnheader" mat-sort-header="saldo">Pendiente</span
+          ><span role="columnheader" mat-sort-header="estado">Estado</span>
+        </div>
+        @for (c of deudas(); track c.id) {
+          <div class="debt-row" role="row" [class.debt-row--overdue]="c.estado === 'Vencida'">
+            <div role="cell" class="debt-student">
+              <strong>{{ c.alumno }}</strong
+              ><span>{{ c.concepto }}</span>
             </div>
-            <div class="follow-up__meta">
-              <strong>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+            <div role="cell" class="debt-date">
+              <span class="mobile-label">Vence </span>{{ c.vencimiento | date: 'dd/MM/yyyy' }}
+            </div>
+            <strong role="cell" class="debt-amount">{{
+              c.saldo | currency: 'ARS' : 'symbol' : '1.2-2'
+            }}</strong>
+            <div role="cell" class="debt-state">
               <span
                 class="badge"
                 [class.badge--vencido]="c.estado === 'Vencida'"
@@ -98,15 +185,11 @@
                 >{{ c.estado }}</span
               >
             </div>
-          </li>
+          </div>
         } @empty {
-          <li>No hay saldos pendientes para este período.</li>
+          <p class="empty-debts">No hay saldos pendientes para este período.</p>
         }
-      </ul>
-      <p class="scope">
-        Hasta 8 cuotas, ordenadas por vencimiento. Podés consultar el detalle completo en Cuentas y
-        pagos.
-      </p>
+      </div>
     </mat-card-content></mat-card
   >
 }

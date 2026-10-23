@@ -1,3 +1,5 @@
+import { Sort } from '@angular/material/sort';
+import { ToastService } from './toast-service';
 import { computed, DestroyRef, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import {
   CuentasData,
@@ -39,6 +41,8 @@ const vacio = (): CuentasSnapshot => ({
 
 @Injectable({ providedIn: 'root' })
 export class CuentasService {
+  readonly orden = signal<Sort>({ active: 'vencimiento', direction: 'asc' });
+  private readonly toast = inject(ToastService);
   private readonly repository = inject(CuentasSupabaseRepository);
   private readonly auth = inject(AuthService);
   private readonly datos = signal<CuentasSnapshot>(vacio());
@@ -160,13 +164,14 @@ export class CuentasService {
   private fallar(error: string): false {
     this.mensaje.set('');
     this.error.set(error);
+    this.toast.mostrar(error, 'error');
     return false;
   }
   private validar(data: CuentasData): boolean {
     try {
       validarCuentas(data);
       if (data.cuotas.some((c) => !this.alumnos().some((a) => a.id === c.alumnoId)))
-        throw Error('Seleccioná un alumno existente en PostgreSQL.');
+        throw Error('Seleccioná un alumno disponible en el listado.');
       return true;
     } catch (error) {
       return this.fallar(error instanceof Error ? error.message : 'Datos inválidos.');
@@ -283,6 +288,7 @@ export class CuentasService {
       this.cargado.set(true);
       this.errorCarga.set('');
       this.mensaje.set(typeof mensaje === 'function' ? mensaje() : mensaje);
+      this.toast.mostrar(this.mensaje(), typeof mensaje === 'string' ? 'exito' : 'informacion');
       return true;
     } catch (error) {
       if (generation !== this.generation) return false;
@@ -292,7 +298,7 @@ export class CuentasService {
       this.errorCarga.set('Actualizá para volver a consultar los saldos confirmados.');
       return this.fallar(
         confirmada
-          ? 'La operación fue confirmada por Supabase, pero no se pudo actualizar la pantalla. No la repitas: pulsá Actualizar.'
+          ? 'La operación fue confirmada, pero no se pudo actualizar la pantalla. No la repitas: pulsá Actualizar.'
           : errorFinanciero(error),
       );
     } finally {
@@ -309,9 +315,9 @@ export function errorFinanciero(error: unknown): string {
   if (code === 'TCF_MENSUAL_DESACTUALIZADA')
     return 'La vista previa cambió. No se generaron cuotas en este intento. Actualizala y volvé a confirmar.';
   if (code === 'TCF_MENSUAL_RPC')
-    return 'Faltan las RPC de generación mensual en la API. Revisá la migración 004 y la caché de esquema.';
+    return 'La generación mensual no está disponible. Reintentá más tarde; si continúa, contactá al administrador.';
   if (code === 'TCF_MENSUAL_DATOS')
-    return 'Supabase devolvió un resultado mensual inesperado. Actualizá los datos; no se puede confirmar un recuento.';
+    return 'No pudimos verificar el resultado mensual. Actualizá los datos antes de continuar.';
   if (code === '42501') return 'Acceso denegado. Verificá tu sesión y autorización administrativa.';
   if (code === '23505')
     return 'Ya existe una cuota equivalente o un registro con ese ID. Actualizá antes de reintentar.';
@@ -320,8 +326,8 @@ export function errorFinanciero(error: unknown): string {
   if (['TCF_CONFLICTO', '40001', '40P01', 'PGRST116'].includes(code ?? ''))
     return 'Los datos cambiaron o ya no están disponibles. Actualizá y revisá la operación antes de reintentar.';
   if (code === 'PGRST202')
-    return 'La API no encuentra leer_cuentas_administrativas(). Revisá la migración 003 y la caché del esquema.';
+    return 'La consulta de cuentas no está disponible. Reintentá más tarde; si continúa, contactá al administrador.';
   if (['P0001', '23514', '23502', '22003', '22007', '22008'].includes(code ?? ''))
-    return 'PostgreSQL rechazó la operación: revisá saldo, importe, fechas y relaciones. Actualizá los datos antes de reintentar.';
-  return 'No se pudo confirmar la operación con Supabase. Revisá la conexión y actualizá antes de reintentar; no repitas un pago de resultado incierto.';
+    return 'No se pudo guardar: revisá saldo, importe, fechas y relaciones. Actualizá los datos antes de reintentar.';
+  return 'No se pudo confirmar la operación. Revisá la conexión y actualizá antes de reintentar; no repitas un pago de resultado incierto.';
 }

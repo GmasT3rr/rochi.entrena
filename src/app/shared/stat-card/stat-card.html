@@ -1,4 +1,4 @@
-<article class="card">
+<article class="card" [class.card--compact]="compact()">
   <div class="card__icon" aria-hidden="true">
     <mat-icon>{{ icon() }}</mat-icon>
   </div>
@@ -6,5 +6,14 @@
   <p class="card__value">{{ value() }}</p>
   @if (hint()) {
     <p class="card__hint">{{ hint() }}</p>
+  }
+  @if (enlace()) {
+    <a
+      class="card__link"
+      [routerLink]="enlace()"
+      [queryParams]="parametros()"
+      [attr.aria-label]="'Ver detalle: ' + label()"
+      >Ver detalle <span aria-hidden="true">→</span></a
+    >
   }
 </article>

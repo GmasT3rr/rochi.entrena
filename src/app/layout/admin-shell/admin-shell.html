@@ -56,17 +56,30 @@
 
       <span class="topbar__spacer"></span>
 
-      <div class="user" aria-label="Usuario actual">
-        <span class="user__avatar" aria-hidden="true">TC</span>
-        <span class="user__name">TusCuentasFacil</span>
-      </div>
-      <button matIconButton type="button" aria-label="Cerrar sesión" [disabled]="signingOut()" (click)="logout()">
+      @if (correo()) {
+        <div class="user" aria-label="Usuario actual" [matTooltip]="correo()" tabindex="0">
+          <span class="user__avatar" aria-hidden="true">{{ iniciales() }}</span>
+          <div class="user__details">
+            <span class="user__role">Administrador</span
+            ><span class="user__email">{{ correo() }}</span>
+          </div>
+        </div>
+      }
+      <button
+        matIconButton
+        type="button"
+        aria-label="Cerrar sesión"
+        [disabled]="signingOut()"
+        (click)="logout()"
+      >
         <mat-icon>logout</mat-icon>
       </button>
     </mat-toolbar>
 
     <main id="contenido-principal" class="main" tabindex="-1">
-      @if (logoutError()) { <p role="alert">{{ logoutError() }}</p> }
+      @if (logoutError()) {
+        <p role="alert">{{ logoutError() }}</p>
+      }
       @if (authorization.status() === 'authorized') {
         <router-outlet />
       } @else {

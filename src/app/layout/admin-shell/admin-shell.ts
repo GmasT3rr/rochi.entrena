@@ -1,3 +1,4 @@
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -21,6 +22,7 @@ interface NavItem {
 @Component({
   imports: [
     RouterOutlet,
+    MatTooltipModule,
     RouterLink,
     RouterLinkActive,
     MatSidenavContainer,
@@ -42,6 +44,8 @@ interface NavItem {
 export class AdminShell {
   readonly authorization = inject(AdminAuthorization);
   readonly auth = inject(AuthService);
+  readonly correo = computed(() => this.auth.session()?.user.email ?? '');
+  readonly iniciales = computed(() => this.correo().slice(0, 2).toUpperCase());
   readonly signingOut = signal(false);
   readonly logoutError = signal('');
 
@@ -61,6 +65,7 @@ export class AdminShell {
 
   readonly navItems: NavItem[] = [
     { label: '❤️ Te quiero Rochy', path: '/te-quiero-rochy', icon: 'favorite' },
+    { label: 'Pendientes', path: '/pendientes', icon: 'task_alt' },
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
     { label: 'Alumnos', path: '/alumnos', icon: 'groups' },
     { label: 'Cuentas y pagos', path: '/cuentas', icon: 'account_balance_wallet' },
