@@ -26,8 +26,8 @@ import { CuentasService } from '../../core/services/cuentas-service';
       <p>Esta acción no se puede deshacer.</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button [mat-dialog-close]="false" cdkFocusInitial>Cancelar</button>
-      <button mat-flat-button class="destructive" [mat-dialog-close]="true">Eliminar</button>
+      <button mat-stroked-button [mat-dialog-close]="false" cdkFocusInitial>Cancelar</button>
+      <button mat-flat-button class="hub-danger" [mat-dialog-close]="true">Eliminar</button>
     </mat-dialog-actions>
   `,
   styles: `
@@ -42,10 +42,6 @@ import { CuentasService } from '../../core/services/cuentas-service';
     dd {
       margin: 0;
       overflow-wrap: anywhere;
-    }
-    .destructive {
-      --mat-button-filled-container-color: var(--hub-error);
-      --mat-button-filled-label-text-color: var(--hub-surface);
     }
   `,
 })

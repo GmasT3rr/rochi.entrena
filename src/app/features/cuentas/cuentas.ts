@@ -1,4 +1,11 @@
-import { ActivatedRoute } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { map } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { PeriodSelector } from '../../shared/period-selector';
+import { MobileSort } from '../../shared/mobile-sort';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ToastService } from '../../core/services/toast-service';
 import { periodoValido } from '../../core/cuentas';
@@ -15,10 +22,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { CuentasService } from '../../core/services/cuentas-service';
-import { CuentaVista, normalizarConcepto } from '../../core/cuentas';
+import { CuentaVista, normalizarConcepto, centavos } from '../../core/cuentas';
 import { PageHeader } from '../../shared/page-header/page-header';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { confirmarEliminarCuota } from './confirmar-eliminar-cuota';
 import { CuentaForm } from './cuenta-form';
@@ -27,11 +33,15 @@ import { GenerarMensual } from './generar-mensual';
 
 @Component({
   imports: [
+    NgTemplateOutlet,
+    MatExpansionModule,
+    PeriodSelector,
+    MobileSort,
     MatSortModule,
+    RouterLink,
     LoadingLayout,
     CurrencyPipe,
     MatIconModule,
-    MatMenuModule,
     MatTooltipModule,
     DatePipe,
     MatCard,
@@ -48,6 +58,12 @@ import { GenerarMensual } from './generar-mensual';
   templateUrl: './cuentas.html',
 })
 export class Cuentas {
+  readonly filtrosMoviles = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 599.98px)')
+      .pipe(map((result) => result.matches)),
+    { initialValue: false },
+  );
   private readonly contexto = signal<{ periodo: string | null; alumno: string | null } | null>(
     null,
   );
@@ -64,6 +80,8 @@ export class Cuentas {
       untracked(() => {
         this.contexto.set(null);
         if (!contexto.periodo && !contexto.alumno) return;
+        const clave = JSON.stringify(contexto);
+        if (this.service.contextoListado === clave) return;
         const alumno = contexto.alumno;
         if (
           (contexto.periodo && !periodoValido(contexto.periodo)) ||
@@ -76,6 +94,7 @@ export class Cuentas {
           return;
         }
         this.busqueda.set('');
+        this.service.contextoListado = clave;
         this.estado.set('');
         this.modalidad.set('');
         this.periodo.set(contexto.periodo ?? '');
@@ -102,8 +121,42 @@ export class Cuentas {
   readonly modalidad = this.service.filtros.modalidad;
   readonly alumnoId = this.service.filtros.alumnoId;
   readonly periodos = computed(() =>
-    [...new Set(this.service.cuotas().map((c) => c.periodo))].sort().reverse(),
+    [
+      ...new Set(
+        [
+          this.service.hoy().slice(0, 7),
+          this.periodo(),
+          ...this.service.cuotas().map((c) => c.periodo),
+        ].filter(Boolean),
+      ),
+    ]
+      .sort()
+      .reverse(),
   );
+  limpiarFiltros(): void {
+    this.busqueda.set('');
+    this.alumnoId.set('');
+    this.periodo.set('');
+    this.estado.set('');
+    this.modalidad.set('');
+  }
+  // El resumen usa el período, independientemente de los filtros del listado.
+  readonly resumen = computed(() => {
+    const cuotas = this.service
+      .cuentas()
+      .filter((c) => !this.periodo() || c.periodo === this.periodo());
+    return {
+      cobrado:
+        this.service
+          .pagos()
+          .filter((p) => !this.periodo() || p.fecha.slice(0, 7) === this.periodo())
+          .reduce((n, p) => n + centavos(p.importe), 0) / 100,
+      pendiente: cuotas.reduce((n, c) => n + centavos(c.saldo), 0) / 100,
+      vencido:
+        cuotas.filter((c) => c.estado === 'Vencida').reduce((n, c) => n + centavos(c.saldo), 0) /
+        100,
+    };
+  });
   readonly cuentas = computed(() =>
     ordenar(
       this.service
@@ -120,16 +173,7 @@ export class Cuentas {
       (c, k) => c[k as keyof CuentaVista] as string | number,
     ),
   );
-  readonly columnas = [
-    'alumno',
-    'concepto',
-    'importe',
-    'abonado',
-    'saldo',
-    'vencimiento',
-    'estado',
-    'acciones',
-  ];
+  readonly columnas = ['alumno', 'concepto', 'saldo', 'estado', 'vencimiento', 'acciones'];
   generar(): void {
     if (!this.service.disponible()) return;
     this.dialog.open(GenerarMensual, {
@@ -157,7 +201,12 @@ export class Cuentas {
     });
   }
   pago(cuota: CuentaVista): void {
-    if (!this.service.disponible()) return;
+    if (
+      !this.service.disponible() ||
+      cuota.saldo <= 0 ||
+      this.dialog.openDialogs.some((d) => d.componentInstance instanceof CuentaForm)
+    )
+      return;
     this.dialog.open(CuentaForm, {
       closeOnNavigation: false,
       data: { tipo: 'pago', cuota },

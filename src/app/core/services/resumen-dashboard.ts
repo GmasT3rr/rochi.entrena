@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { centavos } from '../cuentas';
+import { clasificarPendientes } from './pendientes';
 import { CuentasService } from './cuentas-service';
 
 export const PERIODO_DASHBOARD_KEY = 'tuscuentasfacil.dashboard.periodo.v1';
@@ -123,9 +124,8 @@ export class ResumenDashboard {
     () => this.cuotas().filter((c) => c.abonado > 0 && c.saldo > 0).length,
   );
   readonly deudas = computed(() =>
-    [...this.cuotas()]
-      .filter((c) => c.saldo > 0)
-      .sort((a, b) => a.vencimiento.localeCompare(b.vencimiento) || a.id.localeCompare(b.id))
+    clasificarPendientes(this.cuotas(), this.cuentas.hoy())
+      .map((p) => p.cuota)
       .slice(0, 8),
   );
   readonly vacio = computed(

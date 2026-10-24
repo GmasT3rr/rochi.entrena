@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.guide {
+  max-width: 880px;
+}
+.intro {
+  color: var(--hub-muted);
+  margin: 0 0 1.25rem;
+}
+mat-expansion-panel {
+  background: var(--hub-surface);
+  color: var(--hub-ink);
+  border: 1px solid var(--hub-border);
+  box-shadow: none !important;
+}
+mat-expansion-panel-header {
+  height: auto;
+  min-height: 72px;
+  padding-block: 14px;
+}
+mat-panel-title {
+  gap: 12px;
+  color: var(--hub-ink);
+  font-weight: 600;
+  line-height: 1.5;
+}
+mat-panel-title span {
+  overflow-wrap: anywhere;
+}
+mat-icon {
+  color: var(--hub-accent-strong);
+  flex-shrink: 0;
+}
+ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+li {
+  padding-left: 0.35rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+li::marker {
+  color: var(--hub-accent-strong);
+  font-weight: 600;
+}
+.tip {
+  padding: 1rem;
+  background: var(--hub-accent-soft);
+  border-radius: var(--hub-card-radius);
+  line-height: 1.6;
+}
+a {
+  margin-top: 0.5rem;
+  max-width: 100%;
+  height: auto;
+  min-height: 44px;
+  padding-block: 10px;
+}
+@media (max-width: 599px) {
+  mat-expansion-panel-header {
+    padding-inline: 16px;
+  }
+  mat-panel-title {
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+}

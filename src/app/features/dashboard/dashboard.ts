@@ -1,3 +1,5 @@
+import { PeriodSelector } from '../../shared/period-selector';
+import { MobileSort } from '../../shared/mobile-sort';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ordenar } from '../../core/services/orden-tabla';
 import { RouterLink } from '@angular/router';
@@ -17,6 +19,8 @@ import { ResumenDashboard } from '../../core/services/resumen-dashboard';
 @Component({
   selector: 'app-dashboard',
   imports: [
+    PeriodSelector,
+    MobileSort,
     MatSortModule,
     RouterLink,
     MatButtonModule,
@@ -47,25 +51,4 @@ export class Dashboard {
     ),
   );
   readonly cuentas = this.resumen.cuentas;
-  readonly meses = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre',
-  ];
-
-  cambiarMes(mes: string): void {
-    this.resumen.elegirPeriodo(this.resumen.periodo().slice(0, 4) + '-' + mes);
-  }
-  cambiarAnio(valor: string): void {
-    if (/^\d{4}$/.test(valor)) this.resumen.elegirPeriodo(valor + this.resumen.periodo().slice(4));
-  }
 }

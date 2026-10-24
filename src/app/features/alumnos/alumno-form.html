@@ -96,25 +96,63 @@
           Si el día no existe en el mes, se usará su último día. Los cambios se aplican solo a
           cuotas nuevas.
         </p>
+        @if (!alumno) {
+          <mat-checkbox formControlName="crearPrimeraCuota"
+            >Crear primera cuota al guardar</mat-checkbox
+          >
+        }
+        <div class="form-grid">
+          <app-period-selector
+            class="full-width"
+            label="Primer período a cobrar (mes y año)"
+            formControlName="primerPeriodo"
+          />
+        </div>
+        @if (!alumno) {
+          <p>
+            Si marcás Crear primera cuota al guardar, se crea solo el período elegido. Al activar la
+            tarea automática, podrá crearla desde ese período en su próxima ejecución aunque no la
+            crees ahora.
+          </p>
+        } @else {
+          <p>Editar esta configuración no crea cuotas ni modifica las anteriores.</p>
+        }
       }
       <p>
-        Podés generar las cuotas del mes desde Cuentas y pagos, revisando primero la vista previa.
+        Podés generar las cuotas del mes desde Cuotas y cobros, revisando primero la vista previa.
       </p>
     </section>
-    @if (service.error()) {
-      <p role="alert">{{ service.error() }}</p>
+    @if (errorGuardado()) {
+      <p role="alert">{{ errorGuardado() }}</p>
+      @if (detalleGuardado(); as detalle) {
+        <details>
+          <summary>Detalles para soporte</summary>
+          <p>{{ detalle.operacion }} · {{ detalle.recurso }}</p>
+          <p>
+            Código: {{ detalle.codigo || 'no informado' }} · HTTP:
+            {{ detalle.estadoHttp || 'no informado' }}
+          </p>
+          <p>{{ detalle.mensaje }}</p>
+        </details>
+      }
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close [disabled]="service.guardando()">
+    <button
+      mat-stroked-button
+      type="button"
+      mat-dialog-close
+      [disabled]="service.guardando() || enviando()"
+    >
       Cancelar
     </button>
     <button
+      [attr.aria-busy]="enviando() || service.guardando()"
       mat-flat-button
       type="submit"
-      [disabled]="confirmando() || service.guardando() || service.cargando()"
+      [disabled]="enviando() || confirmando() || service.guardando() || service.cargando()"
     >
-      {{ service.guardando() ? 'Guardando…' : 'Guardar' }}
+      {{ service.guardando() || enviando() ? 'Guardando…' : 'Guardar' }}
     </button>
   </mat-dialog-actions>
 </form>

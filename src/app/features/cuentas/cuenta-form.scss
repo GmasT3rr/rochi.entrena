@@ -1,23 +1,31 @@
-﻿.form-grid {
+.payment-summary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem 1rem;
-  padding-top: 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  dt {
+    color: var(--hub-muted);
+    font-size: 0.85rem;
+  }
+  dd {
+    margin: 0.4rem 0 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
 }
-.full-width {
-  grid-column: 1 / -1;
+.resulting-balance {
+  padding: 1rem;
+  border-radius: var(--hub-card-radius);
+  background: var(--hub-accent-soft);
+}
+.resulting-balance span {
+  display: block;
+  color: var(--hub-error);
 }
 p {
   overflow-wrap: anywhere;
 }
 @media (max-width: 599.98px) {
-  .form-grid {
+  .payment-summary {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.period-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(7rem, 0.65fr);
-  gap: 1rem;
 }

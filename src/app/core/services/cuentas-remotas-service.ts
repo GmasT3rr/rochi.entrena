@@ -12,6 +12,7 @@ import {
   EstadoCuota,
 } from '../cuentas';
 import { ModalidadAlumno } from '../alumno';
+import { CategoriaPendiente } from './pendientes';
 import { ResultadoMensual, VistaMensualRemota } from '../mensual';
 import { AuthService } from '../auth/auth-service';
 import {
@@ -47,6 +48,7 @@ export class CuentasService {
   private readonly auth = inject(AuthService);
   private readonly datos = signal<CuentasSnapshot>(vacio());
   readonly hoy = signal(fechaArgentina());
+  contextoListado: string | null = null;
   readonly error = signal('');
   readonly errorCarga = signal('');
   readonly mensaje = signal('');
@@ -55,10 +57,15 @@ export class CuentasService {
   // Mantener los filtros al recrearse la vista durante una comprobación de permisos.
   readonly filtros = {
     busqueda: signal(''),
-    periodo: signal(''),
+    periodo: signal(this.hoy().slice(0, 7)),
     alumnoId: signal(''),
     estado: signal<EstadoCuota | ''>(''),
     modalidad: signal<ModalidadAlumno | ''>(''),
+  };
+  // Independientes del período y los filtros del listado de cuotas.
+  readonly filtrosPendientes = {
+    categoria: signal<CategoriaPendiente | ''>(''),
+    busqueda: signal(''),
   };
   private readonly cargado = signal(false);
   readonly disponible = computed(() => this.cargado() && !this.cargando() && !this.guardando());
@@ -66,7 +73,16 @@ export class CuentasService {
   readonly cuotas = computed(() => this.datos().cuotas);
   readonly pagos = computed(() => this.datos().pagos);
   private generation = 0;
+  private ultimaCarga = 0;
+  private ultimoIntentoCarga = 0;
   private sessionToken: string | undefined;
+  refrescarSiNecesario(): void {
+    if (this.cargando() || this.guardando()) return;
+    const ahora = Date.now();
+    if (this.cargado() && ahora - this.ultimaCarga < 60000) return;
+    if (this.errorCarga() && ahora - this.ultimoIntentoCarga < 30000) return;
+    void this.recargar();
+  }
   readonly cuentas = computed<CuentaVista[]>(() =>
     this.cuotas().map((c) => {
       const a = this.alumnos().find((a) => a.id === c.alumnoId)!;
@@ -102,6 +118,8 @@ export class CuentasService {
       this.sessionToken = token;
       untracked(() => {
         this.generation++;
+        this.ultimaCarga = 0;
+        this.ultimoIntentoCarga = 0;
         this.datos.set(vacio());
         this.cargado.set(false);
         this.error.set('');
@@ -109,10 +127,13 @@ export class CuentasService {
         this.mensaje.set('');
         this.cargando.set(false);
         this.filtros.busqueda.set('');
-        this.filtros.periodo.set('');
+        this.filtros.periodo.set(this.hoy().slice(0, 7));
+        this.contextoListado = null;
         this.filtros.alumnoId.set('');
         this.filtros.estado.set('');
         this.filtros.modalidad.set('');
+        this.filtrosPendientes.categoria.set('');
+        this.filtrosPendientes.busqueda.set('');
         if (token) void this.recargar();
       });
     });
@@ -139,6 +160,7 @@ export class CuentasService {
   }
   async recargar(): Promise<void> {
     if (this.guardando()) return;
+    this.ultimoIntentoCarga = Date.now();
     const generation = ++this.generation;
     this.cargando.set(true);
     this.cargado.set(false);
@@ -149,6 +171,7 @@ export class CuentasService {
       const data = await this.repository.cargar();
       if (generation === this.generation) {
         this.datos.set(data);
+        this.ultimaCarga = Date.now();
         this.cargado.set(true);
       }
     } catch (error) {
@@ -285,6 +308,7 @@ export class CuentasService {
       const data = await this.repository.cargar();
       if (generation !== this.generation) return false;
       this.datos.set(data);
+      this.ultimaCarga = Date.now();
       this.cargado.set(true);
       this.errorCarga.set('');
       this.mensaje.set(typeof mensaje === 'function' ? mensaje() : mensaje);

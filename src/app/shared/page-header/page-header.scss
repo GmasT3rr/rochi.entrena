@@ -31,3 +31,13 @@ p {
     width: 100%;
   }
 }
+:host {
+  display: block;
+  min-width: 0;
+}
+@media (max-width: 599.98px) {
+  .header > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}

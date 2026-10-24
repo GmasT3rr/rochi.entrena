@@ -1,9 +1,11 @@
+import { MobileSort } from '../../shared/mobile-sort';
 import { MatSortModule } from '@angular/material/sort';
 import { ordenar } from '../../core/services/orden-tabla';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LoadingLayout } from '../../shared/skeleton/loading-layout';
-import { Component, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Component, computed, inject, signal, DestroyRef, Injector } from '@angular/core';
+import { CuentasService } from '../../core/services/cuentas-service';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,6 +28,7 @@ const normalizar = (texto: string) =>
 
 @Component({
   imports: [
+    MobileSort,
     MatSortModule,
     LoadingLayout,
     MatIconModule,
@@ -46,6 +49,7 @@ const normalizar = (texto: string) =>
 export class Alumnos {
   readonly service = inject(AlumnosService);
   private readonly dialog = inject(MatDialog);
+  private readonly injector = inject(Injector);
   readonly orden = this.service.orden;
   readonly busqueda = this.service.filtros.busqueda;
   readonly modalidad = this.service.filtros.modalidad;
@@ -63,6 +67,7 @@ export class Alumnos {
     });
   }
   readonly mensaje = signal('');
+  readonly formularioAbierto = signal(false);
   readonly columnas = ['nombre', 'modalidad', 'estado', 'acciones'];
   readonly alumnos = computed(() => {
     const texto = normalizar(this.busqueda().trim());
@@ -81,6 +86,8 @@ export class Alumnos {
   });
 
   editar(alumno: AlumnoRegistro | null = null): void {
+    if (this.formularioAbierto()) return;
+    this.formularioAbierto.set(true);
     this.mensaje.set('');
     this.service.error.set('');
     this.dialog
@@ -93,7 +100,15 @@ export class Alumnos {
       })
       .afterClosed()
       .subscribe((guardado) => {
-        if (guardado) this.mensaje.set(alumno ? 'Alumno actualizado.' : 'Alumno agregado.');
+        this.formularioAbierto.set(false);
+        // El error del guardado pertenece al diálogo que acaba de cerrarse.
+        this.service.error.set('');
+        this.service.detalleError.set(null);
+        if (guardado) {
+          this.mensaje.set(this.service.mensaje());
+          // Solo lectura tras la RPC confirmada: actualizar cuotas y alumnos financieros.
+          if (!alumno) void this.injector.get(CuentasService).recargar();
+        }
       });
   }
 
@@ -114,6 +129,7 @@ export class Alumnos {
         maxWidth: 'calc(100vw - 32px)',
         data: {
           titulo: baja ? 'Dar de baja' : 'Reactivar alumno',
+          danger: baja,
           mensaje: `¿Confirmás ${baja ? 'dar de baja a' : 'reactivar a'} ${alumno.nombre} ${alumno.apellido}? ${baja ? 'Su información se conservará.' : 'Quedará activo nuevamente.'}`,
         },
       })

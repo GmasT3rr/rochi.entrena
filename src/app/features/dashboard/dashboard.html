@@ -1,31 +1,10 @@
 <app-page-header title="Dashboard" subtitle="Tu actividad de un vistazo">
   <div class="dashboard-toolbar">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Mes</mat-label>
-      <mat-select
-        aria-label="Mes"
-        [value]="resumen.periodo().slice(5)"
-        (selectionChange)="cambiarMes($event.value)"
-      >
-        @for (mes of meses; track mes; let i = $index) {
-          <mat-option [value]="(i + 1).toString().padStart(2, '0')">{{ mes }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="period-year">
-      <mat-label>Año</mat-label>
-      <input
-        matInput
-        type="number"
-        aria-label="Año"
-        min="1900"
-        max="9999"
-        step="1"
-        [value]="resumen.periodo().slice(0, 4)"
-        (input)="cambiarAnio($any($event.target).value)"
-        (blur)="$any($event.target).value = resumen.periodo().slice(0, 4)"
-      />
-    </mat-form-field>
+    <app-period-selector
+      [compact]="true"
+      [value]="resumen.periodo()"
+      (periodChange)="resumen.elegirPeriodo($event)"
+    />
   </div>
 </app-page-header>
 <nav class="dashboard-shortcuts" aria-label="Accesos directos">
@@ -148,14 +127,39 @@
       <div class="section-heading">
         <h2>Vencimientos y deudas</h2>
         <span class="count-pill">{{ resumen.alumnosConDeuda() }} alumnos con deuda</span>
+        <a mat-stroked-button routerLink="/pendientes">Centro de pendientes · Todos los períodos</a>
       </div>
       <p class="scope">Período seleccionado · Hasta 8 cuotas por vencimiento</p>
+      <div class="mobile-debts">
+        <app-mobile-sort
+          [value]="ordenDeudas()"
+          (change)="ordenDeudas.set($event)"
+          [options]="[
+            { id: 'alumno', label: 'Alumno' },
+            { id: 'vencimiento', label: 'Vencimiento' },
+            { id: 'saldo', label: 'Pendiente' },
+            { id: 'estado', label: 'Estado' },
+          ]"
+        />
+        @for (c of deudas(); track c.id) {
+          <article>
+            <h3>{{ c.alumno }}</h3>
+            <p>{{ c.concepto }}</p>
+            <p>Vence {{ c.vencimiento | date: 'dd/MM/yyyy' }}</p>
+            <p>
+              <strong>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong> · {{ c.estado }}
+            </p>
+          </article>
+        } @empty {
+          <p>No hay saldos pendientes para este período.</p>
+        }
+      </div>
       <div
         matSort
         [matSortActive]="ordenDeudas().active"
         [matSortDirection]="ordenDeudas().direction"
         (matSortChange)="ordenDeudas.set($event)"
-        class="debt-table"
+        class="debt-table desktop-debts"
         role="table"
         aria-label="Vencimientos del período"
       >

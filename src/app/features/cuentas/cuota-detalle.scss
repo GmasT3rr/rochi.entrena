@@ -58,7 +58,7 @@ dd {
   margin: 0;
 }
 .payments li {
-  padding: 0.8rem;
+  padding: var(--hub-card-padding);
   border: 1px solid var(--hub-border);
   border-radius: 0.75rem;
   margin-bottom: 0.6rem;
@@ -79,9 +79,7 @@ dd {
   margin: 0.5rem 0 0;
   justify-content: end;
 }
-.delete-action {
-  color: var(--hub-error);
-}
+
 mat-dialog-content {
   max-height: 72dvh;
 }
@@ -102,24 +100,8 @@ mat-dialog-content {
   }
 }
 
-.payment-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 16px 0;
-}
-.payment-filters label {
-  display: grid;
-  gap: 8px;
-  flex: 1;
-  min-width: 180px;
-}
-.payment-filters input,
-.payment-filters select {
-  padding: 10px;
-  border: 1px solid var(--hub-muted);
-  border-radius: 8px;
-  background: var(--hub-surface);
-  color: var(--hub-text);
-  font: inherit;
+@media (max-width: 599.98px) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

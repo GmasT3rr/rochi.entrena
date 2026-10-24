@@ -1,3 +1,4 @@
+import { PeriodSelector } from '../../shared/period-selector';
 import { DestroyRef } from '@angular/core';
 import { CambiosPendientes } from '../../core/services/cambios-pendientes';
 import { ToastService } from '../../core/services/toast-service';
@@ -34,6 +35,7 @@ const periodo = (c: AbstractControl) => (periodoValido(c.value) ? null : { perio
 @Component({
   selector: 'app-cuenta-form',
   imports: [
+    PeriodSelector,
     CurrencyPipe,
     FechaArgentinaInput,
     ReactiveFormsModule,
@@ -54,41 +56,18 @@ export class CuentaForm {
   private readonly ref = inject(MatDialogRef<CuentaForm>);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
-  readonly meses = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre',
-  ];
-  readonly mesPeriodo = this.fb.nonNullable.control(
-    (this.data.cuota?.periodo ?? this.service.hoy().slice(0, 7)).slice(5),
-    Validators.required,
-  );
-  readonly anioPeriodo = this.fb.nonNullable.control(
-    (this.data.cuota?.periodo ?? this.service.hoy().slice(0, 7)).slice(0, 4),
-    [
-      Validators.required,
-      Validators.pattern(/^\d{4}$/),
-      Validators.min(1900),
-      Validators.max(9999),
-    ],
-  );
-  actualizarPeriodo(): void {
-    this.cuotaForm.controls.periodo.setValue(
-      String(this.anioPeriodo.value) + '-' + this.mesPeriodo.value,
-    );
-    this.cuotaForm.controls.periodo.markAsTouched();
-  }
   readonly error = signal('');
   readonly confirmando = signal(false);
+  readonly enviando = signal(false);
+  readonly cuenta = () => this.service.cuentas().find((c) => c.id === this.data.cuota?.id);
+  private ultimoMedio(): PagoCuota['medio'] {
+    const ultimo = [...this.service.cuentas().flatMap((c) => c.pagos ?? [])].sort(
+      (a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id),
+    )[0];
+    return ultimo && ['Efectivo', 'Transferencia', 'Otro'].includes(ultimo.medio)
+      ? ultimo.medio
+      : 'Transferencia';
+  }
   readonly pago = this.data.tipo === 'pago' ? this.data.pago : undefined;
   private readonly nuevoId = crypto.randomUUID();
   private readonly versionInicial = this.pago
@@ -108,9 +87,9 @@ export class CuentaForm {
     observaciones: [this.data.cuota?.observaciones ?? '', Validators.maxLength(3000)],
   });
   readonly pagoForm = this.fb.nonNullable.group({
-    importe: [this.pago?.importe ?? (null as number | null), [Validators.required, dinero]],
+    importe: [this.pago?.importe ?? this.disponible, [Validators.required, dinero]],
     fecha: [this.pago?.fecha ?? this.service.hoy(), fecha],
-    medio: [this.pago?.medio ?? ('Transferencia' as PagoCuota['medio']), Validators.required],
+    medio: [this.pago?.medio ?? this.ultimoMedio(), Validators.required],
     observaciones: [this.pago?.observaciones ?? '', Validators.maxLength(3000)],
   });
   readonly titulo =
@@ -120,7 +99,11 @@ export class CuentaForm {
         : 'Nueva cuota'
       : this.pago
         ? 'Editar pago'
-        : 'Registrar pago';
+        : 'Registrar cobro';
+  get saldoResultante(): number | null {
+    const importe = this.pagoForm.controls.importe.value;
+    return importeValido(importe) ? (centavos(this.disponible) - centavos(importe)) / 100 : null;
+  }
   get disponible(): number {
     const cuenta = this.service.cuentas().find((c) => c.id === this.data.cuota?.id);
     return ((cuenta ? centavos(cuenta.saldo) : 0) + centavos(this.pago?.importe ?? 0)) / 100;
@@ -129,30 +112,32 @@ export class CuentaForm {
     inject(CambiosPendientes).proteger(
       this.ref,
       () =>
-        this.data.tipo === 'cuota'
-          ? {
-              ...this.cuotaForm.getRawValue(),
-              mes: this.mesPeriodo.value,
-              anio: this.anioPeriodo.value,
-            }
-          : this.pagoForm.getRawValue(),
-      () => this.service.guardando() || this.confirmando(),
+        this.data.tipo === 'cuota' ? this.cuotaForm.getRawValue() : this.pagoForm.getRawValue(),
+      () => this.service.guardando() || this.confirmando() || this.enviando(),
       inject(DestroyRef),
     );
     if (this.data.tipo === 'cuota' && this.data.cuota) this.cuotaForm.controls.alumnoId.disable();
   }
   async guardar(): Promise<void> {
+    if (this.enviando() || this.confirmando() || this.service.guardando()) return;
     this.error.set('');
     const form = this.data.tipo === 'cuota' ? this.cuotaForm : this.pagoForm;
     form.markAllAsTouched();
-    if (this.data.tipo === 'cuota') {
-      this.mesPeriodo.markAsTouched();
-      this.anioPeriodo.markAsTouched();
-      if (this.mesPeriodo.invalid || this.anioPeriodo.invalid) return;
-    }
+
     if (form.invalid)
       this.toast.mostrar('Revisá los campos marcados antes de guardar.', 'advertencia');
     if (form.invalid || this.confirmando() || !this.service.disponible()) return;
+    if (
+      this.data.tipo === 'pago' &&
+      (!this.cuenta() || this.disponible <= 0 || this.saldoResultante! < 0)
+    ) {
+      this.error.set(
+        this.disponible <= 0
+          ? 'Esta cuota ya está pagada.'
+          : 'El importe supera el saldo disponible.',
+      );
+      return;
+    }
     if (this.data.tipo === 'pago' && this.pago) {
       this.confirmando.set(true);
       this.dialog
@@ -172,6 +157,8 @@ export class CuentaForm {
     } else await this.persistir();
   }
   private async persistir(): Promise<void> {
+    if (this.enviando()) return;
+    this.enviando.set(true);
     const anteriorDisableClose = this.ref.disableClose;
     this.ref.disableClose = true;
     try {
@@ -195,7 +182,10 @@ export class CuentaForm {
       }
       if (ok) this.ref.close(true);
       else this.error.set(this.service.error());
+    } catch {
+      this.error.set('No se pudo confirmar el guardado. Actualizá los datos antes de reintentar.');
     } finally {
+      this.enviando.set(false);
       this.ref.disableClose = anteriorDisableClose;
     }
   }

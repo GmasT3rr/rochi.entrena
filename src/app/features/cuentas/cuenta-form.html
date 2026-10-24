@@ -18,31 +18,12 @@
           ><input matInput formControlName="concepto" maxlength="150" required />
           <mat-error>Ingresá un concepto.</mat-error>
         </mat-form-field>
-        <div class="period-fields full-width" role="group" aria-label="Período de la cuota">
-          <mat-form-field appearance="outline">
-            <mat-label>Mes</mat-label>
-            <mat-select [formControl]="mesPeriodo" (selectionChange)="actualizarPeriodo()" required>
-              @for (mes of meses; track mes; let i = $index) {
-                <mat-option [value]="(i + 1).toString().padStart(2, '0')">{{ mes }}</mat-option>
-              }
-            </mat-select>
-            <mat-error>Seleccioná un mes.</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Año</mat-label>
-            <input
-              matInput
-              type="number"
-              min="1900"
-              max="9999"
-              step="1"
-              [formControl]="anioPeriodo"
-              (input)="actualizarPeriodo()"
-              required
-            />
-            <mat-error>Ingresá un año entre 1900 y 9999.</mat-error>
-          </mat-form-field>
-        </div>
+        <app-period-selector
+          class="full-width"
+          label="Período de la cuota"
+          formControlName="periodo"
+        />
+
         <mat-form-field appearance="outline">
           <mat-label>Importe total (ARS)</mat-label
           ><input
@@ -74,7 +55,24 @@
         </mat-form-field>
       </div>
     } @else {
-      <p>{{ data.cuota.concepto }} · {{ data.cuota.periodo }}</p>
+      @if (cuenta(); as c) {
+        <h3>{{ c.alumno }}</h3>
+        <p>{{ c.concepto }} · {{ c.periodo }}</p>
+        <dl class="payment-summary">
+          <div>
+            <dt>Importe total</dt>
+            <dd>{{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>Abonado</dt>
+            <dd>{{ c.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>Saldo pendiente</dt>
+            <dd>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+          </div>
+        </dl>
+      }
       <p>
         Disponible para este pago:
         <strong>{{ disponible | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
@@ -118,17 +116,49 @@
           ><textarea matInput rows="3" formControlName="observaciones" maxlength="3000"></textarea>
         </mat-form-field>
       </div>
+      <p role="status" class="resulting-balance">
+        Saldo resultante:
+        @if (saldoResultante !== null) {
+          <strong>{{ saldoResultante | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+          @if (saldoResultante! < 0) {
+            <span>El importe supera el saldo disponible.</span>
+          }
+        } @else {
+          Ingresá un importe válido.
+        }
+      </p>
     }
     @if (error()) {
       <p role="alert">{{ error() }}</p>
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button mat-button type="button" mat-dialog-close [disabled]="service.guardando()">
+    <button
+      mat-stroked-button
+      type="button"
+      mat-dialog-close
+      [disabled]="service.guardando() || enviando()"
+    >
       Cancelar
     </button>
-    <button mat-flat-button type="submit" [disabled]="confirmando() || !service.disponible()">
-      {{ service.guardando() ? 'Guardando…' : 'Guardar' }}
+    <button
+      [attr.aria-busy]="enviando() || service.guardando()"
+      mat-flat-button
+      type="submit"
+      [disabled]="
+        enviando() ||
+        confirmando() ||
+        !service.disponible() ||
+        (data.tipo === 'pago' && (pagoForm.invalid || disponible <= 0 || saldoResultante! < 0))
+      "
+    >
+      {{
+        service.guardando() || enviando()
+          ? 'Guardando…'
+          : data.tipo === 'pago' && !pago
+            ? 'Registrar cobro'
+            : 'Guardar'
+      }}
     </button>
     <button
       mat-button

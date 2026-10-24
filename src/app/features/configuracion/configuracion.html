@@ -1,6 +1,14 @@
 <app-page-header title="Configuración" subtitle="Preferencias y acceso a tu cuenta." />
 
 <div class="settings">
+  <mat-expansion-panel>
+    <mat-expansion-panel-header
+      ><mat-panel-title
+        >Herramientas administrativas · Recuperación de cuotas</mat-panel-title
+      ></mat-expansion-panel-header
+    >
+    <ng-template matExpansionPanelContent><app-recuperacion-cuotas /></ng-template>
+  </mat-expansion-panel>
   <section aria-labelledby="appearance-title">
     <mat-card appearance="outlined">
       <mat-card-content>
@@ -89,6 +97,7 @@
             <p role="status">{{ seguridad.mensaje() }}</p>
           }
           <button
+            [attr.aria-busy]="seguridad.ocupado()"
             mat-flat-button
             type="submit"
             [disabled]="seguridad.ocupado() || cerrandoSesion()"

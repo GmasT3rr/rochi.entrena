@@ -1,3 +1,6 @@
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ordenar } from '../../core/services/orden-tabla';
 import { Sort } from '@angular/material/sort';
 import { normalizarConcepto } from '../../core/cuentas';
@@ -20,7 +23,17 @@ import { ConfirmarAlumno } from '../alumnos/confirmar-alumno';
 
 @Component({
   selector: 'app-cuota-detalle',
-  imports: [LoadingLayout, CurrencyPipe, DatePipe, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    LoadingLayout,
+    CurrencyPipe,
+    DatePipe,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
+  ],
   templateUrl: './cuota-detalle.html',
   styleUrl: './cuota-detalle.scss',
 })
@@ -94,6 +107,7 @@ export class CuotaDetalle {
         maxWidth: 'calc(100vw - 32px)',
         data: {
           titulo: pago ? 'Eliminar pago' : 'Eliminar cuota',
+          danger: true,
           mensaje: pago
             ? '¿Confirmás eliminar este pago? El saldo y los ingresos se recalcularán.'
             : '¿Confirmás eliminar esta cuota sin pagos? Esta acción no se puede deshacer.',

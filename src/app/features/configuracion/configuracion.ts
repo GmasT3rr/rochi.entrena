@@ -10,10 +10,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AparienciaService } from '../../core/services/apariencia-service';
 import { passwordFuerte, SeguridadCuenta } from '../../core/auth/seguridad-cuenta';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { RecuperacionCuotas } from './recuperacion-cuotas';
 
 @Component({
   imports: [
     PageHeader,
+    MatExpansionModule,
+    RecuperacionCuotas,
     MatCard,
     MatCardContent,
     MatButtonModule,

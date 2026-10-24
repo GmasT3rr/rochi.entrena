@@ -3,9 +3,19 @@ import { AlumnoRegistro, ConfiguracionMensual, esAlumno } from '../alumno';
 import { AuthService } from '../auth/auth-service';
 import { AdminAuthorization } from '../auth/admin-authorization';
 import { authRuntime } from '../auth/auth-runtime';
+import { fechaArgentina } from './cuentas-remotas-service';
 
 const seleccion =
-  'id,nombre,apellido,telefono,email,modalidad,estado,fecha_ingreso,observaciones,proxima_cuota_original,configuracion_mensual:configuraciones_mensuales!configuraciones_mensuales_alumno_id_fkey(importe,dia_vencimiento,habilitada)';
+  'id,nombre,apellido,telefono,email,modalidad,estado,fecha_ingreso,observaciones,proxima_cuota_original,configuracion_mensual:configuraciones_mensuales!configuraciones_mensuales_alumno_id_fkey(*)';
+
+function errorOperacion(
+  error: { code?: string; message?: string },
+  status: number | undefined,
+  operacion: string,
+  recurso: string,
+) {
+  return { ...error, status, operacion, recurso };
+}
 
 export function mapearAlumno(fila: Record<string, any>): AlumnoRegistro {
   let config = fila['configuracion_mensual'];
@@ -33,6 +43,9 @@ export function mapearAlumno(fila: Record<string, any>): AlumnoRegistro {
             importe: config.importe,
             diaVencimiento: config.dia_vencimiento,
             habilitada: config.habilitada,
+            ...(config.periodo_inicio == null
+              ? {}
+              : { periodoInicio: config.periodo_inicio.slice(0, 7) }),
           },
         }),
   };
@@ -44,6 +57,28 @@ export function mapearAlumno(fila: Record<string, any>): AlumnoRegistro {
 export class AlumnosSupabaseRepository {
   private readonly auth = inject(AuthService);
   private readonly authorization = inject(AdminAuthorization);
+  private inicioMensualDisponible: boolean | undefined;
+  // Solo se consulta al guardar una configuración que solicita el campo nuevo.
+  // Un fallo de Auth/RLS/red nunca se interpreta como una columna opcional ausente.
+  private async admiteInicioMensual(
+    client: NonNullable<typeof authRuntime.client>,
+  ): Promise<boolean> {
+    if (this.inicioMensualDisponible !== undefined) return this.inicioMensualDisponible;
+    const { error, status } = await client
+      .from('configuraciones_mensuales')
+      .select('periodo_inicio')
+      .limit(0)
+      .abortSignal(AbortSignal.timeout(15000));
+    if (error) {
+      if (error.code === '42703' && error.message.includes('periodo_inicio')) {
+        this.inicioMensualDisponible = false;
+        return false;
+      }
+      throw errorOperacion(error, status, 'Comprobar inicio mensual', 'configuraciones_mensuales');
+    }
+    this.inicioMensualDisponible = true;
+    return true;
+  }
   private async ejecutar<T>(
     operacion: (client: NonNullable<typeof authRuntime.client>) => PromiseLike<T>,
   ): Promise<T> {
@@ -64,13 +99,19 @@ export class AlumnosSupabaseRepository {
     return this.ejecutar(async (client) => {
       const alumnos: AlumnoRegistro[] = [];
       for (let inicio = 0; ;) {
-        const { data, error, count } = await client
+        const { data, error, count, status } = await client
           .from('alumnos')
           .select(seleccion, { count: 'exact' })
           .order('id')
           .range(inicio, inicio + 499)
           .abortSignal(AbortSignal.timeout(15000));
-        if (error) throw error;
+        if (error)
+          throw errorOperacion(
+            error,
+            status,
+            'Listar alumnos',
+            'alumnos / configuraciones_mensuales',
+          );
         if (!Array.isArray(data) || typeof count !== 'number')
           throw { code: 'TCF_RESPUESTA_INVALIDA' };
         alumnos.push(...data.map(mapearAlumno));
@@ -82,42 +123,94 @@ export class AlumnosSupabaseRepository {
   }
   async obtener(id: string): Promise<AlumnoRegistro | null> {
     return this.ejecutar(async (client) => {
-      const { data, error } = await client
+      const { data, error, status } = await client
         .from('alumnos')
         .select(seleccion)
         .eq('id', id)
         .abortSignal(AbortSignal.timeout(15000))
         .maybeSingle();
-      if (error) throw error;
+      if (error)
+        throw errorOperacion(
+          error,
+          status,
+          'Obtener alumno',
+          'alumnos / configuraciones_mensuales',
+        );
       return data ? mapearAlumno(data) : null;
     });
   }
-  async guardar(alumno: AlumnoRegistro, crear: boolean): Promise<AlumnoRegistro> {
+  async guardar(
+    alumno: AlumnoRegistro,
+    crear: boolean,
+    primerPeriodo?: string,
+  ): Promise<AlumnoRegistro> {
+    if (
+      primerPeriodo !== undefined &&
+      (!crear ||
+        !alumno.configuracionMensual?.habilitada ||
+        !/^\d{4}-(0[1-9]|1[0-2])$/.test(primerPeriodo) ||
+        primerPeriodo < '1900-01' ||
+        primerPeriodo > '9999-12')
+    )
+      throw { code: '22023' };
     return this.ejecutar(async (client) => {
-      const { data, error } = await client
-        .rpc('guardar_alumno_con_configuracion', {
-          p_id: alumno.id,
-          p_crear: crear,
-          p_datos: {
-            nombre: alumno.nombre,
-            apellido: alumno.apellido,
-            telefono: alumno.telefono,
-            email: alumno.email,
-            modalidad: alumno.modalidad,
-            estado: alumno.estado,
-            fecha_ingreso: alumno.fechaIngreso,
-            observaciones: alumno.observaciones,
-            configuracion_mensual: alumno.configuracionMensual
-              ? {
-                  importe: alumno.configuracionMensual.importe,
-                  dia_vencimiento: alumno.configuracionMensual.diaVencimiento,
-                  habilitada: alumno.configuracionMensual.habilitada,
-                }
-              : null,
+      const inicio = alumno.configuracionMensual?.periodoInicio;
+      const enviarInicio = inicio !== undefined && (await this.admiteInicioMensual(client));
+      // En el esquema anterior el mes de la primera cuota sigue viajando por p_periodo.
+      // No descartar silenciosamente un inicio distinto del predeterminado sin esa RPC.
+      if (
+        inicio !== undefined &&
+        !enviarInicio &&
+        primerPeriodo === undefined &&
+        inicio !== fechaArgentina().slice(0, 7)
+      ) {
+        throw {
+          code: 'TCF_ESQUEMA_MENSUAL',
+          message: 'El esquema actual no permite guardar un período de inicio personalizado.',
+          operacion: 'Guardar configuración mensual',
+          recurso: 'configuraciones_mensuales.periodo_inicio',
+        };
+      }
+      const { data, error, status } = await client
+        .rpc(
+          primerPeriodo === undefined
+            ? 'guardar_alumno_con_configuracion'
+            : 'crear_alumno_con_primera_cuota',
+          {
+            p_id: alumno.id,
+            ...(primerPeriodo === undefined ? { p_crear: crear } : { p_periodo: primerPeriodo }),
+            p_datos: {
+              nombre: alumno.nombre,
+              apellido: alumno.apellido,
+              telefono: alumno.telefono,
+              email: alumno.email,
+              modalidad: alumno.modalidad,
+              estado: alumno.estado,
+              fecha_ingreso: alumno.fechaIngreso,
+              observaciones: alumno.observaciones,
+              configuracion_mensual: alumno.configuracionMensual
+                ? {
+                    importe: alumno.configuracionMensual.importe,
+                    dia_vencimiento: alumno.configuracionMensual.diaVencimiento,
+                    habilitada: alumno.configuracionMensual.habilitada,
+                    ...(enviarInicio
+                      ? { periodo_inicio: alumno.configuracionMensual.periodoInicio }
+                      : {}),
+                  }
+                : null,
+            },
           },
-        })
+        )
         .abortSignal(AbortSignal.timeout(15000));
-      if (error) throw error;
+      if (error)
+        throw errorOperacion(
+          error,
+          status,
+          'Guardar alumno',
+          primerPeriodo === undefined
+            ? 'guardar_alumno_con_configuracion'
+            : 'crear_alumno_con_primera_cuota',
+        );
       if (!data || Array.isArray(data) || typeof data !== 'object')
         throw new Error('Respuesta inválida');
       const guardado = mapearAlumno(data);
@@ -127,14 +220,14 @@ export class AlumnosSupabaseRepository {
   }
   async cambiarEstado(id: string, estado: 'Activo' | 'Inactivo'): Promise<AlumnoRegistro> {
     return this.ejecutar(async (client) => {
-      const { data, error } = await client
+      const { data, error, status } = await client
         .from('alumnos')
         .update({ estado })
         .eq('id', id)
         .select(seleccion)
         .abortSignal(AbortSignal.timeout(15000))
         .single();
-      if (error) throw error;
+      if (error) throw errorOperacion(error, status, 'Cambiar estado del alumno', 'alumnos');
       return mapearAlumno(data);
     });
   }

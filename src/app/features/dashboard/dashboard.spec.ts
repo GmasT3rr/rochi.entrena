@@ -110,6 +110,17 @@ describe('Dashboard remoto', () => {
     expect(resumen.ingresos()).toBe(100);
     expect(resumen.pendiente()).toBe(490);
   });
+  it('ofrece acceso al Centro de pendientes aunque el período elegido no tenga deudas', () => {
+    const { fixture, resumen } = crear();
+    resumen.elegirPeriodo('2027-01');
+    fixture.detectChanges();
+    const enlaces = [
+      ...fixture.nativeElement.querySelectorAll('a[href="/pendientes"]'),
+    ] as HTMLAnchorElement[];
+    expect(enlaces.length).toBe(2);
+    expect(enlaces.some((a) => a.textContent?.includes('Centro de pendientes'))).toBe(true);
+    expect(enlaces.every((a) => !a.search)).toBe(true);
+  });
   it('navega sin registros y cruza anios sin inventar movimientos', async () => {
     const { fixture, resumen } = crear();
     expect(resumen.periodo()).toBe('2026-10');

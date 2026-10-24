@@ -47,13 +47,18 @@ export const routes: Routes = [
       {
         path: 'cuentas',
         canDeactivate: [cambiosGuard],
-        title: 'Cuentas y pagos',
+        title: 'Cuotas y cobros',
         loadComponent: () => import('./features/cuentas/cuentas').then((m) => m.Cuentas),
+      },
+      {
+        path: 'guia',
+        title: 'Guía de uso',
+        loadComponent: () => import('./features/guia/guia').then((m) => m.Guia),
       },
       {
         path: 'pendientes',
         canDeactivate: [cambiosGuard],
-        title: 'Pendientes',
+        title: 'Centro de pendientes',
         loadComponent: () => import('./features/pendientes/pendientes').then((m) => m.Pendientes),
       },
       {

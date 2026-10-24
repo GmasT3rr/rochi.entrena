@@ -64,12 +64,12 @@ export class AdminShell {
   private readonly router = inject(Router);
 
   readonly navItems: NavItem[] = [
-    { label: '❤️ Te quiero Rochy', path: '/te-quiero-rochy', icon: 'favorite' },
-    { label: 'Pendientes', path: '/pendientes', icon: 'task_alt' },
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
     { label: 'Alumnos', path: '/alumnos', icon: 'groups' },
-    { label: 'Cuentas y pagos', path: '/cuentas', icon: 'account_balance_wallet' },
+    { label: 'Cuotas y cobros', path: '/cuentas', icon: 'account_balance_wallet' },
+    { label: 'Guía de uso', path: '/guia', icon: 'menu_book' },
     { label: 'Configuración', path: '/configuracion', icon: 'settings' },
+    { label: 'Te quiero, Rochi ❤️', path: '/te-quiero-rochy', icon: 'favorite' },
   ];
 
   readonly isMobile = toSignal(

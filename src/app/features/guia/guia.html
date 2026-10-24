@@ -1,0 +1,25 @@
+<app-page-header title="Guía de uso" subtitle="Aprendé a administrar tus alumnos y cobros." />
+<div class="guide">
+  <p class="intro">Elegí lo que necesitás hacer y seguí los pasos.</p>
+  <mat-accordion multi>
+    @for (explicacion of explicaciones; track explicacion.id; let primera = $first) {
+      <mat-expansion-panel [expanded]="primera">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon aria-hidden="true">{{ explicacion.icono }}</mat-icon>
+            <span>{{ explicacion.titulo }}</span>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <ol>
+          @for (paso of explicacion.pasos; track $index) {
+            <li>{{ paso }}</li>
+          }
+        </ol>
+        @if (explicacion.aclaracion) {
+          <p class="tip">{{ explicacion.aclaracion }}</p>
+        }
+        <a mat-stroked-button [routerLink]="explicacion.ruta">{{ explicacion.enlace }}</a>
+      </mat-expansion-panel>
+    }
+  </mat-accordion>
+</div>

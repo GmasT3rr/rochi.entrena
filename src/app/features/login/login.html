@@ -47,7 +47,12 @@
       @if (message()) {
         <p role="status">{{ message() }}</p>
       }
-      <button matButton="filled" type="submit" [disabled]="busy() || !!auth.initializationError()">
+      <button
+        [attr.aria-busy]="busy()"
+        matButton="filled"
+        type="submit"
+        [disabled]="busy() || !!auth.initializationError()"
+      >
         {{ busy() ? 'Procesando…' : forgot() ? 'Enviar enlace' : 'Iniciar sesión' }}
       </button>
     </form>

@@ -5,6 +5,14 @@ import { AlumnoRegistro, ConfiguracionMensual, DatosAlumno, esAlumno } from '../
 import { AuthService } from '../auth/auth-service';
 import { AlumnosSupabaseRepository } from './alumnos-supabase-repository';
 
+type DiagnosticoAlumno = {
+  codigo?: string;
+  mensaje?: string;
+  operacion?: string;
+  recurso?: string;
+  estadoHttp?: number;
+};
+
 @Injectable({ providedIn: 'root' })
 export class AlumnosService {
   readonly orden = signal<Sort>({ active: 'nombre', direction: 'asc' });
@@ -18,6 +26,8 @@ export class AlumnosService {
   readonly guardando = signal(false);
   readonly error = signal('');
   readonly errorListado = signal('');
+  readonly detalleError = signal<DiagnosticoAlumno | null>(null);
+  readonly detalleErrorListado = signal<DiagnosticoAlumno | null>(null);
   readonly mensaje = signal('');
   readonly listadoCargado = signal(false);
   readonly filtros = {
@@ -47,6 +57,8 @@ export class AlumnosService {
         this.datos.set([]);
         this.error.set('');
         this.errorListado.set('');
+        this.detalleError.set(null);
+        this.detalleErrorListado.set(null);
         this.mensaje.set('');
         if (token) void this.recargar();
         else this.cargando.set(false);
@@ -58,8 +70,8 @@ export class AlumnosService {
     this.ultimoIntento = Date.now();
     const generation = ++this.generation;
     this.cargando.set(true);
-    this.error.set('');
     this.errorListado.set('');
+    this.detalleErrorListado.set(null);
     this.mensaje.set('');
     try {
       const alumnos = await this.repository.listar();
@@ -74,8 +86,7 @@ export class AlumnosService {
           this.datos.set([]);
           this.listadoCargado.set(false);
         }
-        this.fallo(error, false);
-        this.errorListado.set(this.error());
+        this.fallo(error, false, true);
       }
     } finally {
       if (generation === this.generation) this.cargando.set(false);
@@ -89,7 +100,21 @@ export class AlumnosService {
       return null;
     }
   }
-  async guardar(datos: DatosAlumno, id?: string, nuevoId?: string): Promise<boolean> {
+  async guardar(
+    datos: DatosAlumno,
+    id?: string,
+    nuevoId?: string,
+    primerPeriodo?: string,
+  ): Promise<boolean> {
+    if (this.guardando() || this.cargando()) return false;
+    this.error.set('');
+    this.detalleError.set(null);
+    if (primerPeriodo !== undefined && (id || !datos.configuracionMensual?.habilitada)) {
+      this.error.set(
+        'La primera cuota solo se puede crear al agregar un alumno con cobro mensual.',
+      );
+      return false;
+    }
     const anterior = id ? this.alumnos().find((a) => a.id === id) : undefined;
     if (id && !anterior) {
       this.error.set('El alumno no está disponible. Actualizá el listado.');
@@ -110,7 +135,17 @@ export class AlumnosService {
       this.error.set('Revisá los datos del alumno y su configuración mensual.');
       return false;
     }
-    return this.persistir(() => this.repository.guardar(alumno, !id));
+    return this.persistir(
+      () =>
+        primerPeriodo === undefined
+          ? this.repository.guardar(alumno, !id)
+          : this.repository.guardar(alumno, !id, primerPeriodo),
+      id
+        ? 'Alumno y configuración actualizados. No se modificaron sus cuotas.'
+        : primerPeriodo === undefined
+          ? 'Alumno guardado. No se crearon cuotas.'
+          : `Alumno y configuración guardados. Primera cuota de ${primerPeriodo} creada, sin pagos.`,
+    );
   }
   async configurarMensual(id: string, configuracion: ConfiguracionMensual): Promise<boolean> {
     const alumno = this.alumnos().find((a) => a.id === id);
@@ -120,11 +155,15 @@ export class AlumnosService {
   async cambiarEstado(id: string, estado: 'Activo' | 'Inactivo'): Promise<boolean> {
     return this.persistir(() => this.repository.cambiarEstado(id, estado));
   }
-  private async persistir(operacion: () => Promise<AlumnoRegistro>): Promise<boolean> {
+  private async persistir(
+    operacion: () => Promise<AlumnoRegistro>,
+    mensaje = 'Cambios guardados.',
+  ): Promise<boolean> {
     if (this.guardando() || this.cargando()) return false;
     const generation = this.generation;
     this.guardando.set(true);
     this.error.set('');
+    this.detalleError.set(null);
     this.mensaje.set('');
     try {
       const alumno = await operacion();
@@ -134,8 +173,8 @@ export class AlumnosService {
           ? alumnos.map((a) => (a.id === alumno.id ? alumno : a))
           : [...alumnos, alumno],
       );
-      this.mensaje.set('Cambios guardados.');
-      this.toast.mostrar('Cambios guardados.', 'exito');
+      this.mensaje.set(mensaje);
+      this.toast.mostrar(mensaje, 'exito');
       this.ultimaCarga = 0;
       return true;
     } catch (error) {
@@ -145,26 +184,53 @@ export class AlumnosService {
       this.guardando.set(false);
     }
   }
-  private fallo(error: unknown, guardado = true): void {
-    const code = (error as { code?: string })?.code;
-    this.error.set(
-      code === '42501'
-        ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
-        : [
-              'PGRST202',
-              'PGRST200',
-              'PGRST201',
-              '42703',
-              'PGRST205',
-              '42P01',
-              'PGRST103',
-              'TCF_RESPUESTA_INVALIDA',
-            ].includes(code ?? '')
-          ? 'No pudimos completar la consulta. Reintentá; si el problema continúa, contactá al administrador.'
-          : guardado
-            ? 'No se pudo guardar el cambio. Revisá la conexión e intentá nuevamente.'
-            : 'No se pudo actualizar el listado. Revisá la conexión y reintentá.',
+  private fallo(error: unknown, guardado = true, listado = false): void {
+    const tecnico = error as {
+      code?: string;
+      message?: string;
+      status?: number;
+      operacion?: string;
+      recurso?: string;
+    };
+    const code = tecnico?.code;
+    const diagnostico = listado ? this.detalleErrorListado : this.detalleError;
+    const destino = listado ? this.errorListado : this.error;
+    diagnostico.set({
+      codigo: code,
+      mensaje: tecnico?.message,
+      estadoHttp: tecnico?.status,
+      operacion: tecnico?.operacion,
+      recurso: tecnico?.recurso,
+    });
+    if (code === '23505') {
+      destino.set(
+        'El alumno o la cuota ya existe. Actualizá el listado y revisá sus cuotas antes de reintentar.',
+      );
+      return;
+    }
+    destino.set(
+      tecnico?.recurso === 'crear_alumno_con_primera_cuota' &&
+        (code === 'PGRST202' || tecnico.status === 404)
+        ? 'La función para crear la primera cuota no está disponible en Supabase. La administración debe revisar e instalar la migración 006. No se guardó el alta por partes.'
+        : code === 'TCF_ESQUEMA_MENSUAL'
+          ? 'El inicio mensual personalizado requiere la actualización de base de datos pendiente. No se guardaron cambios.'
+          : code === '42501'
+            ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
+            : [
+                  'PGRST202',
+                  'PGRST200',
+                  'PGRST201',
+                  '42703',
+                  'PGRST205',
+                  '42P01',
+                  'PGRST103',
+                  'TCF_RESPUESTA_INVALIDA',
+                ].includes(code ?? '')
+              ? 'No pudimos completar la consulta. Reintentá; si el problema continúa, contactá al administrador.'
+              : guardado
+                ? 'No se pudo guardar el cambio. Revisá la conexión e intentá nuevamente.'
+                : 'No se pudo actualizar el listado. Revisá la conexión y reintentá.',
     );
-    this.toast.mostrar(this.error(), 'error');
+    // La pantalla o el formulario ya muestran el error de esta operación.
   }
 }

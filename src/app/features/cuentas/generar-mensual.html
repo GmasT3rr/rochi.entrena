@@ -4,17 +4,7 @@
     Se usarán los alumnos activos y la configuración mensual vigente de PostgreSQL. Las cuotas
     existentes conservarán sus importes.
   </p>
-  <mat-form-field appearance="outline">
-    <mat-label>Período</mat-label>
-    <input
-      matInput
-      type="month"
-      [formControl]="periodo"
-      min="1900-01"
-      max="9999-12"
-      [readonly]="cargando() || generando()"
-    />
-  </mat-form-field>
+  <app-period-selector [formControl]="periodo" [readonly]="cargando() || generando()" />
   <button
     mat-stroked-button
     type="button"
@@ -29,7 +19,7 @@
   @if (vista(); as v) {
     <h3>Vista previa · {{ v.periodo + '-01' | date: 'MMMM yyyy' }}</h3>
     <p>{{ v.cuotas.length }} cuotas por generar · {{ v.omitidos.length }} alumnos omitidos</p>
-    <div class="table-wrap">
+    <div class="table-wrap desktop-preview">
       <table>
         <thead>
           <tr>
@@ -52,6 +42,17 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="mobile-preview">
+      @for (c of v.cuotas; track c.alumnoId) {
+        <article>
+          <h4>{{ c.alumno }}</h4>
+          <p>{{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</p>
+          <p>Vence {{ c.vencimiento | date: 'dd/MM/yyyy' }}</p>
+        </article>
+      } @empty {
+        <p>No hay cuotas nuevas para este período.</p>
+      }
     </div>
     <h3>Alumnos omitidos</h3>
     <ul>
@@ -106,6 +107,7 @@
 <mat-dialog-actions align="end">
   <button mat-button type="button" mat-dialog-close [disabled]="generando()">Cerrar</button>
   <button
+    [attr.aria-busy]="generando()"
     mat-flat-button
     type="button"
     (click)="generar()"

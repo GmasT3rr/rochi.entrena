@@ -6,6 +6,7 @@ export interface ConfiguracionMensual {
   importe: number;
   diaVencimiento: number;
   habilitada: boolean;
+  periodoInicio?: string;
 }
 export function configuracionMensualValida(value: unknown): value is ConfiguracionMensual {
   if (!value || typeof value !== 'object') return false;
@@ -15,7 +16,11 @@ export function configuracionMensualValida(value: unknown): value is Configuraci
     Number.isInteger(c.diaVencimiento) &&
     c.diaVencimiento >= 1 &&
     c.diaVencimiento <= 31 &&
-    typeof c.habilitada === 'boolean'
+    typeof c.habilitada === 'boolean' &&
+    (c.periodoInicio === undefined ||
+      (/^\d{4}-(0[1-9]|1[0-2])$/.test(c.periodoInicio) &&
+        c.periodoInicio >= '1900-01' &&
+        c.periodoInicio <= '9999-12'))
   );
 }
 export interface AlumnoRegistro {

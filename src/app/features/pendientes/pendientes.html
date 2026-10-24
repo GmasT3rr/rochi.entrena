@@ -2,7 +2,7 @@
   title="Centro de pendientes"
   subtitle="Saldos actuales de tus alumnos, sin limitar por período."
 />
-<div class="toolbar">
+<div class="toolbar hub-filters">
   <a mat-button routerLink="/dashboard">Volver al Dashboard</a
   ><button
     mat-stroked-button
@@ -38,12 +38,19 @@
     Próximas: vencen hoy o en los próximos 7 días. Cada cuota se cuenta en una sola categoría; los
     pagos parciales también se indican en cada cuota.
   </p>
-  <label class="pending-search"
-    >Buscar alumno o concepto<input
-      type="search"
-      [value]="busqueda()"
-      (input)="busqueda.set($any($event.target).value)"
-  /></label>
+  <p class="scope">
+    El total incluye todos los períodos. La categoría y la búsqueda solo filtran las tarjetas.
+  </p>
+  <div class="hub-filters">
+    <mat-form-field appearance="outline" class="search"
+      ><mat-label>Buscar alumno o concepto</mat-label
+      ><input
+        matInput
+        type="search"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+    /></mat-form-field>
+  </div>
   <div class="pending-list">
     @for (p of visibles(); track p.cuota.id) {
       <article class="pending-item">
@@ -56,7 +63,7 @@
           }
         </div>
         <strong>{{ p.cuota.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
-        <div>
+        <div class="pending-actions hub-actions">
           <button mat-button (click)="detalle(p.cuota)">Ver cuota y pagos</button
           ><button mat-flat-button (click)="pagar(p.cuota)" [disabled]="!service.disponible()">
             Registrar pago

@@ -98,3 +98,21 @@ mat-card-content {
     justify-self: stretch;
   }
 }
+
+.settings > mat-expansion-panel {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.password-form > * {
+  min-width: 0;
+}
+@media (max-width: 599.98px) {
+  .settings > mat-expansion-panel mat-expansion-panel-header {
+    height: auto;
+    min-height: 64px;
+    padding-block: 12px;
+  }
+  .settings > mat-expansion-panel mat-panel-title {
+    line-height: 1.5;
+  }
+}

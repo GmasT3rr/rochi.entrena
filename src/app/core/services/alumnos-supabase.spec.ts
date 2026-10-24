@@ -10,6 +10,8 @@ import { ALUMNOS_STORAGE_KEY } from './alumnos-repository';
 import { CUENTAS_STORAGE_KEY } from './cuentas-repository';
 import { DATOS_STORAGE_KEY } from './datos-repository';
 import { CuentasLocalesService as CuentasService } from './cuentas-locales-service';
+import { fechaArgentina } from './cuentas-remotas-service';
+import { ToastService } from './toast-service';
 
 const fila = {
   id: 'id-historico',
@@ -68,6 +70,151 @@ describe('Repositorio Supabase de alumnos', () => {
       mapearAlumno({ ...fila, configuracion_mensual: null }).configuracionMensual,
     ).toBeUndefined();
   });
+  it('lee y persiste el inicio mensual sin crear cuotas en una edición', async () => {
+    const probe: any = {};
+    for (const method of ['select', 'limit']) probe[method] = vi.fn().mockReturnValue(probe);
+    probe.abortSignal = vi.fn().mockResolvedValue({ data: [], error: null, status: 200 });
+    from.mockReturnValue(probe);
+    const guardado = mapearAlumno({
+      ...fila,
+      configuracion_mensual: { ...fila.configuracion_mensual, periodo_inicio: '2028-02-01' },
+    });
+    expect(guardado.configuracionMensual?.periodoInicio).toBe('2028-02');
+    rpc.mockReturnValue({
+      abortSignal: () =>
+        Promise.resolve({
+          data: {
+            ...fila,
+            configuracion_mensual: { ...fila.configuracion_mensual, periodo_inicio: '2028-02-01' },
+          },
+          error: null,
+        }),
+    });
+    await TestBed.inject(AlumnosSupabaseRepository).guardar(guardado, false);
+    expect(rpc).toHaveBeenCalledWith(
+      'guardar_alumno_con_configuracion',
+      expect.objectContaining({
+        p_crear: false,
+        p_datos: expect.objectContaining({
+          configuracion_mensual: expect.objectContaining({ periodo_inicio: '2028-02' }),
+        }),
+      }),
+    );
+    expect(from).toHaveBeenCalledWith('configuraciones_mensuales');
+  });
+  it('lee alumnos y fichas sin exigir la columna opcional de la migración pendiente', async () => {
+    const builder: any = {};
+    for (const method of ['select', 'order', 'range', 'eq'])
+      builder[method] = vi.fn().mockReturnValue(builder);
+    builder.abortSignal = vi
+      .fn()
+      .mockResolvedValue({ data: [fila], error: null, count: 1, status: 200 });
+    from.mockReturnValue(builder);
+    const repo = TestBed.inject(AlumnosSupabaseRepository);
+    expect(await repo.listar()).toEqual([alumno]);
+    const seleccion = builder.select.mock.calls[0][0] as string;
+    expect(seleccion).toContain('configuraciones_mensuales_alumno_id_fkey(*)');
+    expect(seleccion).not.toContain('periodo_inicio');
+    builder.abortSignal.mockReturnValue({
+      maybeSingle: () => Promise.resolve({ data: fila, error: null, status: 200 }),
+    });
+    expect(await repo.obtener(fila.id)).toEqual(alumno);
+    builder.abortSignal.mockReturnValue({
+      single: () =>
+        Promise.resolve({ data: { ...fila, estado: 'Inactivo' }, error: null, status: 200 }),
+    });
+    builder.update = vi.fn().mockReturnValue(builder);
+    expect((await repo.cambiarEstado(fila.id, 'Inactivo')).estado).toBe('Inactivo');
+    expect(builder.select.mock.calls.every(([s]: [string]) => !s.includes('periodo_inicio'))).toBe(
+      true,
+    );
+  });
+  it('preserva el código, mensaje, operación y HTTP de un fallo real de lectura', async () => {
+    const builder: any = {};
+    for (const method of ['select', 'order', 'range'])
+      builder[method] = vi.fn().mockReturnValue(builder);
+    builder.abortSignal = vi.fn().mockResolvedValue({
+      data: null,
+      count: null,
+      error: { code: '42501', message: 'permission denied for table alumnos' },
+      status: 403,
+    });
+    from.mockReturnValue(builder);
+    await expect(TestBed.inject(AlumnosSupabaseRepository).listar()).rejects.toMatchObject({
+      code: '42501',
+      message: 'permission denied for table alumnos',
+      status: 403,
+      operacion: 'Listar alumnos',
+      recurso: 'alumnos / configuraciones_mensuales',
+    });
+  });
+  it('mantiene el guardado mensual anterior sin perder el período de la primera cuota', async () => {
+    const builder: any = {};
+    for (const method of ['select', 'limit']) builder[method] = vi.fn().mockReturnValue(builder);
+    builder.abortSignal = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: '42703',
+        message: 'column configuraciones_mensuales.periodo_inicio does not exist',
+      },
+      status: 400,
+    });
+    from.mockReturnValue(builder);
+    rpc.mockReturnValue({
+      abortSignal: () => Promise.resolve({ data: fila, error: null, status: 200 }),
+    });
+    const repo = TestBed.inject(AlumnosSupabaseRepository);
+    const datos = {
+      ...alumno,
+      configuracionMensual: {
+        ...alumno.configuracionMensual!,
+        periodoInicio: fechaArgentina().slice(0, 7),
+      },
+    };
+    await repo.guardar(datos, false);
+    expect(rpc.mock.calls[0][1].p_datos.configuracion_mensual).not.toHaveProperty('periodo_inicio');
+    await repo.guardar(
+      {
+        ...datos,
+        configuracionMensual: { ...datos.configuracionMensual, periodoInicio: '2028-02' },
+      },
+      true,
+      '2028-02',
+    );
+    expect(rpc.mock.calls[1][0]).toBe('crear_alumno_con_primera_cuota');
+    expect(rpc.mock.calls[1][1].p_periodo).toBe('2028-02');
+    expect(from).toHaveBeenCalledTimes(1);
+    await expect(
+      repo.guardar(
+        {
+          ...datos,
+          configuracionMensual: { ...datos.configuracionMensual, periodoInicio: '2028-02' },
+        },
+        false,
+      ),
+    ).rejects.toMatchObject({ code: 'TCF_ESQUEMA_MENSUAL' });
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+  it('no ignora errores de red o RLS al comprobar el nuevo campo mensual', async () => {
+    const builder: any = {};
+    for (const method of ['select', 'limit']) builder[method] = vi.fn().mockReturnValue(builder);
+    builder.abortSignal = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: '42501', message: 'permission denied' },
+      status: 403,
+    });
+    from.mockReturnValue(builder);
+    await expect(
+      TestBed.inject(AlumnosSupabaseRepository).guardar(
+        {
+          ...alumno,
+          configuracionMensual: { ...alumno.configuracionMensual!, periodoInicio: '2028-02' },
+        },
+        false,
+      ),
+    ).rejects.toMatchObject({ code: '42501', status: 403 });
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it('envía alta/edición en una sola RPC sin credenciales ni tablas financieras', async () => {
     rpc.mockReturnValue({ abortSignal: () => Promise.resolve({ data: fila, error: null }) });
     expect(await TestBed.inject(AlumnosSupabaseRepository).guardar(alumno, false)).toEqual(alumno);
@@ -83,6 +230,38 @@ describe('Repositorio Supabase de alumnos', () => {
       }),
     );
     expect(from).not.toHaveBeenCalled();
+  });
+  it('envía alumno, configuración y período en una sola RPC atómica sin fallback', async () => {
+    rpc.mockReturnValue({ abortSignal: () => Promise.resolve({ data: fila, error: null }) });
+    const repo = TestBed.inject(AlumnosSupabaseRepository);
+    expect(await repo.guardar(alumno, true, '2028-02')).toEqual(alumno);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith(
+      'crear_alumno_con_primera_cuota',
+      expect.objectContaining({
+        p_id: alumno.id,
+        p_periodo: '2028-02',
+        p_datos: expect.objectContaining({
+          configuracion_mensual: { habilitada: true, importe: 10000, dia_vencimiento: 31 },
+        }),
+      }),
+    );
+    expect(from).not.toHaveBeenCalled();
+    rpc.mockClear().mockReturnValue({
+      abortSignal: () => Promise.resolve({ data: null, error: { code: 'PGRST202' } }),
+    });
+    await expect(repo.guardar(alumno, true, '2028-02')).rejects.toMatchObject({ code: 'PGRST202' });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(from).not.toHaveBeenCalled();
+  });
+  it('rechaza primera cuota por edición, configuración deshabilitada o período inválido', async () => {
+    const repo = TestBed.inject(AlumnosSupabaseRepository);
+    await expect(repo.guardar(alumno, false, '2028-02')).rejects.toMatchObject({ code: '22023' });
+    await expect(repo.guardar(alumno, true, '2028-13')).rejects.toMatchObject({ code: '22023' });
+    await expect(
+      repo.guardar({ ...alumno, configuracionMensual: undefined }, true, '2028-02'),
+    ).rejects.toMatchObject({ code: '22023' });
+    expect(rpc).not.toHaveBeenCalled();
   });
   it('no ejecuta consultas sin sesión o autorización', async () => {
     auth.session.set(null);
@@ -165,6 +344,86 @@ describe('Signals remotos y aislamiento de finanzas locales', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     localStorage.clear();
+  });
+  it('conserva el error técnico y el último listado confirmado sin duplicar el aviso con Toast', async () => {
+    const mostrar = vi.fn();
+    TestBed.overrideProvider(ToastService, { useValue: { mostrar } });
+    repo.listar.mockResolvedValue([alumno]);
+    const service = TestBed.inject(AlumnosService);
+    await service.recargar();
+    repo.listar.mockRejectedValue({
+      code: '42703',
+      message: 'column configuraciones_mensuales_1.periodo_inicio does not exist',
+      status: 400,
+      operacion: 'Listar alumnos',
+      recurso: 'alumnos / configuraciones_mensuales',
+    });
+    await service.recargar();
+    expect(service.errorListado()).toBeTruthy();
+    expect(service.detalleErrorListado()).toMatchObject({
+      codigo: '42703',
+      estadoHttp: 400,
+      operacion: 'Listar alumnos',
+      mensaje: expect.stringContaining('periodo_inicio'),
+    });
+    expect(service.alumnos()).toEqual([alumno]);
+    expect(service.listadoCargado()).toBe(true);
+    expect(service.cargando()).toBe(false);
+    expect(mostrar).not.toHaveBeenCalled();
+    repo.listar.mockResolvedValue([alumno]);
+    await service.recargar();
+    expect(service.errorListado()).toBe('');
+    expect(service.detalleErrorListado()).toBeNull();
+    expect(service.alumnos()).toEqual([alumno]);
+  });
+  it('mantiene separados el fallo del listado y la RPC de primera cuota ausente', async () => {
+    const service = TestBed.inject(AlumnosService);
+    await service.recargar();
+    repo.guardar.mockRejectedValueOnce({
+      code: 'PGRST202',
+      status: 404,
+      message: 'Could not find the function public.crear_alumno_con_primera_cuota',
+      operacion: 'Guardar alumno',
+      recurso: 'crear_alumno_con_primera_cuota',
+    });
+    expect(await service.guardar(alumno, undefined, alumno.id, '2028-02')).toBe(false);
+    expect(service.error()).toContain('migración 006');
+    expect(service.errorListado()).toBe('');
+    expect(service.alumnos()).toEqual([]);
+    expect(service.mensaje()).toBe('');
+    repo.listar.mockRejectedValueOnce({
+      code: 'PGRST200',
+      status: 400,
+      message: 'Relationship not found',
+      operacion: 'Listar alumnos',
+    });
+    await service.recargar();
+    expect(service.error()).toContain('migración 006');
+    expect(service.errorListado()).toContain('No pudimos');
+    expect(service.detalleError()?.estadoHttp).toBe(404);
+    expect(service.detalleErrorListado()?.estadoHttp).toBe(400);
+  });
+  it('confirma primera cuota solo después de guardar y explica un duplicado sin publicar un alta', async () => {
+    const service = TestBed.inject(AlumnosService);
+    await service.recargar();
+    let resolver!: (a: typeof alumno) => void;
+    repo.guardar.mockReturnValueOnce(new Promise((r) => (resolver = r)));
+    const guardado = service.guardar(alumno, undefined, alumno.id, '2028-02');
+    expect(service.mensaje()).toBe('');
+    expect(service.alumnos()).toEqual([]);
+    resolver(alumno);
+    expect(await guardado).toBe(true);
+    expect(service.mensaje()).toContain('Primera cuota de 2028-02 creada, sin pagos');
+    expect(repo.guardar).toHaveBeenCalledWith(
+      expect.objectContaining({ id: alumno.id }),
+      true,
+      '2028-02',
+    );
+    repo.guardar.mockRejectedValueOnce({ code: '23505' });
+    expect(await service.guardar(alumno, undefined, alumno.id, '2028-02')).toBe(false);
+    expect(service.mensaje()).toBe('');
+    expect(service.error()).toContain('ya existe');
+    expect(service.alumnos()).toHaveLength(1);
   });
   it('carga vacío sin mocks y conserva las claves locales byte a byte', async () => {
     for (const key of [ALUMNOS_STORAGE_KEY, CUENTAS_STORAGE_KEY, DATOS_STORAGE_KEY])

@@ -31,7 +31,9 @@ describe('Formulario de cuotas y pagos remotos', () => {
       alumnos: signal([
         { id: 'a', nombre: 'Ana', apellido: 'Pérez', modalidad: 'Online', estado: 'Activo' },
       ]),
-      cuentas: signal([{ ...cuota, saldo: 100 }]),
+      cuentas: signal([
+        { ...cuota, alumno: 'Ana Pérez', abonado: 0, saldo: 100, pagos: [] as any[] },
+      ]),
       versionCuota: () => version,
       versionPago: () => version,
       guardarCuota: vi.fn().mockResolvedValue(true),
@@ -78,9 +80,8 @@ describe('Formulario de cuotas y pagos remotos', () => {
     const selects = fixture.debugElement.queryAll(By.directive(MatSelect));
     const mes = selects[1].componentInstance as MatSelect;
     expect(mes.triggerValue).toBe('Octubre');
-    expect(component.anioPeriodo.value).toBe('2026');
-    component.mesPeriodo.setValue('03');
-    component.actualizarPeriodo();
+    expect(component.cuotaForm.controls.periodo.value).toBe('2026-10');
+    mes.selectionChange.emit({ source: mes, value: '03' });
     const anio = fixture.nativeElement.querySelector('input[type=number][min="1900"]');
     anio.value = '2025';
     anio.dispatchEvent(new Event('input'));
@@ -98,8 +99,7 @@ describe('Formulario de cuotas y pagos remotos', () => {
       tipo: 'cuota',
       cuota: { ...cuota, periodo: '2024-02' },
     });
-    expect(component.mesPeriodo.value).toBe('02');
-    expect(component.anioPeriodo.value).toBe('2024');
+    expect(component.cuotaForm.controls.periodo.value).toBe('2024-02');
     const fecha = fixture.nativeElement.querySelector('input[formControlName=vencimiento]');
     expect(fecha.value).toBe('31/10/2026');
     fecha.value = '29/02/2024';
@@ -167,5 +167,83 @@ describe('Formulario de cuotas y pagos remotos', () => {
     service.disponible.set(false);
     await component.guardar();
     expect(service.guardarPago).not.toHaveBeenCalled();
+  });
+  it('precarga el saldo y la fecha argentina, permite un cobro parcial y muestra el saldo resultante', async () => {
+    const { component, service, fixture, close } = await form({ tipo: 'pago', cuota });
+    expect(component.pagoForm.getRawValue()).toMatchObject({
+      importe: 100,
+      fecha: '2026-10-22',
+      medio: 'Transferencia',
+    });
+    expect(component.saldoResultante).toBe(0);
+    component.pagoForm.controls.importe.setValue(30.25);
+    expect(component.saldoResultante).toBe(69.75);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Ana Pérez');
+    await component.guardar();
+    expect(service.guardarPago.mock.calls[0][0]).toMatchObject({ cuotaId: 'c', importe: 30.25 });
+    expect(close).toHaveBeenCalledWith(true);
+  });
+  it('rechaza sobrepagos y cuotas pagadas antes de enviarlos', async () => {
+    const { component, service } = await form({ tipo: 'pago', cuota });
+    component.pagoForm.controls.importe.setValue(101);
+    await component.guardar();
+    expect(component.error()).toContain('supera');
+    service.cuentas.update((cs) => cs.map((c) => ({ ...c, abonado: 100, saldo: 0 })));
+    component.pagoForm.controls.importe.setValue(1);
+    await component.guardar();
+    expect(component.error()).toContain('ya está pagada');
+    expect(service.guardarPago).not.toHaveBeenCalled();
+  });
+  it('bloquea el doble envío y espera la confirmación del cobro completo', async () => {
+    const { component, service, close } = await form({ tipo: 'pago', cuota });
+    let resolver!: (ok: boolean) => void;
+    service.guardarPago.mockReturnValue(new Promise<boolean>((resolve) => (resolver = resolve)));
+    const guardado = component.guardar();
+    await component.guardar();
+    expect(service.guardarPago).toHaveBeenCalledTimes(1);
+    expect(component.enviando()).toBe(true);
+    expect(close).not.toHaveBeenCalled();
+    resolver(true);
+    await guardado;
+    expect(close).toHaveBeenCalledWith(true);
+    expect(component.enviando()).toBe(false);
+  });
+  it('conserva campos e ID al fallar y permite reintentar', async () => {
+    const { component, service, close } = await form({ tipo: 'pago', cuota });
+    component.pagoForm.patchValue({ importe: 25, medio: 'Efectivo', observaciones: 'Seña' });
+    const valores = component.pagoForm.getRawValue();
+    service.error.set('Sin conexión. Actualizá los datos.');
+    service.guardarPago.mockResolvedValueOnce(false);
+    await component.guardar();
+    expect(close).not.toHaveBeenCalled();
+    expect(component.error()).toContain('Sin conexión');
+    expect(component.pagoForm.getRawValue()).toEqual(valores);
+    await component.guardar();
+    expect(service.guardarPago.mock.calls[0][2]).toBe(service.guardarPago.mock.calls[1][2]);
+    expect(close).toHaveBeenCalledWith(true);
+  });
+  it('usa el medio del pago más reciente y un predeterminado si no es válido', async () => {
+    const { component, service } = await form({ tipo: 'cuota' });
+    service.cuentas.update((cs) =>
+      cs.map((c) => ({
+        ...c,
+        pagos: [
+          { id: 'p1', fecha: '2026-10-10', medio: 'Transferencia' },
+          { id: 'p2', fecha: '2026-10-20', medio: 'Efectivo' },
+        ],
+      })),
+    );
+    // Comprobar la selección al crear otro diálogo con los mismos datos confirmados.
+    TestBed.inject(MAT_DIALOG_DATA).tipo = 'pago';
+    TestBed.inject(MAT_DIALOG_DATA).cuota = cuota;
+    const segundo = TestBed.createComponent(CuentaForm).componentInstance;
+    expect(segundo.pagoForm.controls.medio.value).toBe('Efectivo');
+    service.cuentas.update((cs) =>
+      cs.map((c) => ({ ...c, pagos: [{ id: 'p3', fecha: '2026-10-21', medio: 'Inválido' }] })),
+    );
+    expect(
+      TestBed.createComponent(CuentaForm).componentInstance.pagoForm.controls.medio.value,
+    ).toBe('Transferencia');
   });
 });

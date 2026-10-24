@@ -1,3 +1,4 @@
+import { PeriodSelector } from '../../shared/period-selector';
 import { ToastService } from '../../core/services/toast-service';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, effect, inject, signal, untracked } from '@angular/core';
@@ -17,6 +18,7 @@ import { errorFinanciero } from '../../core/services/cuentas-remotas-service';
 @Component({
   selector: 'app-generar-mensual',
   imports: [
+    PeriodSelector,
     CurrencyPipe,
     DatePipe,
     ReactiveFormsModule,

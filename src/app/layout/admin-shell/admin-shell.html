@@ -24,6 +24,7 @@
           mat-list-item
           [routerLink]="item.path"
           routerLinkActive="nav-item--active"
+          ariaCurrentWhenActive="page"
           (click)="closeIfMobile()"
         >
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>

@@ -1,9 +1,8 @@
-.toolbar,
 .pending-categories {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--hub-space-3);
+  margin-bottom: var(--hub-space-4);
 }
 .pending-categories [aria-pressed='true'] {
   outline: 2px solid var(--hub-primary, #536dfe);
@@ -12,34 +11,27 @@
 .scope {
   color: var(--hub-muted);
 }
-.pending-search {
-  display: grid;
-  gap: 8px;
-  max-width: 420px;
-  margin: 20px 0;
-}
-.pending-search input {
-  padding: 12px;
-  border: 1px solid var(--hub-muted);
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-}
+
 .pending-list {
   display: grid;
-  gap: 16px;
+  gap: var(--hub-space-4);
 }
 .pending-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 20px;
+  padding: var(--hub-card-padding);
   border: 1px solid var(--hub-border, #8885);
-  border-radius: 12px;
+  border-radius: var(--hub-card-radius);
   background: var(--hub-surface);
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
+.pending-item > div {
+  min-width: 0;
+}
+
 h2 {
   font-size: 1.1rem;
   margin: 0;
@@ -60,5 +52,39 @@ p {
   .pending-item {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .pending-actions {
+    width: 100%;
+  }
+  .pending-actions button {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 1050px) {
+  .pending-item {
+    flex-wrap: wrap;
+  }
+  .pending-actions {
+    flex-basis: 100%;
+  }
+}
+.pending-item {
+  overflow-wrap: break-word;
+}
+.pending-item strong {
+  white-space: normal;
+}
+@media (max-width: 359px) {
+  .pending-categories button {
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 700px) {
+  .pending-item {
+    flex-wrap: nowrap;
+  }
+  .pending-actions {
+    flex-basis: auto;
   }
 }

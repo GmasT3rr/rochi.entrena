@@ -1,4 +1,65 @@
+@use './breakpoints' as bp;
 @mixin styles {
+  :host {
+    display: block;
+    min-width: 0;
+  }
+  .mobile-records {
+    display: none;
+  }
+  .record-card {
+    padding: var(--hub-card-padding);
+    border: 1px solid var(--hub-border);
+    border-radius: var(--hub-card-radius);
+    margin-bottom: 1rem;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .record-card h3 {
+    font-size: 1.05rem;
+    margin: 0 0 0.5rem;
+    line-height: 1.5;
+  }
+  .record-card p {
+    line-height: 1.5;
+  }
+  .record-card dl {
+    display: grid;
+    gap: 0.8rem;
+    margin: 1rem 0;
+  }
+  .record-card dt {
+    color: var(--hub-muted);
+    font-size: 0.85rem;
+  }
+  .record-card dd {
+    margin: 0.25rem 0 0;
+  }
+  .record-amount {
+    font-size: 1.2rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .record-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--hub-space-2);
+  }
+  .record-actions button {
+    flex: 1 1 140px;
+  }
+  @media (max-width: bp.$compact) {
+    .desktop-table {
+      display: none;
+    }
+    .mobile-records {
+      display: block;
+    }
+    .table-card mat-card-content {
+      padding: 0.75rem;
+    }
+  }
+
   .table-card {
     border-radius: var(--hub-card-radius);
     background: var(--hub-surface);
@@ -6,33 +67,18 @@
   .table-card mat-card-content {
     padding: var(--hub-card-padding);
   }
-  .toolbar {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-  }
-  .toolbar mat-form-field {
-    width: 150px;
-  }
-  .toolbar .search {
-    flex: 1 1 200px;
-    min-width: 0;
-  }
-  .toolbar > button {
-    margin-top: 0.5rem;
-  }
+
   .hub-table {
-    min-width: 0;
+    min-width: 680px;
     width: 100%;
-    table-layout: fixed;
+    table-layout: auto;
     background: var(--hub-surface);
   }
   .hub-table th,
   .hub-table td {
     padding: 0.7rem 0.5rem;
     border-color: var(--hub-border);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     font-size: 0.78rem;
   }
   .hub-table th {
@@ -69,21 +115,11 @@
     justify-content: end;
     gap: 0;
   }
-  .row-actions button {
-    width: 38px;
-    height: 38px;
-    padding: 7px;
-  }
+
   .row-actions mat-icon {
     font-size: 20px;
     width: 20px;
     height: 20px;
-  }
-  .delete-action {
-    color: var(--hub-error);
-  }
-  .delete-action:disabled {
-    opacity: 0.4;
   }
 
   .result-count,
@@ -94,69 +130,5 @@
   .empty {
     padding: 2rem 1rem;
     text-align: center;
-  }
-  @media (max-width: 850px) {
-    .table-wrap {
-      overflow: visible;
-    }
-    .hub-table,
-    .hub-table tbody {
-      display: block;
-    }
-    .hub-table thead {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-    }
-    .hub-table tr.mat-mdc-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      height: auto;
-      padding: 0.6rem;
-      border: 1px solid var(--hub-border);
-      border-radius: 0.75rem;
-      margin-bottom: 0.6rem;
-    }
-    .hub-table td {
-      display: block;
-      border: 0;
-      padding: 0.4rem;
-      text-align: left;
-      min-width: 0;
-    }
-    .hub-table td::before {
-      content: attr(data-label);
-      display: block;
-      font-size: 0.65rem;
-      font-weight: 500;
-      color: var(--hub-muted);
-      margin-bottom: 0.2rem;
-    }
-    .hub-table .mat-column-acciones {
-      width: auto;
-      align-self: end;
-    }
-    .row-actions {
-      justify-content: start;
-    }
-    .hub-table .empty {
-      width: 100%;
-    }
-  }
-  @media (max-width: 599.98px) {
-    .toolbar mat-form-field {
-      flex: 1 1 calc(50% - 0.65rem);
-      width: auto;
-      min-width: 0;
-    }
-    .toolbar .search {
-      flex-basis: 100%;
-    }
-    .toolbar > button {
-      margin: 0 0 0.5rem;
-      flex: 1 1 auto;
-    }
   }
 }

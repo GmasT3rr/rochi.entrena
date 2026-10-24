@@ -3,7 +3,7 @@
   subtitle="Administrá la información de tus alumnos presenciales y online."
 />
 
-<div class="toolbar">
+<div class="toolbar hub-filters">
   <mat-form-field appearance="outline" class="search">
     <mat-label>Buscar alumnos</mat-label>
     <input
@@ -31,16 +31,33 @@
       <mat-option value="Inactivo">Inactivo</mat-option>
     </mat-select>
   </mat-form-field>
-  <button mat-flat-button (click)="editar()" [disabled]="service.cargando() || service.guardando()">
-    Agregar alumno
-  </button>
+  <div class="hub-filter-actions">
+    <button
+      mat-flat-button
+      (click)="editar()"
+      [disabled]="service.cargando() || service.guardando()"
+    >
+      Agregar alumno
+    </button>
+  </div>
 </div>
 
 @if (service.errorListado()) {
   <div role="alert">
     <p>{{ service.errorListado() }}</p>
     @if (service.listadoCargado()) {
-      <p>Se muestra la última lista confirmada.</p>
+      <p>No se muestra el listado anterior porque no pudo actualizarse.</p>
+    }
+    @if (service.detalleErrorListado(); as detalle) {
+      <details>
+        <summary>Detalles para soporte</summary>
+        <p>{{ detalle.operacion }} · {{ detalle.recurso }}</p>
+        <p>
+          Código: {{ detalle.codigo || 'no informado' }} · HTTP:
+          {{ detalle.estadoHttp || 'no informado' }}
+        </p>
+        <p>{{ detalle.mensaje }}</p>
+      </details>
     }
     <button
       mat-stroked-button
@@ -51,22 +68,69 @@
     </button>
   </div>
 }
-@if (service.error() && service.error() !== service.errorListado()) {
+@if (service.error() && !formularioAbierto()) {
   <p role="alert">{{ service.error() }}</p>
 }
 <p role="status" class="feedback">{{ mensaje() }}</p>
-@if (service.cargando() && !service.listadoCargado()) {
+@if (service.errorListado()) {
+  <!-- El error y Reintentar ya se muestran arriba. No presentar datos previos como una consulta exitosa. -->
+} @else if (service.cargando() && !service.listadoCargado()) {
   <app-loading-layout variant="alumnos" label="Cargando alumnos" />
 } @else {
   <mat-card appearance="outlined" class="table-card" [attr.aria-busy]="service.cargando()">
     <mat-card-content>
+      <div class="mobile-records">
+        <app-mobile-sort
+          [value]="orden()"
+          (change)="orden.set($event)"
+          [options]="[
+            { id: 'nombre', label: 'Nombre' },
+            { id: 'modalidad', label: 'Modalidad' },
+            { id: 'estado', label: 'Estado' },
+          ]"
+        />
+        @for (alumno of alumnos(); track alumno.id) {
+          <article class="record-card">
+            <h3>{{ alumno.nombre }} {{ alumno.apellido }}</h3>
+            <p>{{ alumno.modalidad }} · {{ alumno.estado }}</p>
+            <div class="record-actions hub-actions">
+              <button
+                [class.hub-danger]="alumno.estado !== 'Inactivo'"
+                mat-stroked-button
+                (click)="ficha(alumno)"
+              >
+                Ver ficha</button
+              ><button
+                mat-stroked-button
+                (click)="editar(alumno)"
+                [disabled]="service.guardando() || service.cargando()"
+              >
+                Editar</button
+              ><button
+                mat-button
+                (click)="cambiarEstado(alumno)"
+                [disabled]="service.guardando() || service.cargando()"
+              >
+                {{ alumno.estado === 'Inactivo' ? 'Reactivar' : 'Dar de baja' }}
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <p role="status">No hay alumnos que coincidan con la búsqueda.</p>
+        }
+      </div>
       @if (service.cargando()) {
         <p role="status">Actualizando alumnos…</p>
       }
       @if (!service.errorListado()) {
         <p class="result-count">{{ alumnos().length }} alumnos encontrados</p>
       }
-      <div class="table-wrap" role="region" aria-label="Listado de alumnos" tabindex="0">
+      <div
+        class="table-wrap desktop-table"
+        role="region"
+        aria-label="Listado de alumnos"
+        tabindex="0"
+      >
         <table
           matSort
           [matSortActive]="orden().active"
@@ -142,6 +206,7 @@
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button
+                  [class.hub-danger]="alumno.estado !== 'Inactivo'"
                   mat-icon-button
                   [matTooltip]="alumno.estado === 'Inactivo' ? 'Reactivar' : 'Dar de baja'"
                   (click)="cambiarEstado(alumno)"

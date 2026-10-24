@@ -9,7 +9,7 @@
       <p role="status">Verificando tu enlace y tu sesión…</p>
     } @else if (saved()) {
       <p role="status">Tu contraseña se guardó correctamente.</p>
-      <button mat-flat-button [disabled]="busy()" (click)="goToLogin()">
+      <button [attr.aria-busy]="busy()" mat-flat-button [disabled]="busy()" (click)="goToLogin()">
         Ir al inicio de sesión
       </button>
     } @else if (valid()) {
@@ -67,7 +67,12 @@
         @if (form.controls.confirmation.touched && form.hasError('mismatch')) {
           <p role="alert">Las contraseñas no coinciden.</p>
         }
-        <button mat-flat-button type="submit" [disabled]="busy() || !valid()">
+        <button
+          [attr.aria-busy]="busy()"
+          mat-flat-button
+          type="submit"
+          [disabled]="busy() || !valid()"
+        >
           {{ busy() ? 'Guardando…' : 'Guardar contraseña' }}
         </button>
       </form>

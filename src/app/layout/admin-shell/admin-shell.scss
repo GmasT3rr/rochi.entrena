@@ -174,3 +174,42 @@
     padding: 1rem 0.9rem 1.5rem;
   }
 }
+
+.sidebar {
+  width: min(272px, calc(100vw - 32px));
+}
+.sidebar__footer {
+  position: static;
+}
+.nav {
+  padding-bottom: 1rem;
+}
+.topbar > button {
+  flex-shrink: 0;
+}
+.topbar__title {
+  flex: 1;
+  white-space: normal;
+  line-height: 1.25;
+}
+.topbar__spacer {
+  display: none;
+}
+@media (max-width: 599.98px) {
+  .user__details {
+    display: none;
+  }
+  .topbar {
+    padding-inline: 0.5rem;
+    gap: 0.25rem;
+  }
+  .user {
+    gap: 0;
+  }
+  .topbar__title {
+    font-size: 0.95rem;
+  }
+  .user__avatar {
+    display: none;
+  }
+}

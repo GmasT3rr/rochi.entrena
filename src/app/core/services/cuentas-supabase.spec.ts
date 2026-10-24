@@ -2,6 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { CuentasService } from './cuentas-service';
 import { fechaArgentina } from './cuentas-remotas-service';
+import { provideRouter } from '@angular/router';
+import { Pendientes } from '../../features/pendientes/pendientes';
+import { ResumenDashboard } from './resumen-dashboard';
 import {
   CuentasSnapshot,
   CuentasSupabaseRepository,
@@ -237,6 +240,84 @@ describe('Cuentas y pagos remotos con Signals', () => {
     s.hoy.set('2026-10-22');
     return s;
   }
+  it('actualiza Centro de pendientes y Dashboard tras cobro, edición y eliminación sin perder filtros', async () => {
+    server.cuotas = [{ ...cuota, periodo: '2026-09', vencimiento: '2026-09-30' }];
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(Pendientes);
+    await fixture.whenStable();
+    const s = TestBed.inject(CuentasService);
+    s.hoy.set('2026-10-22');
+    const c = fixture.componentInstance;
+    c.categoria.set('vencida');
+    c.busqueda.set('Ana');
+    s.filtros.periodo.set('2026-10');
+    s.filtros.busqueda.set('otro');
+    const resumen = TestBed.inject(ResumenDashboard);
+    resumen.elegirPeriodo('2026-09');
+    fixture.detectChanges();
+    expect(c.total()).toBe(100);
+    expect(resumen.pendiente()).toBe(100);
+    expect(await s.guardarPago({ ...pago, importe: 30, fecha: '2026-10-22' })).toBe(true);
+    await fixture.whenStable();
+    const pagoGuardado = s.pagos()[0];
+    expect(c.total()).toBe(70);
+    expect(resumen.pendiente()).toBe(70);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Con pagos parciales');
+    expect(await s.guardarPago({ ...pagoGuardado, importe: 40 }, pagoGuardado.id)).toBe(true);
+    expect(c.total()).toBe(60);
+    expect(resumen.pendiente()).toBe(60);
+    expect(await s.eliminarPago(pagoGuardado.id)).toBe(true);
+    expect(c.total()).toBe(100);
+    expect(resumen.pendiente()).toBe(100);
+    expect(await s.guardarPago({ ...pago, importe: 100 })).toBe(true);
+    expect(c.total()).toBe(0);
+    expect(c.pendientes()).toEqual([]);
+    expect(resumen.pendiente()).toBe(0);
+    expect(c.categoria()).toBe('vencida');
+    expect(c.busqueda()).toBe('Ana');
+    expect(s.filtros.periodo()).toBe('2026-10');
+    expect(s.filtros.busqueda()).toBe('otro');
+  });
+  it('inicia en el mes argentino y conserva la selección al recargar los datos', async () => {
+    const s = TestBed.inject(CuentasService);
+    expect(s.filtros.periodo()).toBe(fechaArgentina().slice(0, 7));
+    await s.recargar();
+    s.filtros.periodo.set('2024-02');
+    s.filtros.busqueda.set('Ana');
+    await s.recargar();
+    expect(s.filtros.periodo()).toBe('2024-02');
+    expect(s.filtros.busqueda()).toBe('Ana');
+    s.filtros.periodo.set('');
+    await s.recargar();
+    expect(s.filtros.periodo()).toBe('');
+  });
+  it('refresca datos vencidos al entrar, sin consultas repetidas ni pérdida de filtros', async () => {
+    const s = await service();
+    s.filtrosPendientes.categoria.set('vencida');
+    s.filtrosPendientes.busqueda.set('Ana');
+    const reloj = vi.spyOn(Date, 'now');
+    const ahora = Date.now();
+    try {
+      repo.cargar.mockClear();
+      s.refrescarSiNecesario();
+      expect(repo.cargar).not.toHaveBeenCalled();
+      reloj.mockReturnValue(ahora + 61000);
+      let resolver!: (snapshot: CuentasSnapshot) => void;
+      repo.cargar.mockReturnValueOnce(new Promise((r) => (resolver = r)));
+      s.refrescarSiNecesario();
+      s.refrescarSiNecesario();
+      expect(repo.cargar).toHaveBeenCalledTimes(1);
+      resolver(snapshot());
+      await Promise.resolve();
+      expect(s.filtrosPendientes.categoria()).toBe('vencida');
+      expect(s.filtrosPendientes.busqueda()).toBe('Ana');
+      s.refrescarSiNecesario();
+      expect(repo.cargar).toHaveBeenCalledTimes(1);
+    } finally {
+      reloj.mockRestore();
+    }
+  });
   it('carga vacío sin mocks y no lee ni altera el archivo local', async () => {
     const keys = ['rochy.alumnos.v1', 'rochy.cuentas.v1', 'rochy.datos.v1'];
     for (const k of keys) localStorage.setItem(k, 'datos locales sin tocar');

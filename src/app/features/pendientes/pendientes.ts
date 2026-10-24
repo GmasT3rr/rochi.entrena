@@ -1,4 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { Component, computed, inject } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -7,20 +9,33 @@ import { PageHeader } from '../../shared/page-header/page-header';
 import { LoadingLayout } from '../../shared/skeleton/loading-layout';
 import { CuentasService } from '../../core/services/cuentas-service';
 import { clasificarPendientes, CategoriaPendiente } from '../../core/services/pendientes';
-import { CuentaVista, normalizarConcepto } from '../../core/cuentas';
+import { CuentaVista, normalizarConcepto, centavos } from '../../core/cuentas';
 import { CuentaForm } from '../cuentas/cuenta-form';
 import { CuotaDetalle } from '../cuentas/cuota-detalle';
 @Component({
   selector: 'app-pendientes',
-  imports: [CurrencyPipe, DatePipe, MatButtonModule, RouterLink, PageHeader, LoadingLayout],
+  imports: [
+    MatFormFieldModule,
+    MatInputModule,
+    CurrencyPipe,
+    DatePipe,
+    MatButtonModule,
+    RouterLink,
+    PageHeader,
+    LoadingLayout,
+  ],
   templateUrl: './pendientes.html',
   styleUrl: './pendientes.scss',
 })
 export class Pendientes {
   readonly service = inject(CuentasService);
   private readonly dialog = inject(MatDialog);
-  readonly categoria = signal<CategoriaPendiente | ''>('');
-  readonly busqueda = signal('');
+  readonly categoria = this.service.filtrosPendientes.categoria;
+  readonly busqueda = this.service.filtrosPendientes.busqueda;
+  constructor() {
+    // Evitar otra consulta al recrearse la vista durante una escritura o carga.
+    this.service.refrescarSiNecesario();
+  }
   readonly categorias: { id: CategoriaPendiente; label: string }[] = [
     { id: 'vencida', label: 'Vencidas' },
     { id: 'proxima', label: 'Próximas a vencer' },
@@ -31,7 +46,7 @@ export class Pendientes {
     clasificarPendientes(this.service.cuentas(), this.service.hoy()),
   );
   readonly total = computed(
-    () => this.pendientes().reduce((sum, p) => sum + Math.round(p.cuota.saldo * 100), 0) / 100,
+    () => this.pendientes().reduce((sum, p) => sum + centavos(p.cuota.saldo), 0) / 100,
   );
   readonly visibles = computed(() =>
     this.pendientes().filter(
@@ -57,10 +72,16 @@ export class Pendientes {
     });
   }
   pagar(cuota: CuentaVista) {
-    if (this.service.disponible())
+    const actual = this.service.cuentas().find((c) => c.id === cuota.id);
+    if (
+      this.service.disponible() &&
+      actual &&
+      centavos(actual.saldo) > 0 &&
+      !this.dialog.openDialogs.some((d) => d.componentInstance instanceof CuentaForm)
+    )
       this.dialog.open(CuentaForm, {
         closeOnNavigation: false,
-        data: { tipo: 'pago', cuota },
+        data: { tipo: 'pago', cuota: actual },
         width: '600px',
         maxWidth: 'calc(100vw - 24px)',
         maxHeight: '90dvh',

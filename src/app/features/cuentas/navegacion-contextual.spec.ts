@@ -51,6 +51,16 @@ describe('Navegación contextual a cuentas', () => {
     TestBed.tick();
     expect(service.filtros.periodo()).toBe('2026-10');
     expect(service.filtros.alumnoId()).toBe('');
+    service.filtros.busqueda.set('Ana');
+    service.filtros.estado.set('Parcial');
+    service.filtros.modalidad.set('Online');
     fixture.destroy();
+    const recreada = TestBed.createComponent(Cuentas);
+    TestBed.tick();
+    expect(service.filtros.periodo()).toBe('2026-10');
+    expect(service.filtros.busqueda()).toBe('Ana');
+    expect(service.filtros.estado()).toBe('Parcial');
+    expect(service.filtros.modalidad()).toBe('Online');
+    recreada.destroy();
   });
 });
