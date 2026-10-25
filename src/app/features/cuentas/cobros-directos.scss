@@ -1,0 +1,9 @@
+@use '../../shared/data-table' as table;
+@include table.styles;
+.desktop-table {
+  overflow-x: auto;
+}
+.hub-table {
+  border-collapse: collapse;
+  text-align: left;
+}

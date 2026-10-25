@@ -11,6 +11,22 @@ export interface ExplicacionGuia {
 // Mantener los pasos y nombres de botones alineados con las pantallas existentes.
 export const explicacionesGuia: readonly ExplicacionGuia[] = [
   {
+    id: 'cobro-directo',
+    titulo: '¿Cómo registro un cobro directo?',
+    icono: 'payments',
+    pasos: [
+      'Entrá en Cuotas y cobros.',
+      'Seleccioná Nuevo movimiento → Cobro directo.',
+      'Elegí el alumno.',
+      'Completá importe, concepto y medio de pago.',
+      'Guardá.',
+    ],
+    aclaracion:
+      'Se identifica como Cobro directo en el listado. No genera una cuota ni deuda; la fecha de cobro determina el mes del ingreso.',
+    ruta: '/cuentas',
+    enlace: 'Ir a Cuotas y cobros',
+  },
+  {
     id: 'agregar-alumno',
     titulo: '¿Cómo agrego un alumno?',
     icono: 'person_add',
@@ -111,6 +127,7 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
     icono: 'account_balance_wallet',
     pasos: [
       'En el Dashboard, seleccioná Ver todos los pendientes o Centro de pendientes · Todos los períodos.',
+      'También podés entrar desde Ver deudas de todos los períodos en Cuotas y cobros.',
       'Revisá el Saldo total pendiente de todos los meses.',
       'Elegí Todos, Vencidas, Próximas a vencer, Parciales u Otros saldos.',
       'Buscá por alumno o concepto y seleccioná Ver cuota y pagos para revisar el historial.',
@@ -166,17 +183,18 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
   },
   {
     id: 'filtros-cuotas',
-    titulo: '¿Cómo consulto cuotas y uso los filtros?',
+    titulo: '¿Cómo consulto movimientos y uso los filtros?',
     icono: 'filter_alt',
     pasos: [
       'Entrá en Cuotas y cobros: al comenzar se muestra el mes actual.',
-      'En Período, elegí Mes y Año; para ver todo, seleccioná Todos los períodos en Mes. Buscá por nombre de alumno.',
-      'Combiná Alumno, Estado y Modalidad; en celular, abrí Filtrar por alumno para elegir uno.',
-      'Abrí Ver detalle e historial con el ícono del ojo; al cerrar se conservan tus filtros.',
-      'Usá Limpiar filtros para ver todas las cuotas. Actualizar está junto a la cantidad de resultados.',
+      'Buscá por alumno o concepto y elegí Mes y Año. En Mes, Todos los períodos muestra todo.',
+      'En Tipo, elegí Todos, Cuotas o Cobros directos. Combiná Alumno, Estado y Modalidad; en celular, abrí Filtrar por alumno.',
+      'Cada fila indica su tipo: las cuotas muestran período y vencimiento; los cobros directos, fecha de cobro y No genera deuda.',
+      'Usá Ver detalle o Más acciones para editar, cobrar una cuota o eliminar cuando corresponda.',
+      'Limpiar filtros muestra todos los movimientos. Actualizar y Exportaciones están en las acciones secundarias.',
     ],
     aclaracion:
-      'Total cobrado cuenta pagos recibidos en el período elegido. Total pendiente es el saldo de sus cuotas e incluye Total vencido. Los demás filtros solo cambian el listado.',
+      'Total cobrado incluye pagos y cobros directos según su fecha. Pendiente y vencido solo corresponden a cuotas. El resumen usa el período; los demás filtros solo cambian el listado.',
     ruta: '/cuentas',
     enlace: 'Ir a Cuotas y cobros',
   },
@@ -200,7 +218,7 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
     titulo: '¿Cómo creo una cuota individual?',
     icono: 'add_card',
     pasos: [
-      'Entrá en Cuotas y cobros y seleccioná Nueva cuota.',
+      'Entrá en Cuotas y cobros y seleccioná Nuevo movimiento → Nueva cuota.',
       'Elegí el Alumno y completá Concepto, Mes y Año.',
       'Indicá Importe total (ARS) y Vencimiento.',
       'Seleccioná Guardar.',

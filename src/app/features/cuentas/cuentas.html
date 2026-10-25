@@ -1,41 +1,54 @@
 ﻿<app-page-header
   title="Cuotas y cobros"
-  subtitle="Gestioná cuotas, registrá pagos y controlá los saldos de tus alumnos."
+  subtitle="Gestioná cuotas y cobros directos de tus alumnos en un solo lugar."
 />
-<ng-template #filtroAlumno
-  ><mat-form-field appearance="outline" subscriptSizing="dynamic">
-    <mat-label>Alumno</mat-label>
-    <mat-select [value]="alumnoId()" (selectionChange)="alumnoId.set($event.value)">
-      <mat-option value="">Todos</mat-option>
+<ng-template #filtroAlumno>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic"
+    ><mat-label>Alumno</mat-label>
+    <mat-select [value]="alumnoId()" (selectionChange)="alumnoId.set($event.value)"
+      ><mat-option value="">Todos</mat-option>
       @for (a of service.alumnos(); track a.id) {
         <mat-option [value]="a.id">{{ a.nombre }} {{ a.apellido }}</mat-option>
       }
     </mat-select>
-  </mat-form-field></ng-template
->
-<section aria-label="Filtros de cuotas" class="hub-filters hub-filters--grid cuotas-filters">
+  </mat-form-field>
+</ng-template>
+<section aria-label="Filtros de movimientos" class="hub-filters hub-filters--grid cuotas-filters">
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search"
-    ><mat-label>Buscar por alumno</mat-label
-    ><input matInput #buscar [value]="busqueda()" (input)="busqueda.set(buscar.value)"
+    ><mat-label>Buscar</mat-label
+    ><input
+      matInput
+      #buscar
+      [value]="busqueda()"
+      (input)="busqueda.set(buscar.value)"
+      placeholder="Alumno o concepto"
   /></mat-form-field>
   @if (!filtrosMoviles()) {
     <div class="student-filter"><ng-container [ngTemplateOutlet]="filtroAlumno" /></div>
   }
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="type-filter"
+    ><mat-label>Tipo</mat-label
+    ><mat-select [value]="tipo()" (selectionChange)="tipo.set($event.value)"
+      ><mat-option value="">Todos</mat-option><mat-option value="cuota">Cuotas</mat-option
+      ><mat-option value="directo">Cobros directos</mat-option></mat-select
+    ></mat-form-field
+  >
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="status-filter"
     ><mat-label>Estado</mat-label
-    ><mat-select [value]="estado()" (selectionChange)="estado.set($event.value)">
-      <mat-option value="">Todos</mat-option>
+    ><mat-select [value]="estado()" (selectionChange)="estado.set($event.value)"
+      ><mat-option value="">Todos</mat-option>
       @for (e of ['Pagada', 'Pendiente', 'Parcial', 'Vencida']; track e) {
-        <mat-option [value]="e">{{ e === 'Parcial' ? 'Pago parcial' : e }}</mat-option>
+        <mat-option [value]="e">{{ e === 'Parcial' ? 'Pago parcial' : e }} · Cuotas</mat-option>
       }
+      <mat-option value="Cobrado">Cobrado · Cobros directos</mat-option>
     </mat-select></mat-form-field
   >
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mode-filter"
     ><mat-label>Modalidad</mat-label
-    ><mat-select [value]="modalidad()" (selectionChange)="modalidad.set($event.value)">
-      <mat-option value="">Todas</mat-option><mat-option value="Presencial">Presencial</mat-option
-      ><mat-option value="Online">Online</mat-option>
-    </mat-select></mat-form-field
+    ><mat-select [value]="modalidad()" (selectionChange)="modalidad.set($event.value)"
+      ><mat-option value="">Todas</mat-option><mat-option value="Presencial">Presencial</mat-option
+      ><mat-option value="Online">Online</mat-option></mat-select
+    ></mat-form-field
   >
   <app-period-selector
     [compact]="true"
@@ -44,39 +57,35 @@
     (periodChange)="periodo.set($event)"
   />
   @if (filtrosMoviles()) {
-    <mat-expansion-panel class="hub-filter-extra" [expanded]="!!alumnoId()">
-      <mat-expansion-panel-header
+    <mat-expansion-panel class="hub-filter-extra" [expanded]="!!alumnoId()"
+      ><mat-expansion-panel-header
         ><mat-panel-title
-          >Filtrar por alumno
-          @if (alumnoId()) {
-            · Activo
-          }
-        </mat-panel-title></mat-expansion-panel-header
-      >
-      <ng-container [ngTemplateOutlet]="filtroAlumno" />
-    </mat-expansion-panel>
+          >Filtrar por alumno {{ alumnoId() ? '· Activo' : '' }}</mat-panel-title
+        ></mat-expansion-panel-header
+      ><ng-container [ngTemplateOutlet]="filtroAlumno"
+    /></mat-expansion-panel>
   }
 </section>
-<div class="cuotas-actions hub-actions">
-  <div class="hub-actions hub-actions--stacked" role="group" aria-label="Crear cuotas">
-    <button mat-flat-button (click)="nueva()" [disabled]="!service.disponible()">
-      Nueva cuota
-    </button>
-    <button mat-stroked-button (click)="generar()" [disabled]="!service.disponible()">
-      Generar cuotas del mes
-    </button>
-  </div>
-  <nav class="hub-actions hub-actions--stacked" aria-label="Consultar cuotas">
-    <button mat-button (click)="limpiarFiltros()">Limpiar filtros</button>
-    <a mat-stroked-button routerLink="/pendientes">Deudas de todos los períodos</a>
-  </nav>
+<p class="summary-scope">
+  Mes y año filtran el período de las cuotas y la fecha de los cobros directos. Los estados de deuda
+  solo corresponden a cuotas.
+</p>
+<div class="hub-actions hub-actions--stacked" role="group" aria-label="Crear movimientos">
+  <button mat-flat-button [matMenuTriggerFor]="nuevoMenu" [disabled]="!service.disponible()">
+    <mat-icon>add</mat-icon>Nuevo movimiento
+  </button>
+  <mat-menu #nuevoMenu="matMenu"
+    ><button mat-menu-item (click)="nueva()"><mat-icon>receipt_long</mat-icon>Nueva cuota</button
+    ><button mat-menu-item (click)="cobroDirecto()">
+      <mat-icon>payments</mat-icon>Cobro directo
+    </button></mat-menu
+  >
+  <button mat-stroked-button (click)="generar()" [disabled]="!service.disponible()">
+    Generar cuotas del mes
+  </button>
 </div>
-
-@if (service.error()) {
-  <p role="alert">{{ service.error() }}</p>
-}
-<p role="status">{{ service.mensaje() }}</p>
-<div class="hub-results-toolbar">
+<nav class="hub-actions" aria-label="Acciones secundarias">
+  <button mat-button (click)="limpiarFiltros()">Limpiar filtros</button>
   <button
     mat-button
     (click)="service.recargar()"
@@ -85,127 +94,154 @@
   >
     <mat-icon>refresh</mat-icon>Actualizar
   </button>
-  <p class="result-count" role="status">{{ cuentas().length }} cuotas encontradas</p>
-</div>
+  <a mat-button routerLink="/pendientes">Ver deudas de todos los períodos</a>
+  <button mat-button [matMenuTriggerFor]="exportarMenu" [disabled]="!service.disponible()">
+    <mat-icon>download</mat-icon>Exportaciones
+  </button>
+  <mat-menu #exportarMenu="matMenu"
+    ><button mat-menu-item (click)="exportarMovimientos()">Exportar movimientos filtrados</button
+    ><button mat-menu-item (click)="exportarIngresos()">
+      Exportar ingresos del período
+    </button></mat-menu
+  >
+</nav>
+@if (service.error()) {
+  <p role="alert">{{ service.error() }}</p>
+}
+@if (service.mensaje()) {
+  <p role="status">{{ service.mensaje() }}</p>
+}
 @if (service.cargando()) {
-  <app-loading-layout variant="cuentas" label="Cargando cuotas y pagos" />
+  <app-loading-layout variant="cuentas" label="Cargando movimientos" />
+} @else if (service.errorCarga()) {
+  <p role="alert">Listado no disponible. Actualizá para reintentar.</p>
 } @else {
-  @if (service.disponible()) {
+  @if (service.disponible() || service.guardando()) {
     <section class="financial-summary" aria-label="Resumen financiero del período">
-      <article>
-        <h2>Total cobrado</h2>
-        <strong>{{ resumen().cobrado | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
-        <p>
-          Pagos recibidos {{ periodo() ? 'en ' + periodo() : 'en todos los períodos' }}, aunque
-          correspondan a cuotas de otro mes.
-        </p>
-      </article>
-      <article>
-        <h2>Total pendiente</h2>
-        <strong>{{ resumen().pendiente | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
-        <p>
-          Saldo de las cuotas {{ periodo() ? 'de ' + periodo() : 'de todos los períodos' }}. Incluye
-          la deuda vencida.
-        </p>
-      </article>
-      <article>
-        <h2>Total vencido</h2>
-        <strong>{{ resumen().vencido | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
-        <p>Parte del saldo pendiente cuyo vencimiento ya pasó.</p>
-      </article>
+      <app-stat-card
+        label="Total cobrado"
+        [value]="(resumen().cobrado | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+        hint="Pagos de cuotas y cobros directos según la fecha de cobro."
+        icon="payments"
+        [compact]="true"
+      />
+      <app-stat-card
+        label="Total pendiente"
+        [value]="(resumen().pendiente | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+        hint="Saldo de las cuotas del período. Incluye la deuda vencida."
+        icon="account_balance_wallet"
+        [compact]="true"
+      />
+      <app-stat-card
+        label="Total vencido"
+        [value]="(resumen().vencido | currency: 'ARS' : 'symbol' : '1.2-2') ?? ''"
+        hint="Parte del saldo pendiente cuyo vencimiento ya pasó."
+        icon="event_busy"
+        [compact]="true"
+      />
     </section>
     <p class="summary-scope">
-      El resumen usa el período seleccionado; la búsqueda y los demás filtros solo afectan el
-      listado.
+      El resumen usa {{ periodo() || 'todos los períodos' }}; los demás filtros solo afectan al
+      listado. Los cobros directos no generan deuda.
     </p>
   }
+  <div class="hub-results-toolbar">
+    <p class="result-count" role="status">{{ movimientos().length }} movimientos encontrados</p>
+  </div>
   <mat-card appearance="outlined" class="table-card"
     ><mat-card-content>
       <div class="mobile-records">
         <app-mobile-sort
-          [value]="orden()"
+          [value]="ordenVista()"
           (change)="orden.set($event)"
           [options]="[
+            { id: 'tipo', label: 'Tipo' },
             { id: 'alumno', label: 'Alumno' },
             { id: 'concepto', label: 'Concepto' },
-            { id: 'saldo', label: 'Saldo pendiente' },
+            { id: 'fechaOrden', label: 'Vencimiento / fecha de cobro' },
+            { id: 'importe', label: 'Importe' },
+            { id: 'saldo', label: 'Saldo' },
             { id: 'estado', label: 'Estado' },
-            { id: 'vencimiento', label: 'Vencimiento' },
           ]"
         />
-        @for (c of cuentas(); track c.id) {
+        @for (m of movimientos(); track m.clave) {
           <article class="record-card">
-            <h3>{{ c.alumno }}</h3>
-            <small>{{ c.modalidad }}</small>
-            <p>{{ c.concepto }} · {{ c.periodo }}</p>
+            <small>{{ m.etiqueta }}</small>
+            <h3>{{ m.alumno }}</h3>
+            <small>{{ m.modalidad }}</small>
+            <p>{{ m.concepto }}</p>
             <dl>
               <div>
-                <dt>Saldo pendiente</dt>
-                <dd class="record-amount">{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+                <dt>{{ m.tipo === 'cuota' ? 'Período y vencimiento' : 'Fecha de cobro' }}</dt>
+                <dd>
+                  <ng-container
+                    [ngTemplateOutlet]="fechaMovimiento"
+                    [ngTemplateOutletContext]="{ $implicit: m }"
+                  />
+                </dd>
               </div>
               <div>
                 <dt>Estado</dt>
                 <dd>
-                  {{ c.estado === 'Parcial' ? 'Pago parcial' : c.estado }}
-                  @if (c.estado === 'Vencida' && c.abonado > 0) {
-                    <small>Con pagos parciales</small>
-                  }
+                  <ng-container
+                    [ngTemplateOutlet]="estadoMovimiento"
+                    [ngTemplateOutletContext]="{ $implicit: m }"
+                  />
                 </dd>
               </div>
               <div>
-                <dt>Vencimiento</dt>
-                <dd>{{ c.vencimiento | date: 'dd/MM/yyyy' }}</dd>
+                <dt>Importe</dt>
+                <dd class="record-amount">
+                  {{ m.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}
+                </dd>
               </div>
               <div>
-                <dt>Total</dt>
-                <dd>{{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
-              </div>
-              <div>
-                <dt>Abonado</dt>
-                <dd>{{ c.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+                <dt>Saldo</dt>
+                <dd>
+                  <ng-container
+                    [ngTemplateOutlet]="saldoMovimiento"
+                    [ngTemplateOutletContext]="{ $implicit: m }"
+                  />
+                </dd>
               </div>
             </dl>
-            <div class="record-actions hub-actions">
-              @if (c.saldo > 0) {
-                <button mat-flat-button (click)="pago(c)" [disabled]="!service.disponible()">
-                  Registrar cobro
-                </button>
-              }
-              <button mat-stroked-button (click)="detalle(c)">Ver detalle e historial</button
-              ><button mat-stroked-button (click)="nueva(c)" [disabled]="!service.disponible()">
-                Editar cuota</button
-              ><button
-                mat-button
-                class="hub-danger delete-action"
-                (click)="eliminar(c)"
-                [disabled]="!service.disponible() || confirmandoEliminar() || c.pagos.length > 0"
-              >
-                Eliminar cuota
-              </button>
+            <div class="record-actions record-actions--menu">
+              <ng-container
+                [ngTemplateOutlet]="accionesMovimiento"
+                [ngTemplateOutletContext]="{ $implicit: m }"
+              />
             </div>
-            @if (c.pagos.length) {
-              <small>No se puede eliminar: tiene pagos registrados.</small>
-            }
           </article>
         } @empty {
-          <p role="status">No hay cuotas que coincidan con los filtros.</p>
+          <p role="status">No hay movimientos que coincidan con los filtros.</p>
         }
       </div>
       <div
         class="table-wrap desktop-table"
         role="region"
-        aria-label="Listado de cuentas"
+        aria-label="Listado de movimientos"
         tabindex="0"
       >
         <table
+          mat-table
+          [dataSource]="movimientos()"
           matSort
-          [matSortActive]="orden().active"
+          [matSortActive]="ordenVista().active"
           [matSortDirection]="orden().direction"
           (matSortChange)="orden.set($event)"
-          mat-table
-          [dataSource]="cuentas()"
           class="hub-table"
         >
+          <ng-container matColumnDef="tipo"
+            ><th
+              mat-header-cell
+              *matHeaderCellDef
+              mat-sort-header="tipo"
+              sortActionDescription="Ordenar"
+            >
+              Tipo
+            </th>
+            <td mat-cell *matCellDef="let m">{{ m.etiqueta }}</td></ng-container
+          >
           <ng-container matColumnDef="alumno"
             ><th
               mat-header-cell
@@ -215,9 +251,9 @@
             >
               Alumno
             </th>
-            <td mat-cell *matCellDef="let c" data-label="Alumno">
-              <strong>{{ c.alumno }}</strong
-              ><small>{{ c.modalidad }}</small>
+            <td mat-cell *matCellDef="let m">
+              <strong>{{ m.alumno }}</strong
+              ><small>{{ m.modalidad }}</small>
             </td></ng-container
           >
           <ng-container matColumnDef="concepto"
@@ -227,69 +263,25 @@
               mat-sort-header="concepto"
               sortActionDescription="Ordenar"
             >
-              Concepto / período
+              Concepto
             </th>
-            <td mat-cell *matCellDef="let c" data-label="Concepto / período">
-              <strong>{{ c.periodo + '-01' | date: 'MMMM yyyy' }}</strong
-              ><small>{{ c.concepto }}</small>
-            </td></ng-container
+            <td mat-cell *matCellDef="let m">{{ m.concepto }}</td></ng-container
           >
-          <ng-container matColumnDef="importe"
+          <ng-container matColumnDef="fecha"
             ><th
               mat-header-cell
               *matHeaderCellDef
-              mat-sort-header="importe"
+              mat-sort-header="fechaOrden"
               sortActionDescription="Ordenar"
             >
-              Importe total
+              Período / Fecha
             </th>
-            <td mat-cell *matCellDef="let c" data-label="Importe total">
-              {{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}
-            </td></ng-container
-          >
-          <ng-container matColumnDef="abonado"
-            ><th
-              mat-header-cell
-              *matHeaderCellDef
-              mat-sort-header="abonado"
-              sortActionDescription="Ordenar"
-            >
-              Abonado
-            </th>
-            <td mat-cell *matCellDef="let c" data-label="Abonado">
-              {{ c.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}
-            </td></ng-container
-          >
-          <ng-container matColumnDef="saldo"
-            ><th
-              mat-header-cell
-              *matHeaderCellDef
-              mat-sort-header="saldo"
-              sortActionDescription="Ordenar"
-            >
-              Saldo pendiente
-            </th>
-            <td mat-cell *matCellDef="let c" data-label="Saldo pendiente">
-              <strong>{{ c.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
-              <small
-                >Total {{ c.importe | currency: 'ARS' : 'symbol' : '1.2-2' }} · Abonado
-                {{ c.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}</small
-              >
-            </td></ng-container
-          >
-          <ng-container matColumnDef="vencimiento"
-            ><th
-              mat-header-cell
-              *matHeaderCellDef
-              mat-sort-header="vencimiento"
-              sortActionDescription="Ordenar"
-            >
-              Vencimiento
-            </th>
-            <td mat-cell *matCellDef="let c" data-label="Vencimiento">
-              {{ c.vencimiento | date: 'dd/MM/yyyy' }}
-            </td></ng-container
-          >
+            <td mat-cell *matCellDef="let m">
+              <ng-container
+                [ngTemplateOutlet]="fechaMovimiento"
+                [ngTemplateOutletContext]="{ $implicit: m }"
+              /></td
+          ></ng-container>
           <ng-container matColumnDef="estado"
             ><th
               mat-header-cell
@@ -299,86 +291,56 @@
             >
               Estado
             </th>
-            <td mat-cell *matCellDef="let c" data-label="Estado">
-              <span
-                class="badge"
-                [class.badge--pagado]="c.estado === 'Pagada'"
-                [class.badge--pendiente]="c.estado === 'Pendiente' || c.estado === 'Parcial'"
-                [class.badge--vencido]="c.estado === 'Vencida'"
-                >{{ c.estado === 'Parcial' ? 'Pago parcial' : c.estado }}</span
-              >
-              @if (c.estado === 'Vencida' && c.abonado > 0) {
-                <small>Con pagos parciales</small>
-              }
+            <td mat-cell *matCellDef="let m">
+              <ng-container
+                [ngTemplateOutlet]="estadoMovimiento"
+                [ngTemplateOutletContext]="{ $implicit: m }"
+              /></td
+          ></ng-container>
+          <ng-container matColumnDef="importe"
+            ><th
+              mat-header-cell
+              *matHeaderCellDef
+              mat-sort-header="importe"
+              sortActionDescription="Ordenar"
+            >
+              Importe
+            </th>
+            <td mat-cell *matCellDef="let m">
+              {{ m.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </td></ng-container
           >
+          <ng-container matColumnDef="saldo"
+            ><th
+              mat-header-cell
+              *matHeaderCellDef
+              mat-sort-header="saldo"
+              sortActionDescription="Ordenar"
+            >
+              Saldo
+            </th>
+            <td mat-cell *matCellDef="let m">
+              <ng-container
+                [ngTemplateOutlet]="saldoMovimiento"
+                [ngTemplateOutletContext]="{ $implicit: m }"
+              /></td
+          ></ng-container>
           <ng-container matColumnDef="acciones"
             ><th mat-header-cell *matHeaderCellDef>Acciones</th>
-            <td mat-cell *matCellDef="let c" data-label="Acciones">
+            <td mat-cell *matCellDef="let m">
               <div class="row-actions">
-                @if (c.saldo > 0) {
-                  <button
-                    mat-flat-button
-                    class="collect-action"
-                    (click)="pago(c)"
-                    [disabled]="!service.disponible()"
-                  >
-                    Registrar cobro
-                  </button>
-                }
-                <button
-                  mat-icon-button
-                  (click)="detalle(c)"
-                  matTooltip="Ver detalle e historial"
-                  [attr.aria-label]="'Ver detalle de ' + c.alumno"
-                >
-                  <mat-icon>visibility</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  (click)="nueva(c)"
-                  [disabled]="!service.disponible()"
-                  matTooltip="Editar cuota"
-                  [attr.aria-label]="'Editar cuota de ' + c.alumno"
-                >
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <span
-                  [matTooltip]="
-                    c.pagos.length
-                      ? 'No se puede eliminar: tiene pagos registrados.'
-                      : 'Eliminar cuota'
-                  "
-                  tabindex="0"
-                >
-                  <button
-                    mat-icon-button
-                    class="hub-danger delete-action"
-                    (click)="eliminar(c)"
-                    [disabled]="
-                      !service.disponible() || confirmandoEliminar() || c.pagos.length > 0
-                    "
-                    [attr.aria-label]="'Eliminar cuota de ' + c.alumno"
-                  >
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
-                </span>
-              </div>
-            </td></ng-container
-          >
+                <ng-container
+                  [ngTemplateOutlet]="accionesMovimiento"
+                  [ngTemplateOutletContext]="{ $implicit: m }"
+                />
+              </div></td
+          ></ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
           <tr mat-row *matRowDef="let row; columns: columnas"></tr>
           <tr *matNoDataRow>
             <td [attr.colspan]="columnas.length" class="empty">
-              {{
-                service.cargando()
-                  ? 'Cargando cuotas y pagos…'
-                  : service.errorCarga()
-                    ? 'Listado no disponible. Actualizá para reintentar.'
-                    : service.cuotas().length
-                      ? 'No hay cuotas que coincidan con los filtros.'
-                      : 'Todavía no hay cuotas. Podés crear una con “Nueva cuota”.'
-              }}
+              No hay movimientos que coincidan con los filtros. Podés crear uno desde Nuevo
+              movimiento.
             </td>
           </tr>
         </table>
@@ -386,3 +348,73 @@
     </mat-card-content></mat-card
   >
 }
+<ng-template #fechaMovimiento let-m>
+  @if (m.tipo === 'cuota') {
+    <span>Período {{ m.periodo + '-01' | date: 'MM/yyyy' }}</span
+    ><small>Vence {{ m.cuota.vencimiento | date: 'dd/MM/yyyy' }}</small>
+  } @else {
+    <span>Cobrado {{ m.cobro.fecha | date: 'dd/MM/yyyy' }}</span>
+  }
+</ng-template>
+<ng-template #estadoMovimiento let-m>
+  <span
+    class="badge"
+    [class.badge--pagado]="m.estado === 'Pagada' || m.estado === 'Cobrado'"
+    [class.badge--pendiente]="m.estado === 'Pendiente' || m.estado === 'Parcial'"
+    [class.badge--vencido]="m.estado === 'Vencida'"
+    >{{ m.estado === 'Parcial' ? 'Pago parcial' : m.estado }}</span
+  >
+  @if (m.tipo === 'cuota' && m.estado === 'Vencida' && m.cuota.abonado > 0) {
+    <small>Con pagos parciales</small>
+  }
+</ng-template>
+<ng-template #saldoMovimiento let-m>
+  @if (m.tipo === 'cuota') {
+    <strong>{{ m.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong
+    ><small>Abonado {{ m.cuota.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}</small>
+  } @else {
+    <span aria-label="No aplica">—</span><small>No genera deuda</small>
+  }
+</ng-template>
+<ng-template #accionesMovimiento let-m>
+  <button
+    mat-button
+    (click)="verMovimiento(m)"
+    [disabled]="!service.disponible()"
+    [attr.aria-label]="'Ver detalle de ' + m.etiqueta + ': ' + m.concepto + ' de ' + m.alumno"
+  >
+    Ver detalle
+  </button>
+  <button
+    mat-icon-button
+    [matMenuTriggerFor]="filaMenu"
+    [disabled]="!service.disponible()"
+    [attr.aria-label]="'Más acciones de ' + m.etiqueta + ': ' + m.concepto + ' de ' + m.alumno"
+    matTooltip="Más acciones"
+  >
+    <mat-icon>more_vert</mat-icon>
+  </button>
+  <mat-menu #filaMenu="matMenu">
+    @if (m.tipo === 'cuota' && m.saldo > 0) {
+      <button mat-menu-item (click)="pago(m.cuota)" [disabled]="!service.disponible()">
+        <mat-icon>payments</mat-icon>Registrar cobro
+      </button>
+    }
+    <button mat-menu-item (click)="editarMovimiento(m)" [disabled]="!service.disponible()">
+      <mat-icon>edit</mat-icon>Editar {{ m.tipo === 'cuota' ? 'cuota' : 'cobro directo' }}
+    </button>
+    <button
+      mat-menu-item
+      class="hub-danger"
+      (click)="eliminarMovimiento(m)"
+      [disabled]="noEliminable(m)"
+    >
+      <mat-icon>delete_outline</mat-icon
+      >{{
+        m.tipo === 'cuota' && m.cuota.pagos.length
+          ? 'No eliminable: tiene pagos'
+          : 'Eliminar ' + m.etiqueta.toLowerCase()
+      }}
+    </button>
+  </mat-menu>
+</ng-template>

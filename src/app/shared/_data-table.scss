@@ -48,6 +48,10 @@
   .record-actions button {
     flex: 1 1 140px;
   }
+  // Keep the overflow menu alongside the primary action on narrow cards.
+  .record-actions--menu .mat-mdc-icon-button {
+    flex: 0 0 auto;
+  }
   @media (max-width: bp.$compact) {
     .desktop-table {
       display: none;

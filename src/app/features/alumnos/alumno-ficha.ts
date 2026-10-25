@@ -1,3 +1,4 @@
+import { CobrosDirectos } from '../cuentas/cobros-directos';
 import { Router } from '@angular/router';
 import { MatDialogRef } from '@angular/material/dialog';
 import { CurrencyPipe, DatePipe } from '@angular/common';
@@ -11,7 +12,7 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
 
 @Component({
   selector: 'app-alumno-ficha',
-  imports: [CurrencyPipe, DatePipe, MatDialogModule, MatButtonModule],
+  imports: [CobrosDirectos, CurrencyPipe, DatePipe, MatDialogModule, MatButtonModule],
   styles: `
     dl {
       margin: 0;
@@ -82,6 +83,7 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
           @if (cuentas.proximaCuota(a.id); as fecha) {
             <p>Próximo vencimiento: {{ fecha | date: 'dd/MM/yyyy' }}</p>
           }
+          <app-cobros-directos [alumno]="a.id" />
           @for (c of cuentas.cuotasAlumno(a.id); track c.id) {
             <p>
               {{ c.concepto }} · {{ c.periodo }} · {{ c.estado }} · Saldo

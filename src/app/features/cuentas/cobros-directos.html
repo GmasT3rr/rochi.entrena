@@ -1,0 +1,94 @@
+<section aria-label="Cobros directos">
+  <h2>Cobros directos</h2>
+  <div class="hub-actions">
+    <button mat-stroked-button (click)="abrir()" [disabled]="!service.disponible()">
+      Registrar cobro directo</button
+    ><button mat-button (click)="exportar()" [disabled]="!service.disponible()">
+      Exportar cobros directos</button
+    ><button mat-button (click)="exportar(true)" [disabled]="!service.disponible()">
+      Exportar todos los ingresos
+    </button>
+  </div>
+  <div class="hub-filters hub-filters--grid">
+    <mat-form-field appearance="outline"
+      ><mat-label>Desde</mat-label><input matInput type="date" #d (input)="desde.set(d.value)"
+    /></mat-form-field>
+    <mat-form-field appearance="outline"
+      ><mat-label>Hasta</mat-label><input matInput type="date" #h (input)="hasta.set(h.value)"
+    /></mat-form-field>
+    @if (!alumno()) {
+      <mat-form-field appearance="outline"
+        ><mat-label>Alumno del cobro</mat-label
+        ><mat-select [value]="alumnoFiltro()" (selectionChange)="alumnoFiltro.set($event.value)"
+          ><mat-option value="">Todos</mat-option>
+          @for (a of service.alumnos(); track a.id) {
+            <mat-option [value]="a.id">{{ a.nombre }} {{ a.apellido }}</mat-option>
+          }
+        </mat-select></mat-form-field
+      >
+    }
+    <mat-form-field appearance="outline"
+      ><mat-label>Concepto</mat-label><input matInput #q (input)="concepto.set(q.value)"
+    /></mat-form-field>
+  </div>
+  <p role="status">{{ filas().length }} cobros directos encontrados</p>
+  <div class="desktop-table">
+    <table class="hub-table">
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          <th>Concepto</th>
+          <th>Fecha</th>
+          <th>Importe</th>
+          <th>Medio</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of filas(); track c.id) {
+          <tr>
+            <td>{{ nombre(c.alumnoId) }}</td>
+            <td>Cobro directo · {{ c.concepto }}</td>
+            <td>{{ c.fecha | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ c.importe | currency: 'ARS' }}</td>
+            <td>{{ c.medio }}</td>
+            <td>
+              <button mat-button (click)="abrir(c, true)">Detalle</button
+              ><button mat-button (click)="abrir(c)" [disabled]="!service.disponible()">
+                Editar</button
+              ><button
+                mat-button
+                class="hub-danger"
+                (click)="eliminar(c)"
+                [disabled]="confirmando() || !service.disponible()"
+              >
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="mobile-records">
+    @for (c of filas(); track c.id) {
+      <article class="record-card">
+        <h3>Cobro directo · {{ c.concepto }}</h3>
+        <p>{{ nombre(c.alumnoId) }} · {{ c.fecha | date: 'dd/MM/yyyy' }}</p>
+        <p>{{ c.importe | currency: 'ARS' }} · {{ c.medio }}</p>
+        <div class="record-actions">
+          <button mat-button (click)="abrir(c, true)">Detalle</button
+          ><button mat-button (click)="abrir(c)" [disabled]="!service.disponible()">Editar</button
+          ><button
+            mat-button
+            class="hub-danger"
+            (click)="eliminar(c)"
+            [disabled]="confirmando() || !service.disponible()"
+          >
+            Eliminar
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+</section>

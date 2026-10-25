@@ -38,7 +38,7 @@ export class ResumenDashboard {
     const [anio, mes] = this.periodo().split('-').map(Number);
     const ultimo = anio * 12 + mes - 1;
     const porMes = new Map<string, number>();
-    for (const pago of this.cuentas.pagos()) {
+    for (const pago of this.cuentas.ingresos?.() ?? this.cuentas.pagos()) {
       const periodo = pago.fecha.slice(0, 7);
       porMes.set(periodo, (porMes.get(periodo) ?? 0) + centavos(pago.importe));
     }
@@ -110,8 +110,7 @@ export class ResumenDashboard {
   );
   readonly ingresos = computed(
     () =>
-      this.cuentas
-        .pagos()
+      (this.cuentas.ingresos?.() ?? this.cuentas.pagos())
         .filter((p) => p.fecha.slice(0, 7) === this.periodo())
         .reduce((total, p) => total + centavos(p.importe), 0) / 100,
   );
@@ -132,6 +131,7 @@ export class ResumenDashboard {
     () =>
       !this.cuentas.alumnos().length &&
       !this.cuentas.cuotas().length &&
-      !this.cuentas.pagos().length,
+      !this.cuentas.pagos().length &&
+      !(this.cuentas.cobrosDirectos?.().length ?? 0),
   );
 }

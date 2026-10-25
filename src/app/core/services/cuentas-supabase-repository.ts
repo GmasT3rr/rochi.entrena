@@ -1,3 +1,4 @@
+import { CobroDirecto, validarCobroDirecto } from '../cobros-directos';
 import { inject, Injectable } from '@angular/core';
 import { AlumnoRegistro } from '../alumno';
 import { CuentasData, Cuota, PagoCuota, validarCuentas } from '../cuentas';
@@ -21,6 +22,8 @@ export interface VersionFinanciera {
   revision?: string;
 }
 export interface CuentasSnapshot extends CuentasData {
+  cobrosDirectos?: CobroDirecto[];
+  versionesCobros?: Record<string, VersionFinanciera>;
   alumnos: AlumnoFinanciero[];
   versionesCuotas: Record<string, VersionFinanciera>;
   versionesPagos: Record<string, VersionFinanciera>;
@@ -74,6 +77,23 @@ export function mapearCuentas(raw: any): CuentasSnapshot {
     version: 1,
     cuotas,
     pagos,
+    cobrosDirectos: (raw.cobros_directos ?? []).map((c: any) => {
+      const cobro = {
+        id: c.id,
+        alumnoId: c.alumno_id,
+        concepto: c.concepto,
+        importe: c.importe,
+        fecha: c.fecha,
+        medio: c.medio,
+        observaciones: c.observaciones,
+      };
+      validarCobroDirecto(cobro);
+      if (!raw.alumnos.some((a: any) => a.id === cobro.alumnoId)) throw { code: 'TCF_DATOS' };
+      return cobro;
+    }),
+    versionesCobros: Object.fromEntries(
+      (raw.cobros_directos ?? []).map((c: any) => [c.id, version(c, false)]),
+    ),
     alumnos: raw.alumnos,
     versionesCuotas,
     versionesPagos,
@@ -159,7 +179,7 @@ export class CuentasSupabaseRepository {
     });
   }
   private async escribir(
-    tabla: 'cuotas' | 'pagos',
+    tabla: 'cuotas' | 'pagos' | 'cobros_directos',
     id: string,
     payload: object | null,
     crear: boolean,
@@ -213,6 +233,25 @@ export class CuentasSupabaseRepository {
       crear,
       version,
     );
+  }
+  guardarCobro(c: CobroDirecto, crear: boolean, version?: VersionFinanciera): Promise<void> {
+    return this.escribir(
+      'cobros_directos',
+      c.id,
+      {
+        alumno_id: c.alumnoId,
+        concepto: c.concepto,
+        importe: c.importe,
+        fecha: c.fecha,
+        medio: c.medio,
+        observaciones: c.observaciones,
+      },
+      crear,
+      version,
+    );
+  }
+  eliminarCobro(id: string, version?: VersionFinanciera): Promise<void> {
+    return this.escribir('cobros_directos', id, null, false, version);
   }
   eliminarCuota(id: string, version?: VersionFinanciera): Promise<void> {
     return this.escribir('cuotas', id, null, false, version);

@@ -1,44 +1,23 @@
-@use '../../shared/breakpoints' as bp;
+﻿@use '../../shared/breakpoints' as bp;
 @use '../../shared/data-table' as table;
 @include table.styles;
 :host {
   container-type: inline-size;
 }
 .financial-summary {
+  margin-top: var(--hub-space-4);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--hub-space-4);
-  margin-top: var(--hub-space-3);
-  article {
-    padding: 1rem;
-    border: 1px solid var(--hub-border);
-    border-radius: var(--hub-card-radius);
-    background: var(--hub-surface);
-  }
-  h2 {
-    font-size: 0.9rem;
-    margin: 0 0 0.5rem;
-  }
-  strong {
-    font-size: 1.4rem;
-    overflow-wrap: anywhere;
-  }
-  p {
-    color: var(--hub-muted);
-    line-height: 1.5;
-    margin-bottom: 0;
-  }
 }
 .summary-scope {
   color: var(--hub-muted);
-  font-size: 0.8rem;
+  font-size: var(--hub-text-small);
+  line-height: 1.5;
 }
-
 .cuotas-filters {
-  grid-template-columns:
-    minmax(180px, 1.3fr) minmax(180px, 1.3fr) minmax(130px, 0.9fr) minmax(140px, 0.9fr)
-    minmax(240px, 1.6fr);
-  grid-template-areas: 'search student status mode period';
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-areas: 'search search student type' 'status mode period period';
 }
 .cuotas-filters > .search {
   grid-area: search;
@@ -50,64 +29,44 @@
 .student-filter mat-form-field {
   width: 100%;
 }
-.cuotas-filters > .status-filter {
+.type-filter {
+  grid-area: type;
+}
+.status-filter {
   grid-area: status;
 }
-.cuotas-filters > .mode-filter {
+.mode-filter {
   grid-area: mode;
 }
 .cuotas-filters > app-period-selector {
   grid-area: period;
 }
-.cuotas-filters > .hub-filter-extra {
+.hub-filter-extra {
   grid-area: extra;
 }
-.cuotas-actions {
-  justify-content: space-between;
-  gap: var(--hub-space-3);
-  margin-bottom: var(--hub-space-3);
-}
-.cuotas-actions > .hub-actions {
-  margin: 0;
-}
-
 .hub-table {
-  min-width: 1200px;
+  min-width: 1040px;
 }
-.hub-table .mat-column-alumno {
-  min-width: 180px;
-}
+.hub-table .mat-column-alumno,
 .hub-table .mat-column-concepto {
-  min-width: 200px;
-}
-.hub-table .mat-column-saldo {
-  min-width: 190px;
-}
-.hub-table .mat-column-estado {
   min-width: 140px;
 }
-.hub-table .mat-column-vencimiento {
-  min-width: 120px;
+.hub-table .mat-column-fecha {
+  min-width: 160px;
 }
 .hub-table .mat-column-acciones {
-  min-width: 304px;
+  min-width: 168px;
 }
-
 .row-actions {
-  flex-wrap: nowrap;
-  gap: var(--hub-space-1);
-  white-space: nowrap;
-}
-.row-actions > * {
-  flex-shrink: 0;
-}
-.row-actions .collect-action {
   white-space: nowrap;
 }
 @container (max-width: 60rem) {
   .cuotas-filters {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(240px, 1.4fr);
-    grid-template-areas: 'search search student' 'status mode period';
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas: 'search search student' 'type status mode' 'period period period';
+  }
+  .cuotas-filters > app-period-selector {
+    grid-column: 1 / -1;
   }
 }
 @media (max-width: bp.$compact) {
@@ -118,10 +77,6 @@
 @media (max-width: bp.$phone) {
   .cuotas-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas: 'search search' 'status mode' 'period period' 'extra extra';
-  }
-  .cuotas-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'search search' 'type status' 'mode mode' 'period period' 'extra extra';
   }
 }

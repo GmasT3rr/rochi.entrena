@@ -1,3 +1,4 @@
+import { CobroDirecto, validarCobroDirecto } from '../cobros-directos';
 import { Sort } from '@angular/material/sort';
 import { ToastService } from './toast-service';
 import { computed, DestroyRef, effect, inject, Injectable, signal, untracked } from '@angular/core';
@@ -56,10 +57,11 @@ export class CuentasService {
   readonly guardando = signal(false);
   // Mantener los filtros al recrearse la vista durante una comprobación de permisos.
   readonly filtros = {
+    tipo: signal<'' | 'cuota' | 'directo'>(''),
     busqueda: signal(''),
     periodo: signal(this.hoy().slice(0, 7)),
     alumnoId: signal(''),
-    estado: signal<EstadoCuota | ''>(''),
+    estado: signal<EstadoCuota | 'Cobrado' | ''>(''),
     modalidad: signal<ModalidadAlumno | ''>(''),
   };
   // Independientes del período y los filtros del listado de cuotas.
@@ -72,6 +74,43 @@ export class CuentasService {
   readonly alumnos = computed(() => this.datos().alumnos);
   readonly cuotas = computed(() => this.datos().cuotas);
   readonly pagos = computed(() => this.datos().pagos);
+  readonly cobrosDirectos = computed(() => this.datos().cobrosDirectos ?? []);
+  readonly ingresos = computed(() => [
+    ...this.pagos().map((p) => {
+      const cuota = this.cuotas().find((c) => c.id === p.cuotaId)!;
+      return { ...p, alumnoId: cuota.alumnoId, concepto: cuota.concepto, tipo: 'Pago de cuota' };
+    }),
+    ...this.cobrosDirectos().map((c) => ({ ...c, tipo: 'Cobro directo' })),
+  ]);
+  versionCobro(id: string): VersionFinanciera | undefined {
+    return this.datos().versionesCobros?.[id];
+  }
+  async guardarCobro(
+    datos: CobroDirecto,
+    crear: boolean,
+    version?: VersionFinanciera,
+  ): Promise<boolean> {
+    const cobro = {
+      ...datos,
+      concepto: datos.concepto.trim(),
+      observaciones: datos.observaciones.trim(),
+    };
+    try {
+      validarCobroDirecto(cobro);
+      if (cobro.fecha > this.hoy()) throw Error('La fecha de cobro no puede ser futura.');
+      if (!this.alumnos().some((a) => a.id === cobro.alumnoId))
+        throw Error('Seleccioná un alumno disponible.');
+    } catch (e) {
+      return this.fallar((e as Error).message);
+    }
+    return this.mutar(
+      () => this.repository.guardarCobro(cobro, crear, version),
+      'Cobro directo guardado.',
+    );
+  }
+  async eliminarCobro(id: string, version?: VersionFinanciera): Promise<boolean> {
+    return this.mutar(() => this.repository.eliminarCobro(id, version), 'Cobro directo eliminado.');
+  }
   private generation = 0;
   private ultimaCarga = 0;
   private ultimoIntentoCarga = 0;
@@ -127,6 +166,7 @@ export class CuentasService {
         this.mensaje.set('');
         this.cargando.set(false);
         this.filtros.busqueda.set('');
+        this.filtros.tipo.set('');
         this.filtros.periodo.set(this.hoy().slice(0, 7));
         this.contextoListado = null;
         this.filtros.alumnoId.set('');

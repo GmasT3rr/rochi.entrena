@@ -133,6 +133,38 @@ describe('Repositorio financiero Supabase', () => {
     from.mockReturnValue(query);
     return query;
   }
+  it('autoriza cobros directos y usa control de versión en correcciones y bajas', async () => {
+    const q = builder({ data: [{ id: 'directo' }], error: null });
+    const repo = TestBed.inject(CuentasSupabaseRepository);
+    const cobro = {
+      id: 'directo',
+      alumnoId: a.id,
+      concepto: 'Clase extra',
+      importe: 20,
+      fecha: '2026-10-01',
+      medio: 'Efectivo' as const,
+      observaciones: '',
+    };
+    await repo.guardarCobro(cobro, true);
+    expect(from).toHaveBeenCalledWith('cobros_directos');
+    expect(q.insert).toHaveBeenCalledWith({
+      id: 'directo',
+      alumno_id: a.id,
+      concepto: 'Clase extra',
+      importe: 20,
+      fecha: '2026-10-01',
+      medio: 'Efectivo',
+      observaciones: '',
+    });
+    await expect(repo.guardarCobro(cobro, false)).rejects.toMatchObject({ code: 'TCF_CONFLICTO' });
+    await repo.eliminarCobro(cobro.id, { actualizadoEn: stamp });
+    expect(q.eq).toHaveBeenCalledWith('actualizado_en', stamp);
+    verify.mockResolvedValue(false);
+    await expect(repo.guardarCobro(cobro, true)).rejects.toMatchObject({ code: '42501' });
+    await expect(repo.eliminarCobro(cobro.id, { actualizadoEn: stamp })).rejects.toMatchObject({
+      code: '42501',
+    });
+  });
   it('escribe columnas PostgreSQL y filtra ediciones por timestamp/revisión sin sobrescribirlos', async () => {
     const q = builder({ data: [{ id: cuota.id }], error: null });
     const repo = TestBed.inject(CuentasSupabaseRepository);
