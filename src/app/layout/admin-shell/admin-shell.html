@@ -83,6 +83,9 @@
       }
       @if (authorization.status() === 'authorized') {
         <router-outlet />
+      } @else if (authorization.status() === 'denied' || authorization.status() === 'error') {
+        <p role="alert">El acceso está bloqueado porque no se pudieron confirmar los permisos.</p>
+        <a mat-button routerLink="/acceso-no-autorizado">Revisar acceso</a>
       } @else {
         <p role="status">Comprobando permisos de acceso…</p>
       }

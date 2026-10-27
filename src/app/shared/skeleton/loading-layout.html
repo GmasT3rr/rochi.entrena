@@ -36,7 +36,15 @@
       }
     </div>
   }
-  @if (variant() === 'pagos') {
+  @if (variant() === 'ficha') {
+    <div class="panel">
+      @for (i of filas; track i) {
+        <app-skeleton width="35%" height=".7rem" />
+        <app-skeleton width="75%" height="1.2rem" />
+      }
+    </div>
+  }
+  @if (variant() === 'pagos' || variant() === 'cuentas' || variant() === 'ficha') {
     <div class="panel">
       <div class="metrics">
         @for (i of [0, 1, 2, 3]; track i) {

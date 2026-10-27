@@ -81,7 +81,9 @@ describe('Dashboard remoto', () => {
         { fecha: '2026-10-04', importe: 20 },
         { fecha: '2026-10-05', importe: 10 },
       ]),
+      tieneDatos: signal(true),
       disponible: signal(true),
+      cargandoInicial: signal(false),
       cargando: signal(false),
       guardando: signal(false),
       errorCarga: signal(''),
@@ -248,13 +250,28 @@ describe('Dashboard remoto', () => {
     expect(resumen.comparacionIngresos()).toBeNull();
     expect(cuentas.recargar).not.toHaveBeenCalled();
   });
-  it('diferencia carga y error sin mostrar importes inventados', () => {
+  it('conserva el contenido durante recargas y guardados', () => {
     const { fixture, cuentas } = crear();
     cuentas.cargando.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-loading-layout')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-stat-card')).not.toBeNull();
+    cuentas.cargando.set(false);
+    cuentas.guardando.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-loading-layout')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-stat-card')).not.toBeNull();
+  });
+  it('diferencia carga y error sin mostrar importes inventados', () => {
+    const { fixture, cuentas } = crear();
+    cuentas.tieneDatos.set(false);
+    cuentas.cargando.set(true);
+    cuentas.cargandoInicial.set(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Actualizando resumen');
     expect(fixture.nativeElement.querySelector('app-stat-card')).toBeNull();
     cuentas.cargando.set(false);
+    cuentas.cargandoInicial.set(false);
     cuentas.errorCarga.set('offline');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role=alert]')).not.toBeNull();

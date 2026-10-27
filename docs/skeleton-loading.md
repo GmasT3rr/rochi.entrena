@@ -1,15 +1,28 @@
 # Skeleton loading
 
-`shared/skeleton/Skeleton` permite configurar ancho, alto y forma (rectángulo, línea, círculo o tarjeta). Usa únicamente CSS: brillo hacia la derecha, paleta gris por tema y animación desactivada con prefers-reduced-motion. No contiene datos ni elementos interactivos.
+## Auditoria
 
-`LoadingLayout` compone esos bloques para Dashboard, listados y detalle de pagos. Tiene aria-busy y un estado textual accesible; la representación visual es decorativa y queda oculta a lectores de pantalla.
+Los layouts compartidos ya existian, pero desaparecian al finalizar la consulta, sin minimo visual. Dashboard y Pendientes tambien sustituian el contenido durante guardados. Cuentas ocultaba los datos en cada recarga; la ficha de alumno usaba solamente un texto para cargar sus finanzas. Los breakpoints del skeleton no coincidian con los listados (850 px).
 
-- Dashboard: usa las condiciones de carga/guardado y disponibilidad existentes. Reproduce cuatro indicadores, gráfico de ingresos, dos tarjetas con donas (incluido el resumen de alumnos) y deudas. Los errores mantienen su rama propia y ocultan el skeleton.
-- Alumnos: el listado se sustituye mientras `service.cargando()` es verdadero; filtros y acciones superiores conservan su ubicación. Al finalizar se recuperan el resultado, el estado vacío o el error existente.
-- Cuentas: sustituye la tabla durante `service.cargando()`, manteniendo los filtros. En el detalle de cuota, la misma señal muestra placeholders del resumen financiero y de las filas del historial de pagos.
+Las lecturas iniciales de Supabase estan centralizadas en AlumnosService y CuentasService. Los filtros son locales: no necesitan nuevas consultas. La vista previa mensual conserva su indicador textual, sin espera artificial. Formularios, autenticacion y validaciones conservan sus estados operativos.
 
-No se agregaron consultas, datos de ejemplo, retrasos, temporizadores de carga ni cambios de negocio. Los placeholders no prometen un número de registros: representan espacio mientras se espera la respuesta real. No se modifica la distribución de las vistas una vez cargadas.
+## Implementacion
 
-Validación: 178 tests en 18 archivos, 6 pruebas del tema y build de producción correctos. Las pruebas comprueban formas/dimensiones, accesibilidad, permanencia durante la espera y retirada al finalizar con error o resultado vacío. Bundle inicial sin incremento (792,02 kB, con la advertencia de presupuesto ya existente).
+shared/skeleton/MinimumLoading mantiene una senal exclusivamente visual. begin(inicial) registra performance.now() y devuelve una funcion de finalizacion. El servicio inicia inmediatamente su consulta y llama esa funcion en finally, tanto ante exito como ante error. Si transcurrieron menos de 750 ms, programa solamente el tiempo restante; si la consulta tardo mas, retira el skeleton inmediatamente. No retrasa la publicacion de datos, la resolucion de la consulta ni las escrituras.
 
-Pendiente comprobación visual autenticada en navegador: activar red lenta, probar recarga y finalización de cada consulta, ambos temas y viewport móvil/escritorio. No se midió CLS ni se simuló red real contra Supabase en esta sesión; las pruebas de espera usan señales controladas. No hubo commit, push ni deploy.
+cargandoInicial controla los skeletons; cargando describe la solicitud real. listadoCargado y tieneDatos representan una lectura confirmada, incluso vacia. Nunca se deduce carga a partir de la cantidad de registros. Las recargas conservan el contenido y muestran un estado textual discreto. Los errores conservan sus mensajes y acciones de reintento. Una recarga financiera fallida conserva el snapshot anterior, excepto ante acceso denegado; el error mantiene su rama de presentacion propia.
+
+Cada servicio tiene su reloj independiente. Las generaciones existentes impiden publicar respuestas antiguas; el reloj tambien ignora finalizaciones anteriores. Se cancelan los temporizadores al reiniciar el contexto o destruir el servicio. Una recarga secundaria no acorta un minimo visual ya iniciado. Los servicios son singleton: navegar entre consumidores comparte el estado de la solicitud, sin agregar una espera por ruta.
+
+Se reutilizan Skeleton, LoadingLayout, PageHeader, los controles Material y los mensajes existentes de ToastService. Se amplia LoadingLayout con informacion personal para ficha y resumen financiero para cuentas. Se mantienen aria-busy, texto con role=status, decoracion oculta a lectores de pantalla, reduced-motion, temas y breakpoint compartido de 850 px.
+
+Pantallas: Dashboard, Alumnos, ficha de alumno, Cuotas y cobros (incluidos cobros directos), detalle de cuota/historial y Centro de pendientes. No se cambiaron SQL, RLS, autenticacion, calculos financieros ni dependencias visuales.
+
+## Verificacion
+
+- Reloj simulado: 100, 500, 750 y 2000 ms; error, resultado vacio, recarga secundaria, finalizaciones antiguas y cancelacion. Consulta inmediata y duracion visual max(750 ms, duracion real).
+- Pruebas de consumidores y servicios, incluidas operaciones financieras durante el minimo visual y conservacion del Dashboard durante recargas y guardados.
+- Edge headless con los cinco layouts Angular reales en una vista aislada, tema oscuro: 320, 375, 768 y 1440 px, sin overflow horizontal ni excepciones. aria-busy presente, ningun control enfocable en placeholders y animacion desactivada con prefers-reduced-motion. Evidencia local ignorada por Git: tmp/skeleton-results.json y tmp/skeleton-375.png.
+- Suite Angular completa: 309 tests en 37 archivos, todos correctos. Build de produccion correcto. El build advierte sobre el presupuesto inicial (aproximadamente 911 kB frente al aviso de 500 kB).
+
+La comprobacion de navegador se limita a los layouts compartidos: no se probo una sesion autenticada contra Supabase ni se midio CLS de las pantallas completas. No se hicieron commits ni push.

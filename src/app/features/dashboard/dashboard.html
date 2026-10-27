@@ -1,3 +1,6 @@
+@if (cuentas.cargando() && cuentas.tieneDatos()) {
+  <p role="status">Actualizando datos...</p>
+}
 <app-page-header title="Dashboard" subtitle="Tu actividad de un vistazo">
   <div class="dashboard-toolbar">
     <app-period-selector
@@ -13,12 +16,12 @@
     >Cuotas y pagos del período</a
   ><a mat-flat-button routerLink="/pendientes">Ver todos los pendientes</a>
 </nav>
-@if (cuentas.cargando() || cuentas.guardando()) {
+@if (cuentas.cargandoInicial()) {
   <app-loading-layout variant="dashboard" label="Actualizando resumen" />
 } @else if (cuentas.errorCarga()) {
   <p role="alert">No pudimos cargar el resumen. Usá Reintentar para volver a consultar.</p>
   <button mat-stroked-button (click)="cuentas.recargar()">Reintentar</button>
-} @else if (!cuentas.disponible()) {
+} @else if (!cuentas.tieneDatos()) {
   <app-loading-layout variant="dashboard" label="Cargando resumen" />
 } @else {
   @if (resumen.vacio()) {

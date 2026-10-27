@@ -1,3 +1,6 @@
+@if (service.cargando() && service.tieneDatos()) {
+  <p role="status">Actualizando datos...</p>
+}
 ﻿<app-page-header
   title="Cuotas y cobros"
   subtitle="Gestioná cuotas y cobros directos de tus alumnos en un solo lugar."
@@ -111,12 +114,12 @@
 @if (service.mensaje()) {
   <p role="status">{{ service.mensaje() }}</p>
 }
-@if (service.cargando()) {
+@if (service.cargandoInicial()) {
   <app-loading-layout variant="cuentas" label="Cargando movimientos" />
 } @else if (service.errorCarga()) {
   <p role="alert">Listado no disponible. Actualizá para reintentar.</p>
 } @else {
-  @if (service.disponible() || service.guardando()) {
+  @if (service.tieneDatos()) {
     <section class="financial-summary" aria-label="Resumen financiero del período">
       <app-stat-card
         label="Total cobrado"

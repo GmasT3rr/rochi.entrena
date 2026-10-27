@@ -1,11 +1,15 @@
-﻿<div class="dialog-heading">
+@if (service.cargando() && service.tieneDatos()) {
+  <p role="status">Actualizando datos...</p>
+}
+﻿
+<div class="dialog-heading">
   <h2 mat-dialog-title>Detalle de cuota</h2>
   <button mat-icon-button mat-dialog-close aria-label="Cerrar detalle de cuota">
     <mat-icon>close</mat-icon>
   </button>
 </div>
 <mat-dialog-content>
-  @if (service.cargando()) {
+  @if (service.cargandoInicial()) {
     <app-loading-layout variant="pagos" label="Cargando detalle y pagos" />
   } @else if (cuenta(); as c) {
     <h3 class="section-title">Resumen</h3>

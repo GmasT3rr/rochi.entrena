@@ -9,6 +9,7 @@ describe('Navegación contextual a cuentas', () => {
   it('espera los datos autorizados, limpia filtros incompatibles y conserva cambios posteriores', () => {
     const params = new BehaviorSubject(convertToParamMap({ alumno: 'a' }));
     const service = {
+      tieneDatos: signal(false),
       disponible: signal(false),
       alumnos: signal([{ id: 'a' }]),
       filtros: {
@@ -33,6 +34,7 @@ describe('Navegación contextual a cuentas', () => {
     TestBed.tick();
     expect(service.filtros.alumnoId()).toBe('');
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     TestBed.tick();
     expect(service.filtros.alumnoId()).toBe('a');
     expect(service.filtros.periodo()).toBe('');
@@ -41,6 +43,7 @@ describe('Navegación contextual a cuentas', () => {
     service.disponible.set(false);
     TestBed.tick();
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     TestBed.tick();
     expect(service.filtros.busqueda()).toBe('Ana');
     params.next(convertToParamMap({ periodo: '2026-13' }));

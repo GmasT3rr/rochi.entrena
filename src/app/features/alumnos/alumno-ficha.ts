@@ -1,3 +1,4 @@
+import { LoadingLayout } from '../../shared/skeleton/loading-layout';
 import { CobrosDirectos } from '../cuentas/cobros-directos';
 import { Router } from '@angular/router';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -12,7 +13,14 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
 
 @Component({
   selector: 'app-alumno-ficha',
-  imports: [CobrosDirectos, CurrencyPipe, DatePipe, MatDialogModule, MatButtonModule],
+  imports: [
+    LoadingLayout,
+    CobrosDirectos,
+    CurrencyPipe,
+    DatePipe,
+    MatDialogModule,
+    MatButtonModule,
+  ],
   styles: `
     dl {
       margin: 0;
@@ -30,7 +38,12 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
   template: `
     <h2 mat-dialog-title>Ficha del alumno</h2>
     <mat-dialog-content>
-      @if (alumno(); as a) {
+      @if (service.cargandoInicial()) {
+        <app-loading-layout variant="ficha" label="Cargando alumno" />
+      } @else if (service.errorListado()) {
+        <p role="alert">{{ service.errorListado() }}</p>
+        <button mat-stroked-button (click)="service.recargar()">Reintentar</button>
+      } @else if (alumno(); as a) {
         <dl>
           <dt>Nombre y apellido</dt>
           <dd>{{ a.nombre }} {{ a.apellido }}</dd>
@@ -71,11 +84,14 @@ import { CuotaDetalle } from '../cuentas/cuota-detalle';
         >
           Actualizar cuentas
         </button>
-        @if (cuentas.cargando()) {
-          <p role="status">Cargando cuotas y pagos…</p>
+        @if (cuentas.cargando() && cuentas.tieneDatos()) {
+          <p role="status">Actualizando cuotas y pagos…</p>
+        }
+        @if (cuentas.cargandoInicial()) {
+          <app-loading-layout variant="pagos" label="Cargando cuotas y pagos" />
         } @else if (cuentas.errorCarga()) {
           <p role="alert">{{ cuentas.error() || cuentas.errorCarga() }}</p>
-        } @else if (cuentas.disponible()) {
+        } @else if (cuentas.tieneDatos()) {
           <p>
             Saldo pendiente:
             <strong>{{ cuentas.saldoAlumno(a.id) | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>

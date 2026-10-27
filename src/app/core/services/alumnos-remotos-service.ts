@@ -1,6 +1,7 @@
+import { MinimumLoading } from '../../shared/skeleton/minimum-loading';
 import { Sort } from '@angular/material/sort';
 import { ToastService } from './toast-service';
-import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
+import { computed, DestroyRef, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { AlumnoRegistro, ConfiguracionMensual, DatosAlumno, esAlumno } from '../alumno';
 import { AuthService } from '../auth/auth-service';
 import { AlumnosSupabaseRepository } from './alumnos-supabase-repository';
@@ -38,6 +39,9 @@ export class AlumnosService {
   private ultimaCarga = 0;
   private ultimoIntento = 0;
   private generation = 0;
+  private sessionToken: string | undefined;
+  private readonly loading = new MinimumLoading();
+  readonly cargandoInicial = this.loading.visible.asReadonly();
   refrescarSiNecesario(): void {
     if (!this.auth.session() || this.cargando() || this.guardando()) return;
     const ahora = Date.now();
@@ -46,10 +50,17 @@ export class AlumnosService {
     void this.recargar();
   }
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.generation++;
+      this.loading.cancel();
+    });
     effect(() => {
       const token = this.auth.session()?.access_token;
+      if (token === this.sessionToken) return;
+      this.sessionToken = token;
       untracked(() => {
         this.generation++;
+        this.loading.cancel();
         this.listadoCargado.set(false);
         this.ultimaCarga = 0;
         this.ultimoIntento = 0;
@@ -69,6 +80,7 @@ export class AlumnosService {
     if (this.guardando() || this.cargando()) return;
     this.ultimoIntento = Date.now();
     const generation = ++this.generation;
+    const finalizarVisual = this.loading.begin(!this.listadoCargado());
     this.cargando.set(true);
     this.errorListado.set('');
     this.detalleErrorListado.set(null);
@@ -89,6 +101,7 @@ export class AlumnosService {
         this.fallo(error, false, true);
       }
     } finally {
+      finalizarVisual();
       if (generation === this.generation) this.cargando.set(false);
     }
   }

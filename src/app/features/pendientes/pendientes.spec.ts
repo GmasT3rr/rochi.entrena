@@ -14,8 +14,10 @@ describe('Centro de pendientes', () => {
     const service = {
       cuentas: signal<CuentaVista[]>([]),
       hoy: signal('2026-10-22'),
+      cargandoInicial: signal(true),
       cargando: signal(true),
       guardando: signal(false),
+      tieneDatos: signal(false),
       disponible: signal(false),
       errorCarga: signal(''),
       recargar: vi.fn(),
@@ -43,12 +45,14 @@ describe('Centro de pendientes', () => {
     const { fixture, service } = crear();
     expect(fixture.nativeElement.querySelector('app-loading-layout')).not.toBeNull();
     service.cargando.set(false);
+    service.cargandoInicial.set(false);
     service.errorCarga.set('offline');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role=alert]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Saldo total pendiente');
     service.errorCarga.set('');
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Estás al día');
   });
@@ -65,7 +69,9 @@ describe('Centro de pendientes', () => {
     } as CuentaVista;
     service.cuentas.set([cuota]);
     service.cargando.set(false);
+    service.cargandoInicial.set(false);
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     fixture.detectChanges();
     expect(c.total()).toBe(70);
     expect(c.contar('vencida')).toBe(1);
@@ -109,7 +115,9 @@ describe('Centro de pendientes', () => {
       cuota('pagada', 0, '2026-09-01', 100),
     ]);
     service.cargando.set(false);
+    service.cargandoInicial.set(false);
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     fixture.detectChanges();
     expect(c.total()).toBe(170.35);
     expect(c.pendientes()).toHaveLength(5);
@@ -129,7 +137,9 @@ describe('Centro de pendientes', () => {
     c.busqueda.set('Ana');
     fixture.destroy();
     service.cargando.set(false);
+    service.cargandoInicial.set(false);
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     const nueva = TestBed.createComponent(Pendientes);
     nueva.detectChanges();
     expect(service.refrescarSiNecesario).toHaveBeenCalledTimes(2);
@@ -148,7 +158,9 @@ describe('Centro de pendientes', () => {
     const { c, service, open, fixture } = crear();
     const cuota = { id: 'c', saldo: 0 } as CuentaVista;
     service.cargando.set(false);
+    service.cargandoInicial.set(false);
     service.disponible.set(true);
+    service.tieneDatos.set(true);
     service.cuentas.set([cuota]);
     c.pagar(cuota);
     expect(open).not.toHaveBeenCalled();

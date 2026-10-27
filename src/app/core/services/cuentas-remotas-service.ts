@@ -1,3 +1,4 @@
+import { MinimumLoading } from '../../shared/skeleton/minimum-loading';
 import { CobroDirecto, validarCobroDirecto } from '../cobros-directos';
 import { Sort } from '@angular/material/sort';
 import { ToastService } from './toast-service';
@@ -70,6 +71,7 @@ export class CuentasService {
     busqueda: signal(''),
   };
   private readonly cargado = signal(false);
+  readonly tieneDatos = this.cargado.asReadonly();
   readonly disponible = computed(() => this.cargado() && !this.cargando() && !this.guardando());
   readonly alumnos = computed(() => this.datos().alumnos);
   readonly cuotas = computed(() => this.datos().cuotas);
@@ -112,6 +114,8 @@ export class CuentasService {
     return this.mutar(() => this.repository.eliminarCobro(id, version), 'Cobro directo eliminado.');
   }
   private generation = 0;
+  private readonly loading = new MinimumLoading();
+  readonly cargandoInicial = this.loading.visible.asReadonly();
   private ultimaCarga = 0;
   private ultimoIntentoCarga = 0;
   private sessionToken: string | undefined;
@@ -150,13 +154,18 @@ export class CuentasService {
   );
   constructor() {
     const timer = setInterval(() => this.hoy.set(fechaArgentina()), 30000);
-    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+      this.generation++;
+      this.loading.cancel();
+    });
     effect(() => {
       const token = this.auth.session()?.access_token;
       if (token === this.sessionToken) return;
       this.sessionToken = token;
       untracked(() => {
         this.generation++;
+        this.loading.cancel();
         this.ultimaCarga = 0;
         this.ultimoIntentoCarga = 0;
         this.datos.set(vacio());
@@ -202,8 +211,8 @@ export class CuentasService {
     if (this.guardando()) return;
     this.ultimoIntentoCarga = Date.now();
     const generation = ++this.generation;
+    const finalizarVisual = this.loading.begin(!this.cargado());
     this.cargando.set(true);
-    this.cargado.set(false);
     this.error.set('');
     this.errorCarga.set('');
     this.mensaje.set('');
@@ -216,11 +225,15 @@ export class CuentasService {
       }
     } catch (error) {
       if (generation === this.generation) {
-        this.datos.set(vacio());
+        if ((error as { code?: string })?.code === '42501') {
+          this.datos.set(vacio());
+          this.cargado.set(false);
+        }
         this.fallar(errorFinanciero(error));
         this.errorCarga.set(this.error());
       }
     } finally {
+      finalizarVisual();
       if (generation === this.generation) this.cargando.set(false);
     }
   }

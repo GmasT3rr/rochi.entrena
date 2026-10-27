@@ -72,10 +72,10 @@
   <p role="alert">{{ service.error() }}</p>
 }
 <p role="status" class="feedback">{{ mensaje() }}</p>
-@if (service.errorListado()) {
-  <!-- El error y Reintentar ya se muestran arriba. No presentar datos previos como una consulta exitosa. -->
-} @else if (service.cargando() && !service.listadoCargado()) {
+@if (service.cargandoInicial()) {
   <app-loading-layout variant="alumnos" label="Cargando alumnos" />
+} @else if (service.errorListado()) {
+  <!-- El error y Reintentar ya se muestran arriba. No presentar datos previos como una consulta exitosa. -->
 } @else {
   <mat-card appearance="outlined" class="table-card" [attr.aria-busy]="service.cargando()">
     <mat-card-content>

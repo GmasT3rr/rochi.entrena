@@ -27,6 +27,7 @@ describe('Eliminar cuota desde acciones', () => {
     const respuesta = new Subject<boolean>();
     const version = { actualizadoEn: '2026-10-01T00:00:00Z', revision: '1' };
     const service = {
+      tieneDatos: signal(true),
       disponible: signal(true),
       versionCuota: vi.fn(() => version),
       eliminarCuota: vi.fn().mockResolvedValue(true),
@@ -88,7 +89,9 @@ describe('Eliminar cuota desde acciones', () => {
   it('abrir el detalle reutiliza datos disponibles sin recargar y conserva historial vacio', () => {
     const service = {
       cuentas: signal([cuota]),
+      cargandoInicial: signal(false),
       cargando: signal(false),
+      tieneDatos: signal(true),
       disponible: signal(true),
       guardando: signal(false),
       error: signal(''),

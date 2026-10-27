@@ -1,3 +1,6 @@
+@if (service.cargando() && service.tieneDatos()) {
+  <p role="status">Actualizando datos...</p>
+}
 <app-page-header
   title="Centro de pendientes"
   subtitle="Saldos actuales de tus alumnos, sin limitar por período."
@@ -12,11 +15,11 @@
     Actualizar
   </button>
 </div>
-@if (service.cargando() || service.guardando()) {
+@if (service.cargandoInicial()) {
   <app-loading-layout variant="cuentas" label="Cargando pendientes" />
 } @else if (service.errorCarga()) {
   <p role="alert">No pudimos cargar los pendientes. Usá Actualizar para reintentar.</p>
-} @else if (service.disponible()) {
+} @else if (service.tieneDatos()) {
   <p>
     Saldo total pendiente: <strong>{{ total() | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
   </p>

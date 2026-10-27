@@ -22,7 +22,7 @@ export const routes: Routes = [
   {
     path: '',
     component: AdminShell,
-    canActivate: [sessionGuard],
+    // Every protected destination is checked once, before child activation.
     canActivateChild: [sessionGuard],
     children: [
       {

@@ -506,6 +506,22 @@ describe('Signals remotos y aislamiento de finanzas locales', () => {
     expect(service.filtros.modalidad()).toBe('Online');
     reloj.mockRestore();
   });
+  it('no reinicia datos ni filtros ante un evento repetido de la misma sesión', async () => {
+    repo.listar.mockResolvedValue([alumno]);
+    const service = TestBed.inject(AlumnosService);
+    TestBed.tick();
+    await Promise.resolve();
+    await Promise.resolve();
+    service.filtros.busqueda.set('Ana');
+    const calls = repo.listar.mock.calls.length;
+    const auth = TestBed.inject(AuthService);
+    (auth.session as ReturnType<typeof signal>).set({ ...auth.session()! });
+    TestBed.tick();
+    expect(repo.listar).toHaveBeenCalledTimes(calls);
+    expect(service.alumnos()).toEqual([alumno]);
+    expect(service.listadoCargado()).toBe(true);
+    expect(service.filtros.busqueda()).toBe('Ana');
+  });
   it('reactiva sin consulta extra y elimina cache cuando se deniega acceso', async () => {
     repo.listar.mockResolvedValue([alumno]);
     const service = TestBed.inject(AlumnosService);

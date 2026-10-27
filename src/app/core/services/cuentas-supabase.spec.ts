@@ -294,6 +294,8 @@ describe('Cuentas y pagos remotos con Signals', () => {
     const pagoGuardado = s.pagos()[0];
     expect(c.total()).toBe(70);
     expect(resumen.pendiente()).toBe(70);
+    // The payment has already completed while the independent initial skeleton remains.
+    await new Promise((resolve) => setTimeout(resolve, 750));
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Con pagos parciales');
     expect(await s.guardarPago({ ...pagoGuardado, importe: 40 }, pagoGuardado.id)).toBe(true);

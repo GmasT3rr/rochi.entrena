@@ -86,7 +86,9 @@ describe('Listado simplificado de cuotas', () => {
         { cuotaId: 'c1', fecha: '2026-09-30', importe: 20 },
       ]),
       recargar: vi.fn(),
+      tieneDatos: signal(true),
       disponible: signal(true),
+      cargandoInicial: signal(false),
       cargando: signal(false),
       guardando: signal(false),
       error: signal(''),
@@ -105,17 +107,15 @@ describe('Listado simplificado de cuotas', () => {
       eliminarCobro: vi.fn().mockResolvedValue(true),
     };
     const ingresos = computed(() => [
-      ...service
-        .pagos()
-        .map((p, i) => ({
-          ...p,
-          id: `p${i}`,
-          alumnoId: 'a',
-          concepto: 'Cuota',
-          tipo: 'Pago de cuota',
-          medio: 'Efectivo',
-          observaciones: '',
-        })),
+      ...service.pagos().map((p, i) => ({
+        ...p,
+        id: `p${i}`,
+        alumnoId: 'a',
+        concepto: 'Cuota',
+        tipo: 'Pago de cuota',
+        medio: 'Efectivo',
+        observaciones: '',
+      })),
       ...service.cobrosDirectos().map((c) => ({ ...c, tipo: 'Cobro directo' })),
     ]);
     const descargar = vi.fn();
@@ -295,7 +295,9 @@ describe('Listado simplificado de cuotas', () => {
     ) as HTMLButtonElement;
     refresh.click();
     expect(service.recargar).toHaveBeenCalledOnce();
+    service.tieneDatos.set(false);
     service.cargando.set(true);
+    service.cargandoInicial.set(true);
     fixture.detectChanges();
     expect(refresh.disabled).toBe(true);
     expect(fixture.nativeElement.querySelector('a[href="/pendientes"]')).toBeTruthy();

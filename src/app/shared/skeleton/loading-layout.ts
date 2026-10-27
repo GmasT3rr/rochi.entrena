@@ -9,7 +9,7 @@ import { Skeleton } from './skeleton';
   host: { 'aria-busy': 'true', role: 'region', '[attr.aria-label]': 'label()' },
 })
 export class LoadingLayout {
-  readonly variant = input<'dashboard' | 'alumnos' | 'cuentas' | 'pagos'>('alumnos');
+  readonly variant = input<'dashboard' | 'alumnos' | 'cuentas' | 'pagos' | 'ficha'>('alumnos');
   readonly label = input('Cargando datos');
   readonly filas = [0, 1, 2, 3, 4];
 }

@@ -34,6 +34,7 @@ describe('Skeleton loading', () => {
     it(`${tipo}: permanece durante la espera y se retira ante error o resultado vacío`, () => {
       const service = {
         orden: signal({ active: 'nombre', direction: 'asc' as const }),
+        cargandoInicial: signal(true),
         cargando: signal(true),
         listadoCargado: signal(false),
         refrescarSiNecesario: vi.fn(),
@@ -50,6 +51,7 @@ describe('Skeleton loading', () => {
         detalleErrorListado: signal(null),
         errorCarga: signal(''),
         mensaje: signal(''),
+        tieneDatos: signal(false),
         disponible: signal(false),
         filtros: {
           busqueda: signal(''),
@@ -75,6 +77,7 @@ describe('Skeleton loading', () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('app-loading-layout')).not.toBeNull();
       service.cargando.set(false);
+      service.cargandoInicial.set(false);
       service.error.set('Sin conexión');
       service.errorListado.set('Sin conexión');
       service.errorCarga.set('Sin conexión');
