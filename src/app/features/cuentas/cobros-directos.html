@@ -53,8 +53,7 @@
             <td>{{ c.importe | currency: 'ARS' }}</td>
             <td>{{ c.medio }}</td>
             <td>
-              <button mat-button (click)="abrir(c, true)">Detalle</button
-              ><button mat-button (click)="abrir(c)" [disabled]="!service.disponible()">
+              <button mat-button (click)="abrir(c)" [disabled]="!service.disponible()">
                 Editar</button
               ><button
                 mat-button
@@ -77,8 +76,7 @@
         <p>{{ nombre(c.alumnoId) }} · {{ c.fecha | date: 'dd/MM/yyyy' }}</p>
         <p>{{ c.importe | currency: 'ARS' }} · {{ c.medio }}</p>
         <div class="record-actions">
-          <button mat-button (click)="abrir(c, true)">Detalle</button
-          ><button mat-button (click)="abrir(c)" [disabled]="!service.disponible()">Editar</button
+          <button mat-button (click)="abrir(c)" [disabled]="!service.disponible()">Editar</button
           ><button
             mat-button
             class="hub-danger"

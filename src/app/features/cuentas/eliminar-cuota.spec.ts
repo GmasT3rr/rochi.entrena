@@ -5,7 +5,7 @@ import { Subject } from 'rxjs';
 import { CuentaVista } from '../../core/cuentas';
 import { CuentasService } from '../../core/services/cuentas-service';
 import { confirmarEliminarCuota, ConfirmarEliminarCuota } from './confirmar-eliminar-cuota';
-import { CuotaDetalle } from './cuota-detalle';
+import { HistorialPagos } from './historial-pagos';
 
 const cuota = {
   id: 'c',
@@ -86,31 +86,10 @@ describe('Eliminar cuota desde acciones', () => {
     respuesta.next(true);
     expect(await resultado).toBe(false);
   });
-  it('abrir el detalle reutiliza datos disponibles sin recargar y conserva historial vacio', () => {
-    const service = {
-      cuentas: signal([cuota]),
-      cargandoInicial: signal(false),
-      cargando: signal(false),
-      tieneDatos: signal(true),
-      disponible: signal(true),
-      guardando: signal(false),
-      error: signal(''),
-      mensaje: signal(''),
-      recargar: vi.fn(),
-    };
-    TestBed.configureTestingModule({
-      providers: [
-        { provide: CuentasService, useValue: service },
-        { provide: MAT_DIALOG_DATA, useValue: 'c' },
-        { provide: MatDialogRef, useValue: { close: vi.fn() } },
-      ],
-    });
-    const fixture = TestBed.createComponent(CuotaDetalle);
-    fixture.detectChanges();
-    expect(service.recargar).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('No hay pagos registrados');
-    expect(
-      fixture.nativeElement.querySelector('[aria-label="Cerrar detalle de cuota"]'),
-    ).not.toBeNull();
+  it('el historial integrado conserva el estado vacío sin consultas adicionales', () => {
+    const f = TestBed.createComponent(HistorialPagos);
+    f.componentRef.setInput('pagos', []);
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('No hay pagos registrados');
   });
 });

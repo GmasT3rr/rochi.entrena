@@ -1,0 +1,31 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+h3 {
+  margin: 0 0 var(--hub-space-4);
+}
+.payments {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--hub-space-3);
+}
+.payments li {
+  padding: var(--hub-space-4);
+  border: 1px solid var(--hub-border);
+  border-radius: var(--hub-control-radius);
+  overflow-wrap: anywhere;
+}
+.payments strong {
+  font-variant-numeric: tabular-nums;
+}
+.payments p {
+  white-space: pre-wrap;
+  color: var(--hub-muted);
+  margin: var(--hub-space-2) 0;
+}
+.payments .hub-actions {
+  margin-top: var(--hub-space-3);
+}

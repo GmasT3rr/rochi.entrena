@@ -11,7 +11,6 @@ import { CuentasService } from '../../core/services/cuentas-service';
 import { clasificarPendientes, CategoriaPendiente } from '../../core/services/pendientes';
 import { CuentaVista, normalizarConcepto, centavos } from '../../core/cuentas';
 import { CuentaForm } from '../cuentas/cuenta-form';
-import { CuotaDetalle } from '../cuentas/cuota-detalle';
 @Component({
   selector: 'app-pendientes',
   imports: [
@@ -64,8 +63,9 @@ export class Pendientes {
     return this.categorias.find((c) => c.id === categoria)!.label;
   }
   detalle(cuota: CuentaVista) {
-    this.dialog.open(CuotaDetalle, {
-      data: cuota.id,
+    this.dialog.open(CuentaForm, {
+      closeOnNavigation: false,
+      data: { tipo: 'cuota', cuota },
       width: '760px',
       maxWidth: 'calc(100vw - 24px)',
       maxHeight: '90dvh',

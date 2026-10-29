@@ -1,0 +1,30 @@
+@use '../../shared/data-table' as table;
+@include table.styles;
+.section {
+  padding-block: var(--hub-space-4);
+}
+.document-name {
+  display: block;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mime,
+small {
+  overflow-wrap: anywhere;
+  color: var(--hub-muted);
+}
+.hub-table {
+  table-layout: fixed;
+}
+.hub-table th:first-child {
+  width: 32%;
+}
+.hub-table th:last-child {
+  width: 32%;
+}
+.record-card h4 {
+  margin: 0;
+  max-width: 100%;
+}

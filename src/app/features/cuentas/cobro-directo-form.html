@@ -1,12 +1,4 @@
-<h2 mat-dialog-title>
-  {{
-    data.lectura
-      ? 'Detalle de cobro directo'
-      : data.cobro
-        ? 'Editar cobro directo'
-        : 'Registrar cobro directo'
-  }}
-</h2>
+<h2 mat-dialog-title>{{ data.cobro ? 'Editar cobro directo' : 'Registrar cobro directo' }}</h2>
 <form [formGroup]="form" (ngSubmit)="guardar()">
   <mat-dialog-content>
     <p>Este cobro no genera una cuota ni deuda.</p>
@@ -64,17 +56,15 @@
     }</mat-dialog-content
   ><mat-dialog-actions align="end">
     <button mat-stroked-button type="button" mat-dialog-close [disabled]="enviando()">
-      {{ data.lectura ? 'Cerrar' : 'Cancelar' }}
+      Cancelar
     </button>
-    @if (!data.lectura) {
-      <button
-        mat-flat-button
-        type="submit"
-        [disabled]="enviando() || !service.disponible()"
-        [attr.aria-busy]="enviando()"
-      >
-        {{ enviando() ? 'Guardando…' : 'Guardar' }}
-      </button>
-    }
+    <button
+      mat-flat-button
+      type="submit"
+      [disabled]="enviando() || !service.disponible()"
+      [attr.aria-busy]="enviando()"
+    >
+      {{ enviando() ? 'Guardando…' : 'Guardar' }}
+    </button>
   </mat-dialog-actions>
 </form>

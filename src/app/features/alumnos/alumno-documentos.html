@@ -1,0 +1,149 @@
+<section
+  class="section"
+  aria-label="Documentos del alumno"
+  [attr.aria-busy]="cargando() || ocupado()"
+>
+  <h3>Documentos</h3>
+  @if (config(); as c) {
+    <p id="documentos-ayuda">
+      PDF, Word (.doc, .docx), Excel (.xls, .xlsx) e imágenes (.jpg, .jpeg, .png, .webp). Hasta
+      {{ c.max_bytes / 1024 / 1024 | number: '1.0-1' }} MB por archivo y
+      {{ c.max_archivos }} archivos por selección. Archivos privados.
+    </p>
+  }
+  <input hidden type="file" multiple #archivos [accept]="accept" (change)="seleccionar(archivos)" />
+  <div class="hub-actions">
+    <button
+      mat-flat-button
+      (click)="archivos.click()"
+      [disabled]="!config() || ocupado() || cargando() || !!errorCarga()"
+      aria-describedby="documentos-ayuda"
+    >
+      Adjuntar documento
+    </button>
+    <button mat-button (click)="cargar()" [disabled]="ocupado() || cargando()">
+      Actualizar documentos
+    </button>
+  </div>
+  <p role="status" aria-live="polite">
+    {{ estadoOperacion() || (cargando() && !inicial() ? 'Actualizando documentos…' : '') }}
+  </p>
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+  }
+  @if (inicial()) {
+    <app-loading-layout variant="pagos" label="Cargando documentos" />
+  } @else if (errorCarga()) {
+    <p role="alert">{{ errorCarga() }}</p>
+    <button mat-stroked-button (click)="cargar()" [disabled]="cargando() || ocupado()">
+      Reintentar
+    </button>
+  } @else if (documentos().length) {
+    <div
+      class="table-wrap desktop-table"
+      role="region"
+      aria-label="Documentos adjuntos"
+      tabindex="0"
+    >
+      <table class="hub-table">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Tamaño</th>
+            <th>Subido</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of documentos(); track d.storage_path) {
+            <tr>
+              <td>
+                <span class="document-name" [title]="d.nombre_original">{{
+                  d.nombre_original
+                }}</span
+                ><small>{{ d.tipo_mime }}</small>
+                @if (d.estado !== 'disponible') {
+                  <small
+                    >Pendiente de limpieza:
+                    {{
+                      d.estado === 'sin_archivo'
+                        ? 'archivo no disponible'
+                        : 'metadatos sin confirmar'
+                    }}.</small
+                  >
+                }
+              </td>
+              <td>{{ d.tamano_bytes / 1024 | number: '1.0-1' }} KB</td>
+              <td>{{ d.creado_en | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <div class="hub-actions">
+                  <button
+                    mat-button
+                    (click)="descargar(d)"
+                    [disabled]="ocupado() || cargando() || d.estado !== 'disponible'"
+                    [attr.aria-label]="'Descargar ' + d.nombre_original"
+                  >
+                    Descargar
+                  </button>
+                  <button
+                    mat-button
+                    class="hub-danger"
+                    (click)="eliminar(d)"
+                    [disabled]="ocupado() || cargando()"
+                    [attr.aria-label]="'Eliminar ' + d.nombre_original"
+                  >
+                    {{ d.estado === 'disponible' ? 'Eliminar' : 'Completar limpieza' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="mobile-records">
+      @for (d of documentos(); track d.storage_path) {
+        <article class="record-card">
+          <h4 class="document-name" [title]="d.nombre_original">{{ d.nombre_original }}</h4>
+          <p class="mime">{{ d.tipo_mime }}</p>
+          <p>
+            {{ d.tamano_bytes / 1024 | number: '1.0-1' }} KB ·
+            {{ d.creado_en | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+          @if (d.estado !== 'disponible') {
+            <p>
+              Pendiente de limpieza:
+              {{
+                d.estado === 'sin_archivo' ? 'archivo no disponible' : 'metadatos sin confirmar'
+              }}.
+            </p>
+          }
+          <div class="record-actions">
+            <button
+              mat-button
+              (click)="descargar(d)"
+              [disabled]="ocupado() || cargando() || d.estado !== 'disponible'"
+              [attr.aria-label]="'Descargar ' + d.nombre_original"
+            >
+              Descargar
+            </button>
+            <button
+              mat-button
+              class="hub-danger"
+              (click)="eliminar(d)"
+              [disabled]="ocupado() || cargando()"
+              [attr.aria-label]="'Eliminar ' + d.nombre_original"
+            >
+              {{ d.estado === 'disponible' ? 'Eliminar' : 'Completar limpieza' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="empty">
+      <h4>Todavía no hay documentos</h4>
+      <p>Adjuntá uno o varios archivos para conservarlos en la ficha de este alumno.</p>
+    </div>
+  }
+</section>

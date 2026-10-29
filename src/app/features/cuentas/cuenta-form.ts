@@ -3,7 +3,13 @@ import { DestroyRef } from '@angular/core';
 import { CambiosPendientes } from '../../core/services/cambios-pendientes';
 import { ToastService } from '../../core/services/toast-service';
 import { CurrencyPipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, effect, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
+import { HistorialPagos } from './historial-pagos';
+import { StatCard } from '../../shared/stat-card/stat-card';
+import { LoadingLayout } from '../../shared/skeleton/loading-layout';
+import { confirmarEliminarCuota } from './confirmar-eliminar-cuota';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   MAT_DIALOG_DATA,
@@ -28,13 +34,17 @@ import { FechaArgentinaInput } from './fecha-argentina-input';
 import { ConfirmarAlumno } from '../alumnos/confirmar-alumno';
 
 export type CuentaFormData =
-  { tipo: 'cuota'; cuota?: Cuota } | { tipo: 'pago'; cuota: Cuota; pago?: PagoCuota };
+  | { tipo: 'cuota'; cuota?: Cuota; alumnoId?: string }
+  | { tipo: 'pago'; cuota: Cuota; pago?: PagoCuota };
 const dinero = (c: AbstractControl) => (importeValido(c.value) ? null : { importe: true });
 const fecha = (c: AbstractControl) => (fechaValida(c.value) ? null : { fecha: true });
 const periodo = (c: AbstractControl) => (periodoValido(c.value) ? null : { periodo: true });
 @Component({
   selector: 'app-cuenta-form',
   imports: [
+    HistorialPagos,
+    StatCard,
+    LoadingLayout,
     PeriodSelector,
     CurrencyPipe,
     FechaArgentinaInput,
@@ -70,13 +80,18 @@ export class CuentaForm {
   }
   readonly pago = this.data.tipo === 'pago' ? this.data.pago : undefined;
   private readonly nuevoId = crypto.randomUUID();
-  private readonly versionInicial = this.pago
+  private versionInicial = this.pago
     ? this.service.versionPago(this.pago.id)
     : this.data.tipo === 'cuota' && this.data.cuota
       ? this.service.versionCuota(this.data.cuota.id)
       : undefined;
   readonly cuotaForm = this.fb.nonNullable.group({
-    alumnoId: [this.data.cuota?.alumnoId ?? '', Validators.required],
+    alumnoId: [
+      this.data.cuota?.alumnoId ??
+        (this.data.tipo === 'cuota' ? this.data.alumnoId : undefined) ??
+        '',
+      Validators.required,
+    ],
     concepto: [
       this.data.cuota?.concepto ?? '',
       [Validators.required, Validators.pattern(/\S/), Validators.maxLength(150)],
@@ -92,6 +107,115 @@ export class CuentaForm {
     medio: [this.pago?.medio ?? this.ultimoMedio(), Validators.required],
     observaciones: [this.pago?.observaciones ?? '', Validators.maxLength(3000)],
   });
+  private readonly valoresCuota = toSignal(this.cuotaForm.valueChanges, {
+    initialValue: this.cuotaForm.getRawValue(),
+  });
+  private readonly originalCuota = signal(JSON.stringify(this.cuotaForm.getRawValue()));
+  readonly cambiosCuota = computed(() => {
+    this.valoresCuota();
+    return JSON.stringify(this.cuotaForm.getRawValue()) !== this.originalCuota();
+  });
+  readonly gestionandoPago = signal(false);
+  readonly desactualizada = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
+  sincronizarCuota(): void {
+    const c = this.cuenta();
+    if (this.data.tipo !== 'cuota' || !c) return;
+    if (this.cambiosCuota()) {
+      const version = this.service.versionCuota(c.id);
+      this.desactualizada.set(JSON.stringify(version) !== JSON.stringify(this.versionInicial));
+      return;
+    }
+    this.cuotaForm.patchValue({
+      alumnoId: c.alumnoId,
+      concepto: c.concepto,
+      periodo: c.periodo,
+      importe: c.importe,
+      vencimiento: c.vencimiento,
+      observaciones: c.observaciones,
+    });
+    this.originalCuota.set(JSON.stringify(this.cuotaForm.getRawValue()));
+    this.versionInicial = this.service.versionCuota(c.id);
+    this.desactualizada.set(false);
+  }
+  gestionarPago(pago?: PagoCuota): void {
+    const cuota = this.cuenta();
+    if (
+      !cuota ||
+      !this.service.disponible() ||
+      this.cambiosCuota() ||
+      this.gestionandoPago() ||
+      this.confirmando() ||
+      this.enviando()
+    )
+      return;
+    if (!pago && cuota.saldo <= 0) return;
+    this.gestionandoPago.set(true);
+    this.dialog
+      .open(CuentaForm, {
+        closeOnNavigation: false,
+        data: { tipo: 'pago', cuota, pago },
+        width: '600px',
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: '90dvh',
+      })
+      .afterClosed()
+      .subscribe(() => {
+        if (this.destroyRef.destroyed) return;
+        this.gestionandoPago.set(false);
+        this.sincronizarCuota();
+      });
+  }
+  async eliminarPago(pago: PagoCuota): Promise<void> {
+    if (
+      !this.service.disponible() ||
+      this.cambiosCuota() ||
+      this.gestionandoPago() ||
+      this.confirmando() ||
+      this.enviando()
+    )
+      return;
+    const version = this.service.versionPago(pago.id);
+    this.confirmando.set(true);
+    try {
+      const ok = await firstValueFrom(
+        this.dialog
+          .open(ConfirmarAlumno, {
+            width: '420px',
+            maxWidth: 'calc(100vw - 32px)',
+            maxHeight: '90dvh',
+            data: {
+              titulo: 'Eliminar pago',
+              danger: true,
+              mensaje: '¿Confirmás eliminar este pago? El saldo y los ingresos se recalcularán.',
+            },
+          })
+          .afterClosed(),
+      );
+      if (ok) await this.service.eliminarPago(pago.id, version);
+      this.sincronizarCuota();
+    } finally {
+      this.confirmando.set(false);
+    }
+  }
+  async eliminarCuota(): Promise<void> {
+    const c = this.cuenta();
+    if (
+      !c ||
+      c.pagos.length ||
+      !this.service.disponible() ||
+      this.cambiosCuota() ||
+      this.confirmando() ||
+      this.gestionandoPago()
+    )
+      return;
+    this.confirmando.set(true);
+    try {
+      if (await confirmarEliminarCuota(this.dialog, this.service, c)) this.ref.close(true);
+    } finally {
+      this.confirmando.set(false);
+    }
+  }
   readonly titulo =
     this.data.tipo === 'cuota'
       ? this.data.cuota
@@ -112,14 +236,27 @@ export class CuentaForm {
     inject(CambiosPendientes).proteger(
       this.ref,
       () =>
-        this.data.tipo === 'cuota' ? this.cuotaForm.getRawValue() : this.pagoForm.getRawValue(),
-      () => this.service.guardando() || this.confirmando() || this.enviando(),
+        this.data.tipo === 'cuota'
+          ? this.cambiosCuota()
+            ? this.cuotaForm.getRawValue()
+            : null
+          : this.pagoForm.getRawValue(),
+      () =>
+        this.service.guardando() || this.confirmando() || this.enviando() || this.gestionandoPago(),
       inject(DestroyRef),
     );
     if (this.data.tipo === 'cuota' && this.data.cuota) this.cuotaForm.controls.alumnoId.disable();
+    if (this.data.tipo === 'cuota' && this.data.cuota) {
+      effect(() => {
+        this.cuenta();
+        untracked(() => this.sincronizarCuota());
+      });
+      if (!this.service.cargando()) void this.service.recargar();
+    }
   }
   async guardar(): Promise<void> {
-    if (this.enviando() || this.confirmando() || this.service.guardando()) return;
+    if (this.enviando() || this.confirmando() || this.gestionandoPago() || this.service.guardando())
+      return;
     this.error.set('');
     const form = this.data.tipo === 'cuota' ? this.cuotaForm : this.pagoForm;
     form.markAllAsTouched();

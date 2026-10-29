@@ -381,28 +381,15 @@
 </ng-template>
 <ng-template #accionesMovimiento let-m>
   <button
-    mat-button
-    (click)="verMovimiento(m)"
-    [disabled]="!service.disponible()"
-    [attr.aria-label]="'Ver detalle de ' + m.etiqueta + ': ' + m.concepto + ' de ' + m.alumno"
-  >
-    Ver detalle
-  </button>
-  <button
     mat-icon-button
     [matMenuTriggerFor]="filaMenu"
     [disabled]="!service.disponible()"
-    [attr.aria-label]="'Más acciones de ' + m.etiqueta + ': ' + m.concepto + ' de ' + m.alumno"
-    matTooltip="Más acciones"
+    [attr.aria-label]="'Acciones de ' + m.etiqueta + ': ' + m.concepto + ' de ' + m.alumno"
+    matTooltip="Acciones"
   >
     <mat-icon>more_vert</mat-icon>
   </button>
   <mat-menu #filaMenu="matMenu">
-    @if (m.tipo === 'cuota' && m.saldo > 0) {
-      <button mat-menu-item (click)="pago(m.cuota)" [disabled]="!service.disponible()">
-        <mat-icon>payments</mat-icon>Registrar cobro
-      </button>
-    }
     <button mat-menu-item (click)="editarMovimiento(m)" [disabled]="!service.disponible()">
       <mat-icon>edit</mat-icon>Editar {{ m.tipo === 'cuota' ? 'cuota' : 'cobro directo' }}
     </button>

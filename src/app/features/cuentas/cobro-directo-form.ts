@@ -24,7 +24,7 @@ import { CambiosPendientes } from '../../core/services/cambios-pendientes';
   templateUrl: './cobro-directo-form.html',
 })
 export class CobroDirectoForm {
-  readonly data = inject<{ cobro?: CobroDirecto; lectura?: boolean }>(MAT_DIALOG_DATA);
+  readonly data = inject<{ cobro?: CobroDirecto; alumnoId?: string }>(MAT_DIALOG_DATA);
   readonly service = inject(CuentasService);
   readonly ref = inject(MatDialogRef<CobroDirectoForm>);
   readonly enviando = signal(false);
@@ -32,7 +32,7 @@ export class CobroDirectoForm {
   private readonly id = this.data.cobro?.id ?? crypto.randomUUID();
   private readonly version = this.service.versionCobro(this.id);
   readonly form = inject(FormBuilder).nonNullable.group({
-    alumnoId: [this.data.cobro?.alumnoId ?? '', Validators.required],
+    alumnoId: [this.data.cobro?.alumnoId ?? this.data.alumnoId ?? '', Validators.required],
     concepto: [
       this.data.cobro?.concepto ?? '',
       [Validators.required, Validators.pattern(/\S/), Validators.maxLength(150)],
@@ -50,7 +50,7 @@ export class CobroDirectoForm {
     observaciones: [this.data.cobro?.observaciones ?? '', Validators.maxLength(3000)],
   });
   constructor() {
-    if (this.data.lectura) this.form.disable();
+    if (this.data.alumnoId) this.form.controls.alumnoId.disable();
     inject(CambiosPendientes).proteger(
       this.ref,
       () => this.form.getRawValue(),
@@ -59,7 +59,7 @@ export class CobroDirectoForm {
     );
   }
   async guardar(): Promise<void> {
-    if (this.enviando() || this.data.lectura || !this.service.disponible()) return;
+    if (this.enviando() || !this.service.disponible()) return;
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
     this.enviando.set(true);
@@ -67,6 +67,7 @@ export class CobroDirectoForm {
     this.ref.disableClose = true;
     try {
       const v = this.form.getRawValue();
+      if (this.data.alumnoId) v.alumnoId = this.data.alumnoId;
       if (
         await this.service.guardarCobro(
           { ...v, id: this.id, importe: v.importe! },

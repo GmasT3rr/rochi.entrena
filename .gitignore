@@ -6,6 +6,10 @@
 /out-tsc
 /bazel-out
 
+# Paquetes de revisión generados: copias de SQL/reportes, no fuentes originales.
+/revision_sql_para_chatgpt/
+*.zip
+
 # Node
 /node_modules
 npm-debug.log
@@ -60,6 +64,10 @@ service-account*.json
 .sass-cache/
 /connect.lock
 /coverage
+/playwright-report/
+/test-results/
+*.tsbuildinfo
+.eslintcache
 /libpeerconnection.log
 testem.log
 /typings

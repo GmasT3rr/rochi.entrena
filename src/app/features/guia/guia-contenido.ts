@@ -11,6 +11,54 @@ export interface ExplicacionGuia {
 // Mantener los pasos y nombres de botones alineados con las pantallas existentes.
 export const explicacionesGuia: readonly ExplicacionGuia[] = [
   {
+    id: 'editar-secciones-alumno',
+    titulo: '¿Cómo modifico los datos de la ficha?',
+    icono: 'edit',
+    pasos: [
+      'Entrá en Alumnos y seleccioná Ver ficha.',
+      'En Resumen, usá Editar datos personales, Editar información adicional o Editar configuración mensual según lo que quieras cambiar.',
+      'Guardá los cambios. Editar la configuración mensual no modifica las cuotas anteriores ni crea una primera cuota nueva.',
+      'En Entrenamiento, seleccioná Editar perfil de entrenamiento. Los campos siguen siendo opcionales.',
+      'En Documentos, podés adjuntar nuevos archivos, descargarlos o eliminarlos con confirmación.',
+    ],
+    aclaracion:
+      'En Agregar alumno, los datos básicos están siempre visibles. Información adicional, Configuración mensual, Perfil de entrenamiento y Documentos son desplegables opcionales.',
+    ruta: '/alumnos',
+    enlace: 'Ir a Alumnos',
+  },
+  {
+    id: 'perfil-entrenamiento',
+    titulo: '¿Cómo completo el perfil de entrenamiento?',
+    icono: 'fitness_center',
+    pasos: [
+      'Entrá en Alumnos, abrí Ver ficha y seleccioná Entrenamiento.',
+      'Seleccioná Editar perfil de entrenamiento y desplegá las secciones que quieras completar. Todos sus campos son opcionales.',
+      'Ingresá únicamente datos proporcionados por el alumno, con su autorización. Seleccioná Guardar perfil.',
+      'También podés completar el perfil en Agregar alumno, dentro de Perfil de entrenamiento (opcional). Primero se crea al alumno y luego se guarda el perfil.',
+      'Si algún paso falla después del alta, usá Reintentar pendientes o Finalizar para completarlo desde la ficha. No vuelvas a crear al alumno.',
+    ],
+    aclaracion:
+      'La edad declarada corresponde al momento de completar la ficha y no se actualiza automáticamente. No registres información médica en estos campos. Los documentos originales se conservan y no se extraen datos automáticamente.',
+    ruta: '/alumnos',
+    enlace: 'Ir a Alumnos',
+  },
+  {
+    id: 'documentos-alumno',
+    titulo: '¿Cómo adjunto y consulto documentos de un alumno?',
+    icono: 'attach_file',
+    pasos: [
+      'Entrá en Alumnos y seleccioná Ver ficha del alumno.',
+      'Abrí la pestaña Documentos. Allí se listan sus archivos, del más reciente al más antiguo.',
+      'Seleccioná Adjuntar documento y elegí uno o varios archivos. Esperá la confirmación de subida.',
+      'Usá Descargar para obtener el archivo original con su nombre.',
+      'Para quitarlo, seleccioná Eliminar y confirmá. Si aparece Pendiente de limpieza, usá Completar limpieza y confirmá.',
+    ],
+    aclaracion:
+      'Archivos privados: PDF, Word (.doc, .docx), Excel (.xls, .xlsx), JPG, JPEG, PNG y WebP. Límite inicial: 10 MB por archivo y 10 archivos por selección; la pestaña muestra los límites vigentes. No se admiten archivos vacíos. No hay visor avanzado de Word o Excel en esta etapa.',
+    ruta: '/alumnos',
+    enlace: 'Ir a Alumnos',
+  },
+  {
     id: 'cobro-directo',
     titulo: '¿Cómo registro un cobro directo?',
     icono: 'payments',
@@ -34,8 +82,10 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
       'Entrá en Alumnos.',
       'Seleccioná Agregar alumno.',
       'Completá sus datos personales, modalidad y fecha de ingreso.',
+      'Si querés, abrí Información adicional para completar teléfono, email y observaciones. En Documentos podés seleccionar archivos antes de guardar.',
       'Si habilitás el cobro mensual, revisá el primer período y Crear primera cuota al guardar.',
       'Seleccioná Guardar y esperá el mensaje que indica si se creó la primera cuota.',
+      'Si el perfil o algún documento no se confirma, revisá el resultado y usá Reintentar pendientes. El alumno ya creado se conserva; también podés Finalizar y gestionarlos desde su ficha.',
     ],
     aclaracion: 'Podés modificar sus datos más adelante.',
     ruta: '/alumnos',
@@ -46,7 +96,7 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
     titulo: '¿Cómo configuro el cobro mensual?',
     icono: 'event_repeat',
     pasos: [
-      'Al agregar o editar un alumno, buscá Configuración de cobro.',
+      'Al agregar o editar un alumno, buscá Configuración mensual.',
       'Marcá Habilitar cuota mensual.',
       'Completá Importe mensual en ARS y Día de vencimiento.',
       'Si es un alumno nuevo, elegí el primer período y dejá marcada Crear primera cuota al guardar si querés crearla ahora.',
@@ -143,8 +193,8 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
     icono: 'edit',
     pasos: [
       'Entrá en Alumnos y buscá a la persona.',
-      'Seleccioná el ícono de lápiz: Editar alumno.',
-      'Modificá la información.',
+      'Seleccioná Ver ficha.',
+      'En Resumen, usá Editar en Datos personales, Información adicional o Configuración mensual. Para el perfil y los archivos, abrí Entrenamiento o Documentos.',
       'Seleccioná Guardar.',
     ],
     aclaracion: 'Cambiar el importe mensual no modifica las cuotas ya creadas.',
@@ -157,12 +207,12 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
     icono: 'person_off',
     pasos: [
       'Entrá en Alumnos y buscá a la persona.',
-      'Seleccioná Editar alumno.',
+      'Seleccioná Ver ficha y, en Resumen, Editar datos personales.',
       'En Estado, elegí En pausa o Inactivo.',
       'Seleccioná Guardar.',
     ],
     aclaracion:
-      'No se incluirá en nuevas generaciones mensuales. Sus cuotas, pagos y deudas anteriores se conservan.',
+      'También podés usar Dar de baja o Reactivar alumno en Datos personales de la ficha, con confirmación. Los alumnos en pausa o inactivos no se incluyen en nuevas generaciones mensuales; sus cuotas, pagos y deudas anteriores se conservan.',
     ruta: '/alumnos',
     enlace: 'Ir a Alumnos',
   },
@@ -172,8 +222,8 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
     icono: 'receipt_long',
     pasos: [
       'Entrá en Cuotas y cobros y buscá la cuota.',
-      'Abrí Ver detalle.',
-      'Seleccioná Editar cuota o buscá el pago en Historial de pagos y seleccioná Editar pago.',
+      'Abrí Acciones y seleccioná Editar cuota.',
+      'Revisá los datos y el resumen financiero; para corregir un pago, buscalo en Historial de pagos y seleccioná Editar pago. Guardá o cancelá primero los cambios de la cuota.',
       'Corregí los datos y seleccioná Guardar. Si editás un pago, confirmá la corrección.',
     ],
     aclaracion:
@@ -190,7 +240,7 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
       'Buscá por alumno o concepto y elegí Mes y Año. En Mes, Todos los períodos muestra todo.',
       'En Tipo, elegí Todos, Cuotas o Cobros directos. Combiná Alumno, Estado y Modalidad; en celular, abrí Filtrar por alumno.',
       'Cada fila indica su tipo: las cuotas muestran período y vencimiento; los cobros directos, fecha de cobro y No genera deuda.',
-      'Usá Ver detalle o Más acciones para editar, cobrar una cuota o eliminar cuando corresponda.',
+      'Usá Acciones para editar o eliminar cuando corresponda. Editar cuota también muestra el historial de pagos y permite registrar cobros.',
       'Limpiar filtros muestra todos los movimientos. Actualizar y Exportaciones están en las acciones secundarias.',
     ],
     aclaracion:

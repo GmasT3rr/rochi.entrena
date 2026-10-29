@@ -53,6 +53,54 @@ describe('Interfaz de cobros directos', () => {
     });
     return { service, descargar, close };
   }
+  it('abre directamente edición y cancelar no persiste', () => {
+    const { service } = preparar({ cobro, alumnoId: 'a' });
+    const f = TestBed.createComponent(CobroDirectoForm);
+    f.detectChanges();
+    expect(f.componentInstance.form.controls.concepto.enabled).toBe(true);
+    expect(f.componentInstance.form.controls.alumnoId.disabled).toBe(true);
+    expect(f.nativeElement.textContent).toContain('Cancelar');
+    expect(f.nativeElement.textContent).not.toContain('Detalle de cobro directo');
+    expect(service.guardarCobro).not.toHaveBeenCalled();
+  });
+  it('guarda todos los campos permitidos con el servicio existente y conserva el alumno de la ficha', async () => {
+    const { service, close } = preparar({ cobro, alumnoId: 'a' });
+    const c = TestBed.createComponent(CobroDirectoForm).componentInstance;
+    c.form.patchValue({
+      alumnoId: 'otro',
+      concepto: 'Sesión',
+      importe: 80.5,
+      fecha: '2026-10-20',
+      medio: 'Otro',
+      observaciones: 'Actualizada',
+    });
+    await c.guardar();
+    expect(service.guardarCobro).toHaveBeenCalledWith(
+      {
+        id: 'd',
+        alumnoId: 'a',
+        concepto: 'Sesión',
+        importe: 80.5,
+        fecha: '2026-10-20',
+        medio: 'Otro',
+        observaciones: 'Actualizada',
+      },
+      false,
+      undefined,
+    );
+    expect(close).toHaveBeenCalledWith(true);
+  });
+  it('mantiene la edición y los datos ante un error de actualización', async () => {
+    const { service, close } = preparar({ cobro });
+    service.guardarCobro.mockResolvedValue(false);
+    service.error.set('No se pudo guardar');
+    const c = TestBed.createComponent(CobroDirectoForm).componentInstance;
+    c.form.controls.concepto.setValue('Corregido');
+    await c.guardar();
+    expect(c.error()).toBe('No se pudo guardar');
+    expect(c.form.controls.concepto.value).toBe('Corregido');
+    expect(close).not.toHaveBeenCalled();
+  });
   it('presenta solo los campos del cobro, valida la fecha y evita doble envío', async () => {
     const { service, close } = preparar();
     const fixture = TestBed.createComponent(CobroDirectoForm);

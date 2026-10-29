@@ -7,6 +7,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { Subject } from 'rxjs';
 import { CuentaForm } from './cuenta-form';
 import { CuentasService } from '../../core/services/cuentas-service';
+import { HistorialPagos } from './historial-pagos';
 
 const cuota = {
   id: 'c',
@@ -32,12 +33,20 @@ describe('Formulario de cuotas y pagos remotos', () => {
         { id: 'a', nombre: 'Ana', apellido: 'Pérez', modalidad: 'Online', estado: 'Activo' },
       ]),
       cuentas: signal([
-        { ...cuota, alumno: 'Ana Pérez', abonado: 0, saldo: 100, pagos: [] as any[] },
+        {
+          ...cuota,
+          ...data.cuota,
+          alumno: 'Ana Pérez',
+          abonado: 0,
+          saldo: 100,
+          pagos: [] as any[],
+        },
       ]),
       versionCuota: () => version,
       versionPago: () => version,
       guardarCuota: vi.fn().mockResolvedValue(true),
       guardarPago: vi.fn().mockResolvedValue(true),
+      eliminarPago: vi.fn().mockResolvedValue(true),
       recargar: vi.fn(),
     };
     const open = vi.fn().mockReturnValue({ afterClosed: () => confirmar });
@@ -93,6 +102,112 @@ describe('Formulario de cuotas y pagos remotos', () => {
     anio.dispatchEvent(new Event('input'));
     await component.guardar();
     expect(service.guardarCuota).toHaveBeenCalledTimes(1);
+  });
+  it('preselecciona al alumno al crear una cuota desde su ficha', async () => {
+    const { component } = await form({ tipo: 'cuota', alumnoId: 'a' });
+    expect(component.cuotaForm.controls.alumnoId.value).toBe('a');
+  });
+  it('integra resumen e historial sin escrituras al abrir y conserva búsqueda y orden', async () => {
+    const { fixture, component, service } = await form({ tipo: 'cuota', cuota });
+    const pagos = [
+      {
+        id: 'p1',
+        cuotaId: 'c',
+        importe: 20,
+        fecha: '2026-10-02',
+        medio: 'Efectivo',
+        observaciones: 'Clase extra',
+      },
+      {
+        id: 'p2',
+        cuotaId: 'c',
+        importe: 40,
+        fecha: '2026-10-03',
+        medio: 'Transferencia',
+        observaciones: 'Banco',
+      },
+    ];
+    service.cuentas.set([{ ...service.cuentas()[0], pagos, abonado: 60, saldo: 40 }]);
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('Total abonado');
+    expect(fixture.nativeElement.textContent).toContain('Saldo pendiente');
+    const historial = fixture.debugElement.query(By.directive(HistorialPagos))
+      .componentInstance as HistorialPagos;
+    expect(historial.pagosVisibles().map((p) => p.id)).toEqual(['p2', 'p1']);
+    historial.busquedaPagos.set('efectivo');
+    expect(historial.pagosVisibles().map((p) => p.id)).toEqual(['p1']);
+    historial.busquedaPagos.set('');
+    historial.ordenarPagos('importe:asc');
+    expect(historial.pagosVisibles().map((p) => p.id)).toEqual(['p1', 'p2']);
+    expect(service.guardarCuota).not.toHaveBeenCalled();
+    expect(service.guardarPago).not.toHaveBeenCalled();
+    expect(component.cambiosCuota()).toBe(false);
+  });
+  it('bloquea acciones de pagos si hay cambios de cuota sin guardar', async () => {
+    const { fixture, component, service, open } = await form({ tipo: 'cuota', cuota });
+    component.cuotaForm.controls.importe.setValue(200);
+    await fixture.whenStable();
+    expect(component.cambiosCuota()).toBe(true);
+    component.gestionarPago();
+    await component.eliminarPago({
+      id: 'p',
+      cuotaId: 'c',
+      importe: 10,
+      fecha: '2026-10-01',
+      medio: 'Otro',
+      observaciones: '',
+    });
+    expect(open).not.toHaveBeenCalled();
+    expect(service.eliminarPago).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Guardá o cancelá');
+  });
+  it('actualiza campos intactos sin marcar cambios ni pedir descartar al cancelar', async () => {
+    const { fixture, component, service, close, open } = await form({ tipo: 'cuota', cuota });
+    service.cuentas.set([{ ...service.cuentas()[0], importe: 150, saldo: 150 }]);
+    await fixture.whenStable();
+    expect(component.cuotaForm.controls.importe.value).toBe(150);
+    expect(component.cambiosCuota()).toBe(false);
+    TestBed.inject(MatDialogRef).close();
+    expect(close).toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+  it('conserva edición y versión original si cambian datos concurrentemente', async () => {
+    const { fixture, component, service, version } = await form({ tipo: 'cuota', cuota });
+    component.cuotaForm.controls.importe.setValue(200);
+    service.versionCuota = () => ({ ...version, revision: '2' });
+    service.cuentas.set([{ ...service.cuentas()[0], saldo: 90, abonado: 10 }]);
+    await fixture.whenStable();
+    expect(component.cuotaForm.controls.importe.value).toBe(200);
+    expect(component.desactualizada()).toBe(true);
+    await component.guardar();
+    expect(service.guardarCuota).toHaveBeenCalledWith(
+      expect.objectContaining({ importe: 200 }),
+      'c',
+      expect.any(String),
+      version,
+    );
+  });
+  it('reutiliza el editor de pagos y elimina solo después de confirmar con su versión', async () => {
+    const { component, service, open, confirmar, version } = await form({ tipo: 'cuota', cuota });
+    const pago = {
+      id: 'p',
+      cuotaId: 'c',
+      importe: 10,
+      fecha: '2026-10-01',
+      medio: 'Otro' as const,
+      observaciones: '',
+    };
+    component.gestionarPago(pago);
+    expect(open).toHaveBeenCalledWith(
+      CuentaForm,
+      expect.objectContaining({ data: expect.objectContaining({ tipo: 'pago', pago }) }),
+    );
+    confirmar.next(false);
+    expect(component.gestionandoPago()).toBe(false);
+    const eliminar = component.eliminarPago(pago);
+    confirmar.next(true);
+    await eliminar;
+    expect(service.eliminarPago).toHaveBeenCalledWith('p', version);
   });
   it('conserva el periodo historico al editar y convierte fechas argentinas sin cambiar validaciones', async () => {
     const { component, fixture } = await form({

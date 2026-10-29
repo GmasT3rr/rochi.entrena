@@ -1,3 +1,23 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: 90dvh;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+mat-dialog-content {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+mat-dialog-actions {
+  flex-shrink: 0;
+}
 .payment-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -23,6 +43,33 @@
 }
 p {
   overflow-wrap: anywhere;
+}
+.quota-financial,
+.quota-history {
+  margin-top: var(--hub-space-6);
+  padding-top: var(--hub-space-6);
+  border-top: 1px solid var(--hub-border);
+}
+.quota-financial header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--hub-space-3);
+  margin-bottom: var(--hub-space-3);
+}
+.quota-financial h3 {
+  margin: 0;
+}
+.quota-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hub-space-3);
+  margin-bottom: var(--hub-space-4);
+}
+@media (max-width: 599.98px) {
+  .quota-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 @media (max-width: 599.98px) {
   .payment-summary {

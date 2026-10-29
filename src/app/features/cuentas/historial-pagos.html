@@ -1,0 +1,66 @@
+<h3>Historial de pagos</h3>
+<div class="hub-filters payment-filters">
+  <mat-form-field appearance="outline" class="search">
+    <mat-label>Buscar pago</mat-label>
+    <input
+      matInput
+      type="search"
+      [value]="busquedaPagos()"
+      (input)="busquedaPagos.set($any($event.target).value)"
+      placeholder="Fecha, medio u observaciones"
+    />
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Ordenar pagos</mat-label>
+    <mat-select
+      [value]="ordenPagos().active + ':' + ordenPagos().direction"
+      (selectionChange)="ordenarPagos($event.value)"
+    >
+      <mat-option value="fecha:desc">Más recientes</mat-option
+      ><mat-option value="fecha:asc">Más antiguos</mat-option>
+      <mat-option value="importe:desc">Mayor importe</mat-option
+      ><mat-option value="importe:asc">Menor importe</mat-option>
+      <mat-option value="medio:asc">Medio de pago A–Z</mat-option>
+    </mat-select>
+  </mat-form-field>
+</div>
+<ul class="payments">
+  @for (p of pagosVisibles(); track p.id) {
+    <li>
+      <div>
+        <strong>{{ p.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong> ·
+        {{ p.fecha | date: 'dd/MM/yyyy' }} · {{ p.medio }}
+        <p>{{ p.observaciones || 'Sin observaciones' }}</p>
+      </div>
+      <div class="hub-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="editar.emit(p)"
+          [disabled]="bloqueado()"
+          [attr.aria-label]="'Editar pago del ' + p.fecha"
+        >
+          Editar pago
+        </button>
+        <button
+          mat-button
+          type="button"
+          class="hub-danger"
+          (click)="eliminar.emit(p)"
+          [disabled]="bloqueado()"
+          [attr.aria-label]="'Eliminar pago del ' + p.fecha"
+        >
+          Eliminar pago
+        </button>
+      </div>
+    </li>
+  } @empty {
+    <li>
+      {{
+        pagos().length
+          ? 'No hay pagos que coincidan con la búsqueda.'
+          : 'No hay pagos registrados para esta cuota.'
+      }}
+    </li>
+  }
+</ul>

@@ -83,7 +83,7 @@ describe('Centro de pendientes', () => {
     c.pagar(cuota);
     expect(open.mock.calls[0][1].data).toEqual({ tipo: 'pago', cuota });
     c.detalle(cuota);
-    expect(open.mock.calls[1][1].data).toBe('c');
+    expect(open.mock.calls[1][1].data).toEqual({ tipo: 'cuota', cuota });
     service.disponible.set(false);
     c.pagar(cuota);
     expect(open).toHaveBeenCalledTimes(2);

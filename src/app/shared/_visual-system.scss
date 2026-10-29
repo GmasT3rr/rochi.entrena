@@ -281,6 +281,23 @@ div[role='alert'] {
   width: 100%;
   max-width: 360px;
 }
+/* Uniform optional form sections reuse Material and the existing inset panel. */
+.hub-optional-sections {
+  display: grid;
+  gap: var(--hub-space-4);
+  margin-block: var(--hub-space-4);
+}
+.hub-optional-sections > .hub-filter-extra {
+  margin: 0;
+}
+.hub-optional-sections > .hub-filter-extra > mat-expansion-panel-header {
+  min-height: calc(var(--hub-control-height) + var(--hub-space-2));
+}
+@media (max-width: bp.$phone) {
+  .hub-optional-sections > .hub-filter-extra > mat-expansion-panel-header {
+    min-height: calc(var(--hub-control-height) + var(--hub-space-6) + var(--hub-space-2));
+  }
+}
 .hub-actions--stacked {
   margin-bottom: var(--hub-space-3);
 }

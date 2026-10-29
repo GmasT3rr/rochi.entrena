@@ -197,18 +197,20 @@ describe('Listado simplificado de cuotas', () => {
     component.cobroDirecto();
     expect(dialog.open).toHaveBeenLastCalledWith(
       CobroDirectoForm,
-      expect.objectContaining({ data: expect.objectContaining({ lectura: false }) }),
-    );
-    component.verMovimiento(directo);
-    expect(dialog.open).toHaveBeenLastCalledWith(
-      CobroDirectoForm,
-      expect.objectContaining({ data: expect.objectContaining({ lectura: true }) }),
+      expect.objectContaining({ data: expect.objectContaining({ cobro: undefined }) }),
     );
     component.editarMovimiento(directo);
     expect(dialog.open).toHaveBeenLastCalledWith(
       CobroDirectoForm,
       expect.objectContaining({
-        data: expect.objectContaining({ cobro: service.cobrosDirectos()[0], lectura: false }),
+        data: expect.objectContaining({ cobro: service.cobrosDirectos()[0] }),
+      }),
+    );
+    component.editarMovimiento(directo);
+    expect(dialog.open).toHaveBeenLastCalledWith(
+      CobroDirectoForm,
+      expect.objectContaining({
+        data: expect.objectContaining({ cobro: service.cobrosDirectos()[0] }),
       }),
     );
     dialog.open.mockReturnValue({ afterClosed: () => of(false) });
@@ -230,7 +232,7 @@ describe('Listado simplificado de cuotas', () => {
     component.modalidad.set('Online');
     component.estado.set('Vencida');
     expect(component.cuentas().map((c) => c.id)).toEqual(['c1']);
-    component.detalle(component.cuentas()[0]);
+    component.nueva(component.cuentas()[0]);
     expect(component.busqueda()).toBe('pérez');
     fixture.destroy();
     const siguiente = TestBed.createComponent(Cuentas).componentInstance;
@@ -312,9 +314,9 @@ describe('Listado simplificado de cuotas', () => {
       expect(labels).toHaveLength(1);
       expect(!!fixture.nativeElement.querySelector('mat-expansion-panel')).toBe(mobile);
       const actions = fixture.nativeElement.querySelector('.desktop-table .row-actions');
-      expect(actions.querySelectorAll('button')).toHaveLength(2);
-      expect(actions.querySelector('button[aria-label^="Ver detalle"]')).toBeTruthy();
-      expect(actions.querySelector('button[aria-label^="Más acciones"]')).toBeTruthy();
+      expect(actions.querySelectorAll('button')).toHaveLength(1);
+      expect(actions.querySelector('button[aria-label^="Ver detalle"]')).toBeNull();
+      expect(actions.querySelector('button[aria-label^="Acciones"]')).toBeTruthy();
       expect(fixture.nativeElement.querySelectorAll('table').length).toBe(1);
       expect(fixture.nativeElement.querySelector('app-cobros-directos')).toBeNull();
     });

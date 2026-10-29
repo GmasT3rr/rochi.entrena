@@ -1,6 +1,12 @@
 ﻿<h2 mat-dialog-title>{{ titulo }}</h2>
 <form [formGroup]="data.tipo === 'cuota' ? cuotaForm : pagoForm" (ngSubmit)="guardar()">
   <mat-dialog-content>
+    @if (service.cargando()) {
+      <p role="status">Actualizando datos…</p>
+    }
+    @if (service.cargandoInicial?.()) {
+      <app-loading-layout variant="pagos" label="Cargando cuota y pagos" />
+    }
     @if (data.tipo === 'cuota') {
       <div class="form-grid" [formGroup]="cuotaForm">
         <mat-form-field appearance="outline" class="full-width">
@@ -54,6 +60,88 @@
           ><textarea matInput rows="3" formControlName="observaciones" maxlength="3000"></textarea>
         </mat-form-field>
       </div>
+      @if (data.cuota && cuenta(); as c) {
+        <section class="quota-financial" aria-label="Resumen financiero">
+          <header>
+            <h3>Resumen financiero</h3>
+            <span
+              class="badge"
+              [class.badge--pagado]="c.estado === 'Pagada'"
+              [class.badge--vencido]="c.estado === 'Vencida'"
+              [class.badge--pendiente]="c.estado === 'Parcial' || c.estado === 'Pendiente'"
+              >{{ c.estado }}</span
+            >
+            @if (c.estado === 'Vencida' && c.abonado > 0) {
+              <span>Con pagos parciales</span>
+            }
+          </header>
+          <div class="quota-metrics">
+            <app-stat-card
+              [compact]="true"
+              label="Total abonado"
+              [value]="(c.abonado | currency: 'ARS' : 'symbol' : '1.2-2')!"
+            />
+            <app-stat-card
+              [compact]="true"
+              label="Saldo pendiente"
+              [value]="(c.saldo | currency: 'ARS' : 'symbol' : '1.2-2')!"
+            />
+          </div>
+          @if (cambiosCuota()) {
+            <p role="status">
+              Guardá o cancelá los cambios de la cuota antes de gestionar pagos. El resumen muestra
+              los importes confirmados.
+            </p>
+          }
+          @if (desactualizada()) {
+            <p role="alert">
+              La cuota o sus pagos cambiaron. Tus campos se conservaron; al guardar se comprobará la
+              versión original.
+            </p>
+          }
+          <div class="hub-actions">
+            @if (c.saldo > 0) {
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="gestionarPago()"
+                [disabled]="
+                  cambiosCuota() || !service.disponible() || gestionandoPago() || confirmando()
+                "
+              >
+                Registrar cobro
+              </button>
+            }
+            @if (!c.pagos.length) {
+              <button
+                mat-button
+                type="button"
+                class="hub-danger"
+                (click)="eliminarCuota()"
+                [disabled]="
+                  cambiosCuota() || !service.disponible() || gestionandoPago() || confirmando()
+                "
+              >
+                Eliminar cuota
+              </button>
+            }
+          </div>
+        </section>
+        <section class="quota-history" aria-label="Historial de pagos de la cuota">
+          <app-historial-pagos
+            [pagos]="c.pagos"
+            [bloqueado]="
+              cambiosCuota() ||
+              !service.disponible() ||
+              gestionandoPago() ||
+              confirmando() ||
+              enviando()
+            "
+            (editar)="gestionarPago($event)"
+            (eliminar)="eliminarPago($event)"
+          />
+        </section>
+      }
     } @else {
       @if (cuenta(); as c) {
         <h3>{{ c.alumno }}</h3>
@@ -131,6 +219,9 @@
     @if (error()) {
       <p role="alert">{{ error() }}</p>
     }
+    @if (service.errorCarga?.()) {
+      <p role="alert">{{ service.errorCarga() }}</p>
+    }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button
@@ -148,6 +239,7 @@
       [disabled]="
         enviando() ||
         confirmando() ||
+        gestionandoPago() ||
         !service.disponible() ||
         (data.tipo === 'pago' && (pagoForm.invalid || disponible <= 0 || saldoResultante! < 0))
       "

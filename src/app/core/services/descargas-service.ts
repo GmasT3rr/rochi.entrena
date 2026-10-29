@@ -3,7 +3,10 @@ import { Injectable } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class DescargasService {
   descargar(nombre: string, contenido: string, tipo: string): void {
-    const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+    this.descargarBlob(nombre, new Blob([contenido], { type: tipo }));
+  }
+  descargarBlob(nombre: string, contenido: Blob): void {
+    const url = URL.createObjectURL(contenido);
     const enlace = document.createElement('a');
     enlace.href = url;
     enlace.download = nombre;

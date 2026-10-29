@@ -1,0 +1,105 @@
+<section class="finance" aria-label="Finanzas del alumno" [attr.aria-busy]="cuentas.cargando()">
+  @if (cuentas.cargandoInicial()) {
+    <app-loading-layout variant="pagos" label="Cargando finanzas" />
+  } @else if (cuentas.errorCarga()) {
+    <p role="alert">{{ cuentas.errorCarga() }}</p>
+    <button
+      mat-stroked-button
+      (click)="cuentas.recargar()"
+      [disabled]="cuentas.cargando() || cuentas.guardando()"
+    >
+      Reintentar
+    </button>
+  } @else if (cuentas.tieneDatos()) {
+    <div class="finance-summary" aria-label="Resumen financiero">
+      <app-stat-card
+        [compact]="true"
+        label="Saldo total pendiente"
+        [value]="(cuentas.saldoAlumno(alumno()) | currency: 'ARS' : 'symbol' : '1.2-2')!"
+        icon="account_balance_wallet"
+      />
+      <app-stat-card
+        [compact]="true"
+        label="Cuotas con saldo"
+        [value]="pendientes().toString()"
+        icon="receipt_long"
+      />
+    </div>
+    <div class="hub-actions">
+      <button mat-flat-button [matMenuTriggerFor]="nuevo" [disabled]="!cuentas.disponible()">
+        Nuevo movimiento
+      </button>
+      <mat-menu #nuevo="matMenu">
+        <button mat-menu-item (click)="nuevaCuota()">Crear cuota</button>
+        <button mat-menu-item (click)="cobroDirecto()">Registrar cobro directo</button>
+      </mat-menu>
+      <button mat-stroked-button (click)="verCuentas()">Ver todas las cuentas del alumno</button>
+    </div>
+    @if (cuentas.cargando()) {
+      <p role="status">Actualizando finanzas…</p>
+    }
+    <h3>Historial de movimientos</h3>
+    <ul class="movements">
+      @for (m of movimientos(); track m.clave) {
+        <li class="movement">
+          <header class="movement-header">
+            <h4>{{ m.concepto }}</h4>
+            @if (m.tipo === 'cuota') {
+              <span
+                class="badge"
+                [class.badge--pagado]="m.estado === 'Pagada'"
+                [class.badge--pendiente]="m.estado === 'Parcial' || m.estado === 'Pendiente'"
+                [class.badge--vencido]="m.estado === 'Vencida'"
+                >{{ m.estado }}</span
+              >
+            } @else {
+              <span class="badge badge-directo">Cobro directo</span>
+            }
+          </header>
+          <div class="movement-body">
+            <div class="movement-description">
+              @if (m.tipo === 'cuota') {
+                <p class="movement-type">Cuota · Período {{ m.periodo }}</p>
+                <p>Vence {{ m.cuota.vencimiento | date: 'dd/MM/yyyy' }}</p>
+              } @else {
+                <p>Cobrado {{ m.cobro.fecha | date: 'dd/MM/yyyy' }}</p>
+              }
+            </div>
+            <dl class="movement-amount">
+              <div>
+                <dt>{{ m.tipo === 'cuota' ? 'Importe original' : 'Importe recibido' }}</dt>
+                <dd>{{ m.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+              </div>
+              @if (m.tipo === 'cuota') {
+                <div>
+                  <dt>Saldo pendiente</dt>
+                  <dd class="movement-balance">
+                    {{ m.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}
+                  </dd>
+                </div>
+              }
+            </dl>
+          </div>
+          <div class="hub-actions movement-actions">
+            <button
+              mat-button
+              (click)="editar(m)"
+              [attr.aria-label]="'Editar ' + m.etiqueta + ': ' + m.concepto"
+            >
+              Editar {{ m.tipo === 'cuota' ? 'cuota' : 'cobro directo' }}
+            </button>
+            @if (m.tipo === 'cuota' && m.cuota.saldo > 0) {
+              <button mat-stroked-button (click)="pago(m.cuota)" [disabled]="!cuentas.disponible()">
+                Registrar pago
+              </button>
+            }
+          </div>
+        </li>
+      } @empty {
+        <li class="empty" role="status">
+          Todavía no hay cuotas ni cobros directos para este alumno.
+        </li>
+      }
+    </ul>
+  }
+</section>

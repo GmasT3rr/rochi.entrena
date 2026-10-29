@@ -19,7 +19,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { ordenar } from '../../core/services/orden-tabla';
 import { LoadingLayout } from '../../shared/skeleton/loading-layout';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, effect, untracked, inject, signal } from '@angular/core';
+import { Component, computed, effect, untracked, inject, signal, DestroyRef } from '@angular/core';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,7 +34,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { confirmarEliminarCuota } from './confirmar-eliminar-cuota';
 import { CuentaForm } from './cuenta-form';
-import { CuotaDetalle } from './cuota-detalle';
 import { GenerarMensual } from './generar-mensual';
 
 @Component({
@@ -76,6 +75,11 @@ export class Cuentas {
     null,
   );
   constructor() {
+    // Alumno es temporal: el servicio singleton conserva los demás filtros.
+    this.alumnoId.set('');
+    inject(DestroyRef).onDestroy(() => {
+      this.alumnoId.set('');
+    });
     const toast = inject(ToastService);
     inject(ActivatedRoute)
       .queryParamMap.pipe(takeUntilDestroyed())
@@ -89,7 +93,7 @@ export class Cuentas {
         this.contexto.set(null);
         if (!contexto.periodo && !contexto.alumno) return;
         const clave = JSON.stringify(contexto);
-        if (this.service.contextoListado === clave) return;
+        if (!contexto.alumno && this.service.contextoListado === clave) return;
         const alumno = contexto.alumno;
         if (
           (contexto.periodo && !periodoValido(contexto.periodo)) ||
@@ -199,10 +203,6 @@ export class Cuentas {
   cobroDirecto(): void {
     this.cobrosAcciones.abrir();
   }
-  verMovimiento(m: MovimientoVista): void {
-    if (m.tipo === 'cuota') this.detalle(m.cuota);
-    else this.cobrosAcciones.abrir(m.cobro, true);
-  }
   editarMovimiento(m: MovimientoVista): void {
     if (m.tipo === 'cuota') this.nueva(m.cuota);
     else this.cobrosAcciones.abrir(m.cobro);
@@ -303,14 +303,6 @@ export class Cuentas {
       closeOnNavigation: false,
       data: { tipo: 'cuota', cuota },
       width: '680px',
-      maxWidth: 'calc(100vw - 24px)',
-      maxHeight: '90dvh',
-    });
-  }
-  detalle(c: CuentaVista): void {
-    this.dialog.open(CuotaDetalle, {
-      data: c.id,
-      width: '760px',
       maxWidth: 'calc(100vw - 24px)',
       maxHeight: '90dvh',
     });

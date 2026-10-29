@@ -13,14 +13,14 @@ export class CobrosDirectosAcciones {
   private readonly dialog = inject(MatDialog);
   readonly confirmando = signal(false);
 
-  abrir(cobro?: CobroDirecto, lectura = false): void {
+  abrir(cobro?: CobroDirecto, alumnoId?: string): void {
     if (
       !this.service.disponible() ||
       this.dialog.openDialogs.some((d) => d.componentInstance instanceof CobroDirectoForm)
     )
       return;
     this.dialog.open(CobroDirectoForm, {
-      data: { cobro, lectura },
+      data: { cobro, ...(alumnoId ? { alumnoId } : {}) },
       closeOnNavigation: false,
       width: '680px',
       maxWidth: 'calc(100vw - 24px)',

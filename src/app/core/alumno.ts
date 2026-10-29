@@ -7,6 +7,8 @@ export interface ConfiguracionMensual {
   diaVencimiento: number;
   habilitada: boolean;
   periodoInicio?: string;
+  // Versión técnica del registro remoto, conservada sin convertir a Date.
+  actualizadoEn?: string;
 }
 export function configuracionMensualValida(value: unknown): value is ConfiguracionMensual {
   if (!value || typeof value !== 'object') return false;

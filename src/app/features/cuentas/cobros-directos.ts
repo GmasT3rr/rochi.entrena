@@ -50,8 +50,8 @@ export class CobrosDirectos {
     const a = this.service.alumnos().find((a) => a.id === id);
     return a ? a.nombre + ' ' + a.apellido : '';
   }
-  abrir(cobro?: CobroDirecto, lectura = false): void {
-    this.acciones.abrir(cobro, lectura);
+  abrir(cobro?: CobroDirecto): void {
+    this.acciones.abrir(cobro, this.alumno() || undefined);
   }
   eliminar(c: CobroDirecto): Promise<void> {
     return this.acciones.eliminar(c);

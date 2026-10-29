@@ -1,0 +1,30 @@
+@use '../../shared/breakpoints' as bp;
+:host {
+  display: block;
+  min-width: 0;
+}
+.training {
+  padding-block: var(--hub-space-4);
+}
+dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hub-space-3) var(--hub-space-4);
+}
+dl > div {
+  min-width: 0;
+}
+dt,
+.scope {
+  color: var(--hub-muted);
+}
+dd {
+  margin: var(--hub-space-1) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: bp.$phone) {
+  dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

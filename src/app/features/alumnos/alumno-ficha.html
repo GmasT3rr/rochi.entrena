@@ -1,0 +1,334 @@
+<h2 mat-dialog-title>Ficha del alumno</h2>
+<mat-dialog-content>
+  @if (service.cargandoInicial()) {
+    <app-loading-layout variant="ficha" label="Cargando alumno" />
+  } @else if (service.errorListado()) {
+    <p role="alert">{{ service.errorListado() }}</p>
+    <button mat-stroked-button (click)="service.recargar()">Reintentar</button>
+  } @else if (alumno(); as a) {
+    <header class="student-header">
+      <span class="student-avatar" aria-hidden="true">{{ iniciales() }}</span>
+      <div class="student-identity">
+        <h3>{{ a.nombre }} {{ a.apellido }}</h3>
+        <div class="student-meta">
+          <span>{{ a.modalidad }}</span>
+          <span
+            class="badge"
+            [class.badge--pagado]="a.estado === 'Activo'"
+            [class.badge--pendiente]="a.estado === 'En pausa'"
+            [class.badge--vencido]="a.estado === 'Inactivo'"
+            >{{ a.estado }}</span
+          >
+        </div>
+      </div>
+    </header>
+    <mat-tab-group animationDuration="0ms" [preserveContent]="true" mat-stretch-tabs="false">
+      <mat-tab label="Resumen">
+        <section class="summary" aria-label="Resumen del alumno">
+          <div class="summary-metrics" aria-label="Indicadores del alumno">
+            <app-stat-card
+              [compact]="true"
+              label="Cuota mensual configurada"
+              [value]="
+                a.configuracionMensual
+                  ? (a.configuracionMensual.importe | currency: 'ARS' : 'symbol' : '1.2-2')!
+                  : 'No configurada'
+              "
+              [hint]="
+                a.configuracionMensual
+                  ? a.configuracionMensual.habilitada
+                    ? 'Habilitada · importe configurado, no cobrado'
+                    : 'Deshabilitada · configuración conservada'
+                  : 'Podés configurarla más abajo'
+              "
+              icon="event_repeat"
+            />
+            @if (cuentas.cargandoInicial()) {
+              <app-loading-layout variant="pagos" label="Cargando saldo" />
+            } @else if (cuentas.errorCarga()) {
+              <div class="balance-error">
+                <p role="alert">{{ cuentas.errorCarga() }}</p>
+                <button
+                  mat-stroked-button
+                  (click)="cuentas.recargar()"
+                  [disabled]="cuentas.cargando()"
+                >
+                  Reintentar finanzas
+                </button>
+              </div>
+            } @else if (cuentas.tieneDatos()) {
+              <app-stat-card
+                [compact]="true"
+                label="Saldo pendiente total"
+                [value]="(cuentas.saldoAlumno(a.id) | currency: 'ARS' : 'symbol' : '1.2-2')!"
+                [hint]="cuentas.cargando() ? 'Actualizando saldo…' : 'Deuda de cuotas del alumno'"
+                icon="account_balance_wallet"
+              />
+            }
+          </div>
+          <mat-card
+            appearance="outlined"
+            class="summary-card"
+            aria-labelledby="datos-personales-titulo"
+          >
+            <mat-card-content>
+              <header class="section-header">
+                <h3 id="datos-personales-titulo">
+                  <mat-icon aria-hidden="true">person_outline</mat-icon>Datos personales
+                </h3>
+                <button
+                  mat-button
+                  (click)="editar('personales')"
+                  aria-label="Editar datos personales"
+                  [disabled]="ocupado()"
+                >
+                  Editar
+                </button>
+              </header>
+              <dl class="summary-data">
+                <div>
+                  <dt>Nombre y apellido</dt>
+                  <dd>{{ a.nombre }} {{ a.apellido }}</dd>
+                </div>
+                <div>
+                  <dt>Modalidad</dt>
+                  <dd>{{ a.modalidad }}</dd>
+                </div>
+                <div>
+                  <dt>Estado</dt>
+                  <dd>{{ a.estado }}</dd>
+                </div>
+                <div>
+                  <dt>Fecha de ingreso</dt>
+                  <dd>{{ a.fechaIngreso | date: 'dd/MM/yyyy' }}</dd>
+                </div>
+              </dl>
+            </mat-card-content>
+          </mat-card>
+          <mat-card
+            appearance="outlined"
+            class="summary-card"
+            aria-labelledby="informacion-adicional-titulo"
+          >
+            <mat-card-content>
+              <header class="section-header">
+                <h3 id="informacion-adicional-titulo">
+                  <mat-icon aria-hidden="true">contact_page</mat-icon>Información adicional
+                </h3>
+                <button
+                  mat-button
+                  (click)="editar('adicional')"
+                  aria-label="Editar información adicional"
+                  [disabled]="ocupado()"
+                >
+                  Editar
+                </button>
+              </header>
+              <dl class="summary-data">
+                <div>
+                  <dt>Teléfono</dt>
+                  <dd>{{ a.telefono?.trim() || 'Sin completar' }}</dd>
+                </div>
+                <div>
+                  <dt>Email</dt>
+                  <dd>{{ a.email?.trim() || 'Sin completar' }}</dd>
+                </div>
+                <div class="wide">
+                  <dt>Observaciones</dt>
+                  <dd>{{ a.observaciones?.trim() ? a.observaciones : 'Sin completar' }}</dd>
+                </div>
+              </dl>
+            </mat-card-content>
+          </mat-card>
+          <mat-card
+            appearance="outlined"
+            class="summary-card"
+            aria-labelledby="configuracion-mensual-titulo"
+          >
+            <mat-card-content>
+              <header class="section-header">
+                <div class="section-heading">
+                  <h3 id="configuracion-mensual-titulo">
+                    <mat-icon aria-hidden="true">event_repeat</mat-icon>Configuración mensual
+                  </h3>
+                </div>
+                <button
+                  mat-button
+                  (click)="editar('mensual')"
+                  aria-label="Editar configuración mensual"
+                  [disabled]="ocupado()"
+                >
+                  {{ a.configuracionMensual ? 'Editar configuración' : 'Configurar' }}
+                </button>
+              </header>
+              <div class="monthly-blocks">
+                <section class="monthly-block" aria-labelledby="nuevas-cuotas-titulo">
+                  <h4 id="nuevas-cuotas-titulo">Configuración para nuevas cuotas</h4>
+                  @if (a.configuracionMensual; as config) {
+                    <dl class="summary-data">
+                      <div class="wide">
+                        <dt>Importe mensual configurado</dt>
+                        <dd class="monthly-amount">
+                          {{ config.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Día de vencimiento configurado</dt>
+                        <dd>
+                          {{ config.diaVencimiento }}
+                          <span class="data-note">(o el último día del mes)</span>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Generación mensual</dt>
+                        <dd>
+                          <span
+                            class="badge"
+                            [class.badge--pagado]="config.habilitada"
+                            [class.badge--pendiente]="!config.habilitada"
+                            >{{ config.habilitada ? 'Habilitada' : 'Deshabilitada' }}</span
+                          >
+                        </dd>
+                      </div>
+                      @if (config.periodoInicio; as periodo) {
+                        <div class="wide">
+                          <dt>Primer período a cobrar</dt>
+                          <dd>{{ periodo }}</dd>
+                        </div>
+                      }
+                    </dl>
+                    <p class="data-note monthly-note">
+                      Se usa al generar nuevas cuotas. Las ya emitidas conservan su importe.
+                    </p>
+                  } @else {
+                    <p class="empty-config">
+                      No configurada. Podés habilitar la cuota mensual desde Configurar.
+                    </p>
+                  }
+                </section>
+                <section class="monthly-block" aria-labelledby="cuota-actual-titulo">
+                  <header class="monthly-block-heading">
+                    <h4 id="cuota-actual-titulo">Cuota del mes actual</h4>
+                    @if (cuentas.tieneDatos() && !cuentas.errorCarga() && cuotaActual()) {
+                      <button
+                        mat-button
+                        (click)="editarCuotaActual()"
+                        [disabled]="ocupado() || !cuentas.disponible()"
+                      >
+                        Editar cuota actual
+                      </button>
+                    }
+                  </header>
+                  <p class="data-note monthly-period">{{ periodoActual() }}</p>
+                  @if (cuentas.cargandoInicial()) {
+                    <app-loading-layout variant="pagos" label="Cargando cuota del mes actual" />
+                  } @else if (cuentas.errorCarga()) {
+                    <p role="alert">{{ cuentas.errorCarga() }}</p>
+                    <button
+                      mat-stroked-button
+                      (click)="cuentas.recargar()"
+                      [disabled]="cuentas.cargando()"
+                    >
+                      Reintentar cuota actual
+                    </button>
+                  } @else if (!cuentas.tieneDatos()) {
+                    <p role="status">Información financiera no disponible.</p>
+                    <button
+                      mat-stroked-button
+                      (click)="cuentas.recargar()"
+                      [disabled]="cuentas.cargando()"
+                    >
+                      Actualizar información
+                    </button>
+                  } @else if (cuotasMensualesActuales().length > 1) {
+                    <p role="status">
+                      Hay más de una cuota mensual posible para este período. No se seleccionó
+                      ninguna.
+                    </p>
+                    <button mat-stroked-button (click)="verCuentas(a.id)">Consultar cuotas</button>
+                  } @else if (cuotaActual(); as cuota) {
+                    <dl class="summary-data">
+                      <div class="wide">
+                        <dt>Concepto</dt>
+                        <dd>{{ cuota.concepto }}</dd>
+                      </div>
+                      <div class="wide">
+                        <dt>Importe emitido</dt>
+                        <dd class="monthly-amount">
+                          {{ cuota.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Total abonado</dt>
+                        <dd>{{ cuota.abonado | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Saldo pendiente</dt>
+                        <dd>{{ cuota.saldo | currency: 'ARS' : 'symbol' : '1.2-2' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Estado</dt>
+                        <dd>
+                          <span
+                            class="badge"
+                            [class.badge--pagado]="cuota.estado === 'Pagada'"
+                            [class.badge--vencido]="cuota.estado === 'Vencida'"
+                            [class.badge--pendiente]="
+                              cuota.estado === 'Parcial' || cuota.estado === 'Pendiente'
+                            "
+                            >{{ cuota.estado }}</span
+                          >
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Vencimiento real</dt>
+                        <dd>{{ cuota.vencimiento | date: 'dd/MM/yyyy' }}</dd>
+                      </div>
+                    </dl>
+                    @if (cuentas.cargando()) {
+                      <p role="status">Actualizando cuota…</p>
+                    }
+                  } @else {
+                    <p class="empty-config">Todavía no hay cuota emitida este mes</p>
+                  }
+                </section>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          <div class="hub-actions summary-actions">
+            <button mat-stroked-button (click)="verCuentas(a.id)">Ver en Cuentas</button>
+            <div class="student-state-actions">
+              <button
+                mat-button
+                [class.hub-danger]="a.estado !== 'Inactivo'"
+                (click)="cambiarEstado()"
+                [disabled]="ocupado()"
+                [attr.aria-busy]="cambiandoEstado()"
+              >
+                {{ a.estado === 'Inactivo' ? 'Reactivar alumno' : 'Dar de baja' }}
+              </button>
+            </div>
+            @if (errorEstado()) {
+              <p role="alert">{{ errorEstado() }}</p>
+            }
+          </div>
+        </section>
+      </mat-tab>
+      <mat-tab label="Finanzas"
+        ><ng-template matTabContent
+          ><app-alumno-finanzas [alumno]="a.id" (navegar)="cerrar()" /></ng-template
+      ></mat-tab>
+      <mat-tab label="Documentos"
+        ><ng-template matTabContent><app-alumno-documentos [alumno]="a.id" /></ng-template
+      ></mat-tab>
+      <mat-tab label="Entrenamiento"
+        ><ng-template matTabContent><app-alumno-entrenamiento [alumno]="a.id" /></ng-template
+      ></mat-tab>
+    </mat-tab-group>
+  } @else {
+    <p>No se encontró el alumno.</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end"
+  ><button mat-button mat-dialog-close>Volver al listado</button></mat-dialog-actions
+>

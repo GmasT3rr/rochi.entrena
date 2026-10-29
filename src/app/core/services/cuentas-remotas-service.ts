@@ -190,6 +190,26 @@ export class CuentasService {
   versionCuota(id: string): VersionFinanciera | undefined {
     return this.datos().versionesCuotas[id];
   }
+  validarImporteCuota(id: string, importe: number): boolean {
+    if (!this.cuotas().some((c) => c.id === id))
+      return this.fallar('La cuota ya no está disponible.');
+    return this.validar({
+      version: 1,
+      cuotas: this.cuotas().map((c) => (c.id === id ? { ...c, importe } : c)),
+      pagos: this.pagos(),
+    });
+  }
+  aplicarSnapshotConfirmado(snapshot: CuentasSnapshot): void {
+    // Invalidar una lectura previa aún en vuelo: no puede restaurar importes viejos.
+    this.generation++;
+    this.loading.cancel();
+    this.cargando.set(false);
+    this.datos.set(snapshot);
+    this.cargado.set(true);
+    this.errorCarga.set('');
+    this.error.set('');
+    this.ultimaCarga = Date.now();
+  }
   versionPago(id: string): VersionFinanciera | undefined {
     return this.datos().versionesPagos[id];
   }

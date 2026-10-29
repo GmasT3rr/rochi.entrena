@@ -1,127 +1,297 @@
-﻿<h2 mat-dialog-title>{{ alumno ? 'Editar alumno' : 'Agregar alumno' }}</h2>
+﻿<h2 mat-dialog-title>{{ titulo }}</h2>
 <form [formGroup]="form" (ngSubmit)="guardar()">
   <mat-dialog-content>
-    <div class="form-grid">
-      <mat-form-field appearance="outline">
-        <mat-label>Nombre</mat-label>
-        <input
-          matInput
-          formControlName="nombre"
-          autocomplete="given-name"
-          maxlength="100"
-          required
-        />
-        <mat-error>Ingresá un nombre válido.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Apellido</mat-label>
-        <input
-          matInput
-          formControlName="apellido"
-          autocomplete="family-name"
-          maxlength="100"
-          required
-        />
-        <mat-error>Ingresá un apellido válido.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Teléfono</mat-label>
-        <input matInput formControlName="telefono" type="tel" autocomplete="tel" maxlength="40" />
-        <mat-error>Usá números, espacios o signos de teléfono.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput formControlName="email" type="email" autocomplete="email" maxlength="254" />
-        <mat-error>Ingresá un email válido.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Modalidad</mat-label>
-        <mat-select formControlName="modalidad">
-          <mat-option value="Presencial">Presencial</mat-option>
-          <mat-option value="Online">Online</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Estado</mat-label>
-        <mat-select formControlName="estado">
-          <mat-option value="Activo">Activo</mat-option>
-          <mat-option value="En pausa">En pausa</mat-option>
-          <mat-option value="Inactivo">Inactivo</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Fecha de ingreso</mat-label>
-        <input matInput formControlName="fechaIngreso" type="date" required />
-        <mat-error>Ingresá una fecha válida.</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Observaciones</mat-label>
-        <textarea matInput formControlName="observaciones" rows="3" maxlength="3000"></textarea>
-        <mat-error>El máximo es de 3000 caracteres.</mat-error>
-      </mat-form-field>
-    </div>
-    <section aria-labelledby="configuracion-cobro">
-      <h3 id="configuracion-cobro">Configuración de cobro</h3>
-      <mat-checkbox formControlName="habilitarMensual">Habilitar cuota mensual</mat-checkbox>
-      @if (form.controls.habilitarMensual.value) {
-        <div class="form-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Importe mensual en ARS</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="importeMensual"
-              min="0.01"
-              max="999999999.99"
-              step="0.01"
-              required
-            />
-            <mat-error>Ingresá un importe mayor a cero con hasta dos decimales.</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Día de vencimiento</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="diaVencimiento"
-              min="1"
-              max="31"
-              step="1"
-              required
-            />
-            <mat-error>Ingresá un día entero del 1 al 31.</mat-error>
-          </mat-form-field>
-        </div>
-        <p>
-          Si el día no existe en el mes, se usará su último día. Los cambios se aplican solo a
-          cuotas nuevas.
-        </p>
-        @if (!alumno) {
-          <mat-checkbox formControlName="crearPrimeraCuota"
-            >Crear primera cuota al guardar</mat-checkbox
-          >
-        }
-        <div class="form-grid">
-          <app-period-selector
-            class="full-width"
-            label="Primer período a cobrar (mes y año)"
-            formControlName="primerPeriodo"
+    @if (!seccion || seccion === 'personales') {
+      <h3 class="basic-title">Datos básicos</h3>
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre</mat-label>
+          <input
+            matInput
+            formControlName="nombre"
+            autocomplete="given-name"
+            maxlength="100"
+            required
           />
-        </div>
-        @if (!alumno) {
+          <mat-error>Ingresá un nombre válido.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Apellido</mat-label>
+          <input
+            matInput
+            formControlName="apellido"
+            autocomplete="family-name"
+            maxlength="100"
+            required
+          />
+          <mat-error>Ingresá un apellido válido.</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Modalidad</mat-label>
+          <mat-select formControlName="modalidad">
+            <mat-option value="Presencial">Presencial</mat-option>
+            <mat-option value="Online">Online</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="estado">
+            <mat-option value="Activo">Activo</mat-option>
+            <mat-option value="En pausa">En pausa</mat-option>
+            <mat-option value="Inactivo">Inactivo</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de ingreso</mat-label>
+          <input matInput formControlName="fechaIngreso" type="date" required />
+          <mat-error>Ingresá una fecha válida.</mat-error>
+        </mat-form-field>
+      </div>
+    }
+    <div class="optional-sections hub-optional-sections">
+      @if (!seccion || seccion === 'adicional') {
+        <mat-expansion-panel
+          class="hub-filter-extra"
+          [expanded]="adicionalAbierta()"
+          (opened)="adicionalAbierta.set(true)"
+          (closed)="adicionalAbierta.set(false)"
+        >
+          <mat-expansion-panel-header
+            ><mat-panel-title
+              >Información adicional (opcional)</mat-panel-title
+            ></mat-expansion-panel-header
+          >
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Teléfono</mat-label>
+              <input
+                matInput
+                formControlName="telefono"
+                type="tel"
+                autocomplete="tel"
+                maxlength="40"
+              />
+              <mat-error>Usá números, espacios o signos de teléfono.</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input
+                matInput
+                formControlName="email"
+                type="email"
+                autocomplete="email"
+                maxlength="254"
+              />
+              <mat-error>Ingresá un email válido.</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Observaciones</mat-label>
+              <textarea
+                matInput
+                formControlName="observaciones"
+                rows="3"
+                maxlength="3000"
+              ></textarea>
+              <mat-error>El máximo es de 3000 caracteres.</mat-error>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+      }
+      @if (!seccion || seccion === 'mensual') {
+        <mat-expansion-panel
+          class="hub-filter-extra"
+          [expanded]="mensualAbierta()"
+          (opened)="mensualAbierta.set(true)"
+          (closed)="mensualAbierta.set(false)"
+        >
+          <mat-expansion-panel-header
+            ><mat-panel-title
+              >Configuración mensual (opcional)</mat-panel-title
+            ></mat-expansion-panel-header
+          >
+          <mat-checkbox formControlName="habilitarMensual">Habilitar cuota mensual</mat-checkbox>
+          @if (form.controls.habilitarMensual.value) {
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Importe mensual en ARS</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="importeMensual"
+                  min="0.01"
+                  max="999999999.99"
+                  step="0.01"
+                  required
+                />
+                <mat-error>Ingresá un importe mayor a cero con hasta dos decimales.</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Día de vencimiento</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="diaVencimiento"
+                  min="1"
+                  max="31"
+                  step="1"
+                  required
+                />
+                <mat-error>Ingresá un día entero del 1 al 31.</mat-error>
+              </mat-form-field>
+            </div>
+            <p>
+              Si el día no existe en el mes, se usará su último día. Por defecto, los cambios se
+              aplican solo a cuotas nuevas.
+            </p>
+            @if (mostrarAplicacion()) {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Aplicar nuevo importe</mat-label>
+                <mat-select
+                  [value]="aplicarActual()"
+                  (selectionChange)="seleccionarAplicacion($event.value)"
+                  [disabled]="enviando()"
+                >
+                  <mat-option [value]="false">Solo a cuotas futuras</mat-option>
+                  <mat-option
+                    [value]="true"
+                    [disabled]="cuotaActualConsultada() && !!cuotaActual() && !cuotaActualDifiere()"
+                    >También a la cuota del mes actual</mat-option
+                  >
+                </mat-select>
+              </mat-form-field>
+              @if (aplicarActual()) {
+                <div
+                  class="monthly-adjustment"
+                  aria-live="polite"
+                  [attr.aria-busy]="preparandoCuota()"
+                >
+                  @if (bloqueoCuotaActual()) {
+                    <p role="status">{{ bloqueoCuotaActual() }}</p>
+                    @if (errorCuotaActual()) {
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        (click)="seleccionarAplicacion(true)"
+                      >
+                        Reintentar consulta
+                      </button>
+                    }
+                  }
+                  @if (!preparandoCuota() && cuotaActual(); as cuota) {
+                    <p>
+                      <strong>{{ cuota.concepto }} · {{ cuota.periodo }}</strong> ·
+                      {{ cuota.estado }}
+                    </p>
+                    <p>
+                      Importe anterior:
+                      <strong>{{ cuota.importe | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>
+                    </p>
+                    <p>
+                      Importe nuevo:
+                      <strong>{{
+                        form.controls.importeMensual.value | currency: 'ARS' : 'symbol' : '1.2-2'
+                      }}</strong>
+                    </p>
+                    <p>
+                      Se conservarán sus pagos y su vencimiento. No se modificarán otros períodos ni
+                      conceptos.
+                    </p>
+                  } @else if (!bloqueoCuotaActual()) {
+                    <p>
+                      No existe una cuota de entrenamiento para {{ periodoActual }}. No se creará
+                      ninguna al guardar. El nuevo importe se aplicará cuando se genere la cuota
+                      correspondiente.
+                    </p>
+                  }
+                </div>
+              }
+            }
+            @if (seccion === 'mensual' && preparandoCuota() && !aplicarActual()) {
+              <p role="status">Consultando la cuota mensual del período actual…</p>
+            }
+            @if (seccion === 'mensual' && errorCuotaActual() && !aplicarActual()) {
+              <p role="alert">
+                {{ errorCuotaActual() }} Podés guardar solo la configuración futura.
+              </p>
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="consultarCuotaActual()"
+                [disabled]="enviando()"
+              >
+                Reintentar consulta de cuota
+              </button>
+            }
+            @if (!alumno) {
+              <mat-checkbox formControlName="crearPrimeraCuota"
+                >Crear primera cuota al guardar</mat-checkbox
+              >
+            }
+            <div class="form-grid">
+              <app-period-selector
+                class="full-width"
+                label="Primer período a cobrar (mes y año)"
+                formControlName="primerPeriodo"
+              />
+            </div>
+            @if (!alumno) {
+              <p>
+                Si marcás Crear primera cuota al guardar, se crea solo el período elegido. Al
+                activar la tarea automática, podrá crearla desde ese período en su próxima ejecución
+                aunque no la crees ahora.
+              </p>
+            } @else {
+              <p>
+                Editar esta configuración no crea cuotas. Solo se ajustará la cuota actual si elegís
+                esa opción; los períodos anteriores se conservarán.
+              </p>
+            }
+          }
           <p>
-            Si marcás Crear primera cuota al guardar, se crea solo el período elegido. Al activar la
-            tarea automática, podrá crearla desde ese período en su próxima ejecución aunque no la
-            crees ahora.
+            Podés generar las cuotas del mes desde Cuotas y cobros, revisando primero la vista
+            previa.
           </p>
-        } @else {
-          <p>Editar esta configuración no crea cuotas ni modifica las anteriores.</p>
+        </mat-expansion-panel>
+      }
+      @if (!alumno) {
+        <mat-expansion-panel
+          class="hub-filter-extra"
+          [expanded]="perfilAbierto()"
+          (opened)="perfilAbierto.set(true)"
+          (closed)="perfilAbierto.set(false)"
+        >
+          <mat-expansion-panel-header
+            ><mat-panel-title
+              >Perfil de entrenamiento (opcional)</mat-panel-title
+            ></mat-expansion-panel-header
+          >
+          <ng-template matExpansionPanelContent
+            ><app-perfil-campos [bloqueado]="enviando() || alumnoCreado()"
+          /></ng-template>
+        </mat-expansion-panel>
+        @if (perfilGuardado()) {
+          <p role="status">Perfil de entrenamiento guardado.</p>
+        }
+        @if (errorPerfilAlta()) {
+          <p role="alert">El alumno ya fue creado. Perfil pendiente: {{ errorPerfilAlta() }}</p>
+        }
+        <mat-expansion-panel class="hub-filter-extra" [disabled]="enviando()">
+          <mat-expansion-panel-header
+            ><mat-panel-title>Documentos (opcional)</mat-panel-title></mat-expansion-panel-header
+          >
+          <ng-template matExpansionPanelContent
+            ><app-documentos-alta [bloqueado]="enviando()" [creado]="alumnoCreado()"
+          /></ng-template>
+        </mat-expansion-panel>
+        @if (alumnoCreado()) {
+          <p role="status">
+            El alumno ya fue creado. Los datos y documentos confirmados se conservan. Reintentá los
+            pasos pendientes o finalizá para completarlos después desde su ficha. No se volverá a
+            crear el alumno.
+          </p>
         }
       }
-      <p>
-        Podés generar las cuotas del mes desde Cuotas y cobros, revisando primero la vista previa.
-      </p>
-    </section>
+    </div>
     @if (errorGuardado()) {
       <p role="alert">{{ errorGuardado() }}</p>
       @if (detalleGuardado(); as detalle) {
@@ -138,21 +308,41 @@
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
-    <button
-      mat-stroked-button
-      type="button"
-      mat-dialog-close
-      [disabled]="service.guardando() || enviando()"
-    >
-      Cancelar
-    </button>
+    @if (alumnoCreado()) {
+      <button mat-stroked-button type="button" (click)="finalizarAlta()" [disabled]="enviando()">
+        Finalizar
+      </button>
+    } @else {
+      <button
+        mat-stroked-button
+        type="button"
+        mat-dialog-close
+        [disabled]="service.guardando() || enviando()"
+      >
+        Cancelar
+      </button>
+    }
     <button
       [attr.aria-busy]="enviando() || service.guardando()"
       mat-flat-button
       type="submit"
-      [disabled]="enviando() || confirmando() || service.guardando() || service.cargando()"
+      [disabled]="
+        enviando() ||
+        confirmando() ||
+        preparandoCuota() ||
+        service.guardando() ||
+        service.cargando()
+      "
     >
-      {{ service.guardando() || enviando() ? 'Guardando…' : 'Guardar' }}
+      {{
+        enviando() || service.guardando()
+          ? alumnoCreado()
+            ? 'Guardando información adicional…'
+            : 'Guardando…'
+          : alumnoCreado()
+            ? 'Reintentar pendientes'
+            : 'Guardar'
+      }}
     </button>
   </mat-dialog-actions>
 </form>

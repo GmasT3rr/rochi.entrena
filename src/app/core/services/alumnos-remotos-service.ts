@@ -1,10 +1,21 @@
 import { MinimumLoading } from '../../shared/skeleton/minimum-loading';
 import { Sort } from '@angular/material/sort';
 import { ToastService } from './toast-service';
-import { computed, DestroyRef, effect, inject, Injectable, signal, untracked } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  Injectable,
+  signal,
+  untracked,
+  Injector,
+} from '@angular/core';
 import { AlumnoRegistro, ConfiguracionMensual, DatosAlumno, esAlumno } from '../alumno';
 import { AuthService } from '../auth/auth-service';
-import { AlumnosSupabaseRepository } from './alumnos-supabase-repository';
+import { AlumnosSupabaseRepository, AjusteMensualActual } from './alumnos-supabase-repository';
+import { CuentasService } from './cuentas-service';
+import { CuentasSnapshot } from './cuentas-supabase-repository';
 
 type DiagnosticoAlumno = {
   codigo?: string;
@@ -16,6 +27,7 @@ type DiagnosticoAlumno = {
 
 @Injectable({ providedIn: 'root' })
 export class AlumnosService {
+  private readonly injector = inject(Injector);
   readonly orden = signal<Sort>({ active: 'nombre', direction: 'asc' });
   private readonly toast = inject(ToastService);
   private readonly repository = inject(AlumnosSupabaseRepository);
@@ -165,12 +177,46 @@ export class AlumnosService {
     if (!alumno) return false;
     return this.guardar({ ...alumno, configuracionMensual: configuracion }, id);
   }
+  async guardarMensualConCuota(
+    id: string,
+    config: ConfiguracionMensual,
+    ajuste: AjusteMensualActual,
+  ): Promise<boolean> {
+    if (this.guardando() || this.cargando()) return false;
+    const cuentas = this.injector.get(CuentasService);
+    if (!cuentas.disponible()) {
+      this.error.set('Actualizá las finanzas antes de guardar.');
+      return false;
+    }
+    if (ajuste.cuotaId && !cuentas.validarImporteCuota(ajuste.cuotaId, config.importe)) {
+      this.error.set(cuentas.error());
+      return false;
+    }
+    cuentas.guardando.set(true);
+    let snapshot!: CuentasSnapshot;
+    try {
+      return await this.persistir(
+        async () => {
+          const resultado = await this.repository.ajustarMensual(id, config, ajuste);
+          snapshot = resultado.cuentas;
+          return resultado.alumno;
+        },
+        ajuste.cuotaId
+          ? 'Configuración y cuota actual actualizadas. Se conservaron los pagos y el vencimiento.'
+          : 'Configuración actualizada. No existe cuota mensual actual; no se creó ninguna.',
+        () => cuentas.aplicarSnapshotConfirmado(snapshot),
+      );
+    } finally {
+      cuentas.guardando.set(false);
+    }
+  }
   async cambiarEstado(id: string, estado: 'Activo' | 'Inactivo'): Promise<boolean> {
     return this.persistir(() => this.repository.cambiarEstado(id, estado));
   }
   private async persistir(
     operacion: () => Promise<AlumnoRegistro>,
     mensaje = 'Cambios guardados.',
+    alConfirmar?: () => void,
   ): Promise<boolean> {
     if (this.guardando() || this.cargando()) return false;
     const generation = this.generation;
@@ -181,6 +227,7 @@ export class AlumnosService {
     try {
       const alumno = await operacion();
       if (generation !== this.generation) return false;
+      alConfirmar?.();
       this.datos.update((alumnos) =>
         alumnos.some((a) => a.id === alumno.id)
           ? alumnos.map((a) => (a.id === alumno.id ? alumno : a))
@@ -222,27 +269,35 @@ export class AlumnosService {
       return;
     }
     destino.set(
-      tecnico?.recurso === 'crear_alumno_con_primera_cuota' &&
-        (code === 'PGRST202' || tecnico.status === 404)
-        ? 'La función para crear la primera cuota no está disponible en Supabase. La administración debe revisar e instalar la migración 006. No se guardó el alta por partes.'
-        : code === 'TCF_ESQUEMA_MENSUAL'
-          ? 'El inicio mensual personalizado requiere la actualización de base de datos pendiente. No se guardaron cambios.'
-          : code === '42501'
-            ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
-            : [
-                  'PGRST202',
-                  'PGRST200',
-                  'PGRST201',
-                  '42703',
-                  'PGRST205',
-                  '42P01',
-                  'PGRST103',
-                  'TCF_RESPUESTA_INVALIDA',
-                ].includes(code ?? '')
-              ? 'No pudimos completar la consulta. Reintentá; si el problema continúa, contactá al administrador.'
-              : guardado
-                ? 'No se pudo guardar el cambio. Revisá la conexión e intentá nuevamente.'
-                : 'No se pudo actualizar el listado. Revisá la conexión y reintentá.',
+      tecnico?.recurso === 'ajustar_configuracion_y_cuota_actual'
+        ? code === '40001'
+          ? 'La configuración, la cuota o sus pagos cambiaron. Cerrá la edición y actualizá antes de reintentar. No se guardaron cambios.'
+          : code === 'PGRST202' || tecnico.status === 404
+            ? 'La operación conjunta requiere instalar la migración 015 revisada. No se guardó ninguna de las dos modificaciones.'
+            : code === '23514'
+              ? 'No se puede aplicar ese importe a la cuota: revisá el total abonado y si ya está pagada. No se guardaron cambios.'
+              : 'No se pudo confirmar la operación conjunta. Actualizá la ficha antes de reintentar; no repitas el guardado sin verificar su estado.'
+        : tecnico?.recurso === 'crear_alumno_con_primera_cuota' &&
+            (code === 'PGRST202' || tecnico.status === 404)
+          ? 'La función para crear la primera cuota no está disponible en Supabase. La administración debe revisar e instalar la migración 006. No se guardó el alta por partes.'
+          : code === 'TCF_ESQUEMA_MENSUAL'
+            ? 'El inicio mensual personalizado requiere la actualización de base de datos pendiente. No se guardaron cambios.'
+            : code === '42501'
+              ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
+              : [
+                    'PGRST202',
+                    'PGRST200',
+                    'PGRST201',
+                    '42703',
+                    'PGRST205',
+                    '42P01',
+                    'PGRST103',
+                    'TCF_RESPUESTA_INVALIDA',
+                  ].includes(code ?? '')
+                ? 'No pudimos completar la consulta. Reintentá; si el problema continúa, contactá al administrador.'
+                : guardado
+                  ? 'No se pudo guardar el cambio. Revisá la conexión e intentá nuevamente.'
+                  : 'No se pudo actualizar el listado. Revisá la conexión y reintentá.',
     );
     // La pantalla o el formulario ya muestran el error de esta operación.
   }

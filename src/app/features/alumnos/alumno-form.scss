@@ -1,0 +1,24 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: inherit;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+mat-dialog-content {
+  min-height: 0;
+  overflow: auto;
+}
+mat-dialog-actions {
+  flex-shrink: 0;
+}
+.basic-title {
+  margin: var(--hub-space-2) 0 var(--hub-space-4);
+}
+.optional-sections:empty {
+  display: none;
+}

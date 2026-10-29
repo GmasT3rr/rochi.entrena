@@ -57,6 +57,19 @@ export const normalizarConcepto = (texto: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+/** Criterio compartido con RPC 015; el período lo aporta el reloj de Argentina. */
+export function cuotasMensualesDelPeriodo<T extends Cuota>(
+  cuotas: readonly T[],
+  alumnoId: string,
+  periodo: string,
+): T[] {
+  return cuotas.filter(
+    (c) =>
+      c.alumnoId === alumnoId &&
+      c.periodo === periodo &&
+      normalizarConcepto(c.concepto) === normalizarConcepto('Cuota de entrenamiento'),
+  );
+}
 export function validarCuentas(data: unknown): asserts data is CuentasData {
   const x = data as CuentasData;
   if (!x || x.version !== 1 || !Array.isArray(x.cuotas) || !Array.isArray(x.pagos))

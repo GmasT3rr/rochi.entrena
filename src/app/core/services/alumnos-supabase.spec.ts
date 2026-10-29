@@ -70,6 +70,56 @@ describe('Repositorio Supabase de alumnos', () => {
       mapearAlumno({ ...fila, configuracion_mensual: null }).configuracionMensual,
     ).toBeUndefined();
   });
+  it('envía un solo guardado conjunto con versiones sin pérdida y mapea ambas respuestas', async () => {
+    const actualizado = '2026-10-28T12:00:00.123456+00:00';
+    rpc.mockReturnValue({
+      abortSignal: () =>
+        Promise.resolve({
+          data: {
+            alumno: {
+              ...fila,
+              configuracion_mensual: {
+                ...fila.configuracion_mensual,
+                importe: 20000,
+                actualizado_en: actualizado,
+              },
+            },
+            cuentas: { version: 1, alumnos: [fila], cuotas: [], pagos: [], cobros_directos: [] },
+          },
+          error: null,
+          status: 200,
+        }),
+    });
+    const repo = TestBed.inject(AlumnosSupabaseRepository);
+    const resultado = await repo.ajustarMensual(
+      fila.id,
+      { habilitada: true, importe: 20000, diaVencimiento: 31, periodoInicio: '2026-01' },
+      {
+        periodo: '2026-10',
+        cuotaId: 'c',
+        versionConfiguracion: actualizado,
+        versionCuota: { actualizadoEn: actualizado, revision: '9007199254740993' },
+      },
+    );
+    expect(rpc).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith('ajustar_configuracion_y_cuota_actual', {
+      p_alumno: fila.id,
+      p_configuracion: {
+        habilitada: true,
+        importe: 20000,
+        dia_vencimiento: 31,
+        periodo_inicio: '2026-01',
+      },
+      p_periodo: '2026-10',
+      p_version_configuracion: actualizado,
+      p_cuota: 'c',
+      p_actualizado_cuota: actualizado,
+      p_revision_cuota: '9007199254740993',
+    });
+    expect(resultado.alumno.configuracionMensual?.actualizadoEn).toBe(actualizado);
+    expect(resultado.cuentas.version).toBe(1);
+    expect(from).not.toHaveBeenCalled();
+  });
   it('lee y persiste el inicio mensual sin crear cuotas en una edición', async () => {
     const probe: any = {};
     for (const method of ['select', 'limit']) probe[method] = vi.fn().mockReturnValue(probe);

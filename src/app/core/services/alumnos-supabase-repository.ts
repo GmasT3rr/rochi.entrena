@@ -4,6 +4,14 @@ import { AuthService } from '../auth/auth-service';
 import { AdminAuthorization } from '../auth/admin-authorization';
 import { authRuntime } from '../auth/auth-runtime';
 import { fechaArgentina } from './cuentas-remotas-service';
+import { CuentasSnapshot, mapearCuentas, VersionFinanciera } from './cuentas-supabase-repository';
+
+export interface AjusteMensualActual {
+  periodo: string;
+  cuotaId: string | null;
+  versionCuota?: VersionFinanciera;
+  versionConfiguracion: string | null;
+}
 
 const seleccion =
   'id,nombre,apellido,telefono,email,modalidad,estado,fecha_ingreso,observaciones,proxima_cuota_original,configuracion_mensual:configuraciones_mensuales!configuraciones_mensuales_alumno_id_fkey(*)';
@@ -43,6 +51,9 @@ export function mapearAlumno(fila: Record<string, any>): AlumnoRegistro {
             importe: config.importe,
             diaVencimiento: config.dia_vencimiento,
             habilitada: config.habilitada,
+            ...(typeof config.actualizado_en === 'string'
+              ? { actualizadoEn: config.actualizado_en }
+              : {}),
             ...(config.periodo_inicio == null
               ? {}
               : { periodoInicio: config.periodo_inicio.slice(0, 7) }),
@@ -229,6 +240,42 @@ export class AlumnosSupabaseRepository {
         .single();
       if (error) throw errorOperacion(error, status, 'Cambiar estado del alumno', 'alumnos');
       return mapearAlumno(data);
+    });
+  }
+  async ajustarMensual(
+    id: string,
+    config: ConfiguracionMensual,
+    ajuste: AjusteMensualActual,
+  ): Promise<{ alumno: AlumnoRegistro; cuentas: CuentasSnapshot }> {
+    return this.ejecutar(async (client) => {
+      const { data, error, status } = await client
+        .rpc('ajustar_configuracion_y_cuota_actual', {
+          p_alumno: id,
+          p_configuracion: {
+            habilitada: config.habilitada,
+            importe: config.importe,
+            dia_vencimiento: config.diaVencimiento,
+            ...(config.periodoInicio ? { periodo_inicio: config.periodoInicio } : {}),
+          },
+          p_periodo: ajuste.periodo,
+          p_version_configuracion: ajuste.versionConfiguracion,
+          p_cuota: ajuste.cuotaId,
+          p_actualizado_cuota: ajuste.versionCuota?.actualizadoEn ?? null,
+          p_revision_cuota: ajuste.versionCuota?.revision ?? null,
+        })
+        .abortSignal(AbortSignal.timeout(20000));
+      if (error)
+        throw errorOperacion(
+          error,
+          status,
+          'Ajustar configuración y cuota actual',
+          'ajustar_configuracion_y_cuota_actual',
+        );
+      if (!data || typeof data !== 'object' || !data.alumno || !data.cuentas)
+        throw { code: 'TCF_RESPUESTA_INVALIDA' };
+      const alumno = mapearAlumno(data.alumno);
+      if (alumno.id !== id) throw { code: 'TCF_RESPUESTA_INVALIDA' };
+      return { alumno, cuentas: mapearCuentas(data.cuentas) };
     });
   }
   async consultarConfiguracion(id: string): Promise<ConfiguracionMensual | undefined> {
