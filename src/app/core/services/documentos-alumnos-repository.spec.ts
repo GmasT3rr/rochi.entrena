@@ -59,6 +59,15 @@ describe('Documentos: protocolo Storage/SQL con SDK simulado (no prueba RLS real
   afterEach(() => {
     authRuntime.client = null;
   });
+  it('obtiene solo los metadatos solicitados bajo autorización, sin RPC de listado', async () => {
+    maybeSingle.mockResolvedValueOnce({ data: documento, error: null });
+    expect(await repo.obtener(documento.id)).toEqual(documento);
+    expect(rpc).not.toHaveBeenCalled();
+    verify.mockResolvedValueOnce(false);
+    await expect(repo.obtener(documento.id)).rejects.toThrow('permisos');
+    maybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    await expect(repo.obtener('inexistente')).rejects.toThrow('disponible');
+  });
   it.each(['pdf', 'png', 'docx', 'xlsx'])(
     'obtiene %s con download autenticado sin consultas de listado',
     async (ext) => {

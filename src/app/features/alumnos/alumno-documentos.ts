@@ -8,7 +8,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, Location } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -73,6 +74,8 @@ export class AlumnoDocumentos {
   }
   readonly alumno = input.required<string>();
   private readonly repo = inject(DocumentosAlumnosRepository);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly auth = inject(AuthService);
   // Supabase emits new session objects on focus/token refresh. These do not
   // change the owner of the list and must not reset it or rerun the listing RPC.
@@ -219,7 +222,8 @@ export class AlumnoDocumentos {
   async abrir(doc: DocumentoAlumno): Promise<void> {
     if (this.ocupado() || this.cargando() || doc.estado !== 'disponible' || !this.auth.session())
       return;
-    if (!/\.(pdf|png|jpe?g|webp)$/i.test(doc.nombre_original)) {
+    const office = /\.(docx|xlsx)$/i.test(doc.nombre_original);
+    if (!office && !/\.(pdf|png|jpe?g|webp)$/i.test(doc.nombre_original)) {
       await this.descargar(doc);
       return;
     }
@@ -238,6 +242,13 @@ export class AlumnoDocumentos {
         return;
       }
       ventana.opener = null;
+      if (office) {
+        const ruta = this.router.serializeUrl(this.router.createUrlTree(['/documentos', doc.id]));
+        ventana.location.replace(
+          new URL(this.location.prepareExternalUrl(ruta), document.baseURI).href,
+        );
+        return;
+      }
       this.aperturas.set(ventana, '');
       this.ocupado.set(true);
       this.estadoOperacion.set('Preparando apertura del archivo…');

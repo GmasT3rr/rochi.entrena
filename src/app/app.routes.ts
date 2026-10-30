@@ -5,6 +5,13 @@ import { sessionGuard } from './core/auth/auth-guard';
 
 export const routes: Routes = [
   {
+    path: 'documentos/:id',
+    canActivate: [sessionGuard],
+    title: 'Documento',
+    loadComponent: () =>
+      import('./features/alumnos/documento-office').then((m) => m.DocumentoOffice),
+  },
+  {
     path: 'nueva-contrasena',
     title: 'Establecer contraseña',
     loadComponent: () => import('./features/login/nueva-contrasena').then((m) => m.NuevaContrasena),

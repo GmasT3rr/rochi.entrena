@@ -20,6 +20,8 @@
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
     "@supabase/supabase-js": "^2.118.0",
+    "docx-preview": "^0.4.1",
+    "read-excel-file": "^9.3.14",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

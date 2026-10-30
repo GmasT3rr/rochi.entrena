@@ -138,6 +138,17 @@ export class DocumentosAlumnosRepository {
     }
     vigente();
   }
+  async obtener(id: string): Promise<DocumentoAlumno> {
+    const { client, vigente } = await this.contexto();
+    const { data, error } = await client
+      .from('documentos_alumnos')
+      .select('id,alumno_id,nombre_original,tipo_mime,tamano_bytes,storage_path,creado_en')
+      .eq('id', id)
+      .maybeSingle();
+    vigente();
+    if (error || !data) throw Error('Documento no disponible o sin permiso de acceso.');
+    return { ...data, estado: 'disponible' } as DocumentoAlumno;
+  }
   async descargar(doc: DocumentoAlumno): Promise<Blob> {
     if (doc.estado !== 'disponible') throw Error('El archivo no está disponible.');
     const { client, vigente } = await this.contexto();

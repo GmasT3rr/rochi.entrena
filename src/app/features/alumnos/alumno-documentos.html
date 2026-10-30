@@ -64,9 +64,7 @@
                     class="document-open"
                     (click)="abrir(d)"
                     [disabled]="ocupado() || cargando()"
-                    [attr.aria-label]="
-                      'Abrir ' + d.nombre_original + ' en otra pestaña; Word y Excel se descargan'
-                    "
+                    [attr.aria-label]="'Abrir ' + d.nombre_original"
                   >
                     @if (miniaturas()[d.storage_path]; as imagen) {
                       <img class="thumbnail" [src]="imagen" alt="" />
@@ -125,9 +123,7 @@
               class="document-open"
               (click)="abrir(d)"
               [disabled]="ocupado() || cargando()"
-              [attr.aria-label]="
-                'Abrir ' + d.nombre_original + ' en otra pestaña; Word y Excel se descargan'
-              "
+              [attr.aria-label]="'Abrir ' + d.nombre_original"
             >
               @if (miniaturas()[d.storage_path]; as imagen) {
                 <img class="thumbnail" [src]="imagen" alt="" />

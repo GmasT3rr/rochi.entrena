@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, withHashLocation } from '@angular/router';
 import { signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
@@ -57,6 +58,7 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
     open.mockReturnValue({ afterClosed: () => of(true) });
     TestBed.configureTestingModule({
       providers: [
+        provideRouter([], withHashLocation()),
         { provide: AuthService, useValue: { session } },
         {
           provide: DocumentosAlumnosRepository,
@@ -214,7 +216,7 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
       abrir.mockRestore();
     }
   });
-  it.each(['doc', 'docx', 'xls', 'xlsx'])(
+  it.each(['doc', 'xls'])(
     'descarga %s nativamente sin pestaña ni recarga de listado',
     async (ext) => {
       const c = (await crear()).componentInstance;
@@ -250,6 +252,31 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
       vi.useRealTimers();
     }
   });
+  it.each(['docx', 'xlsx'])(
+    'abre %s en una pestaña interna sin consultar ni refrescar documentos',
+    async (ext) => {
+      const c = (await crear()).componentInstance;
+      const replace = vi.fn(),
+        close = vi.fn();
+      const ventana = { opener: {}, closed: false, close, location: { replace } };
+      const abrir = vi.spyOn(window, 'open').mockReturnValue(ventana as unknown as Window);
+      const lista = c.documentos();
+      try {
+        await c.abrir({ ...doc, nombre_original: 'Informe.' + ext });
+        await c.abrir({ ...doc, nombre_original: 'Informe.' + ext });
+        expect(abrir).toHaveBeenCalledWith('about:blank', '_blank');
+        expect(ventana.opener).toBeNull();
+        expect(replace).toHaveBeenCalledWith(expect.stringContaining('/#/documentos/d'));
+        expect(descargar).not.toHaveBeenCalled();
+        expect(descargarBlob).not.toHaveBeenCalled();
+        expect(listar).toHaveBeenCalledTimes(1);
+        expect(c.documentos()).toBe(lista);
+        expect(close).not.toHaveBeenCalled();
+      } finally {
+        abrir.mockRestore();
+      }
+    },
+  );
   it('valida toda la selección antes de subir e informa cargas parciales sin éxito falso', async () => {
     const c = (await crear()).componentInstance;
     await c.seleccionar(selection([new File(['x'], 'a.pdf'), new File(['x'], 'a.exe')]));
