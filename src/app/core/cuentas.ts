@@ -1,4 +1,5 @@
-﻿import type { ModalidadAlumno } from './alumno';
+import { ErrorUsuario } from './services/mensajes-usuario';
+import type { ModalidadAlumno } from './alumno';
 
 export interface Cuota {
   id: string;
@@ -73,7 +74,7 @@ export function cuotasMensualesDelPeriodo<T extends Cuota>(
 export function validarCuentas(data: unknown): asserts data is CuentasData {
   const x = data as CuentasData;
   if (!x || x.version !== 1 || !Array.isArray(x.cuotas) || !Array.isArray(x.pagos))
-    throw Error('Formato de cuentas inválido.');
+    throw new ErrorUsuario('Formato de cuentas inválido.');
   const ids = new Set<string>();
   const claves = new Set<string>();
   for (const c of x.cuotas) {
@@ -91,10 +92,10 @@ export function validarCuentas(data: unknown): asserts data is CuentasData {
       !fechaValida(c.vencimiento) ||
       typeof c.observaciones !== 'string'
     )
-      throw Error('Cuota inválida.');
+      throw new ErrorUsuario('Cuota inválida.');
     ids.add(c.id);
     const clave = JSON.stringify([c.alumnoId, normalizarConcepto(c.concepto), c.periodo]);
-    if (claves.has(clave)) throw Error('Hay cuotas duplicadas.');
+    if (claves.has(clave)) throw new ErrorUsuario('Hay cuotas duplicadas.');
     claves.add(clave);
   }
   const pagosIds = new Set<string>();
@@ -111,13 +112,13 @@ export function validarCuentas(data: unknown): asserts data is CuentasData {
       !['Efectivo', 'Transferencia', 'Otro'].includes(p.medio) ||
       typeof p.observaciones !== 'string'
     )
-      throw Error('Pago inválido.');
+      throw new ErrorUsuario('Pago inválido.');
     pagosIds.add(p.id);
     totales.set(p.cuotaId, (totales.get(p.cuotaId) ?? 0) + centavos(p.importe));
   }
   for (const c of x.cuotas)
     if ((totales.get(c.id) ?? 0) > centavos(c.importe))
-      throw Error('Los pagos superan el importe de una cuota.');
+      throw new ErrorUsuario('Los pagos superan el importe de una cuota.');
 }
 
 export interface VistaPreviaMensual {

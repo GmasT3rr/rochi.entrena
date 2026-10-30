@@ -81,7 +81,7 @@ describe('Consulta del perfil de entrenamiento', () => {
     obtener.mockRejectedValueOnce(Error('Red'));
     await c.cargar();
     c.editar();
-    expect(c.error()).toContain('cargar');
+    expect(c.error()).toBe('Ocurrió un error. Intentá nuevamente.');
     expect(open).not.toHaveBeenCalled();
     expect(c.perfil()).toBeNull();
   });
@@ -131,7 +131,7 @@ describe('Consulta del perfil de entrenamiento', () => {
     expect(c.diagnostico()?.http).toBe(status || null);
     expect(f.nativeElement.querySelector('[role=alert]')).not.toBeNull();
     expect(f.nativeElement.textContent).not.toContain('Este alumno todavía no tiene');
-    expect(f.nativeElement.textContent).toContain(String(codigo || 'TCF_RED'));
+    expect(f.nativeElement.textContent).not.toContain(String(codigo || 'TCF_RED'));
     c.editar();
     expect(open).not.toHaveBeenCalled();
     expect(f.nativeElement.textContent).toContain('Reintentar');

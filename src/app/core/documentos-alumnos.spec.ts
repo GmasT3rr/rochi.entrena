@@ -49,7 +49,7 @@ describe('Validación de documentos', () => {
         new File(['x'], 'a.pdf', { type: 'application/x-msdownload' }),
         configPrueba,
       ),
-    ).toThrow('MIME');
+    ).toThrow('El contenido no coincide');
     expect(validarDocumento(new File(['x'], 'a.PDF'), configPrueba)).toBe('pdf');
     expect(
       validarDocumento(

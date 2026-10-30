@@ -1,3 +1,4 @@
+import { ErrorUsuario } from './services/mensajes-usuario';
 export interface DatosPerfilEntrenamiento {
   edad_declarada: number | null;
   altura_cm: number | null;
@@ -190,7 +191,7 @@ export function normalizarPerfil(datos: Record<string, unknown>): DatosPerfilEnt
           ? typeof v === 'boolean'
           : typeof v === 'string' &&
             (c.tipo === 'selector' ? c.opciones!.includes(v) : v.length <= c.longitud!);
-    if (!valido) throw Error(`Revisá el campo: ${c.label}.`);
+    if (!valido) throw new ErrorUsuario(`Revisá el campo: ${c.label}.`);
   }
   return limpio;
 }

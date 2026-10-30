@@ -100,7 +100,7 @@ describe('Controles y edición del perfil compartidos con el alta', () => {
     close.mockClear();
     mostrar.mockClear();
     await c.guardar();
-    expect(c.error()).toContain('Conflicto');
+    expect(c.error()).toBe('Ocurrió un error. Intentá nuevamente.');
     expect(c.campos()!.datos().objetivos).toBe('Fuerza');
     expect(close).not.toHaveBeenCalled();
     expect(mostrar).not.toHaveBeenCalled();

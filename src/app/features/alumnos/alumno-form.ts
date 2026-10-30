@@ -1,3 +1,4 @@
+import { ErrorUsuario, mensajeError } from '../../core/services/mensajes-usuario';
 import { PeriodSelector } from '../../shared/period-selector';
 import { DestroyRef } from '@angular/core';
 import { CambiosPendientes } from '../../core/services/cambios-pendientes';
@@ -207,7 +208,7 @@ export class AlumnoForm {
           pagos: c.pagos,
         });
       } catch (e) {
-        return (e as Error).message;
+        return mensajeError(e);
       }
     }
     return '';
@@ -232,7 +233,7 @@ export class AlumnoForm {
       await cuentas.recargar();
       if (consulta !== this.consultaCuota) return;
       if (cuentas.errorCarga() || !cuentas.disponible())
-        throw Error(
+        throw new ErrorUsuario(
           'No se pudo verificar la cuota actual. Reintentá la consulta antes de guardar.',
         );
       const candidatas = cuotasMensualesDelPeriodo(
@@ -245,7 +246,7 @@ export class AlumnoForm {
       this.candidatasActuales.set(candidatas);
       this.cuotaActualConsultada.set(true);
     } catch (e) {
-      if (consulta === this.consultaCuota) this.errorCuotaActual.set((e as Error).message);
+      if (consulta === this.consultaCuota) this.errorCuotaActual.set(mensajeError(e));
     } finally {
       if (consulta === this.consultaCuota) this.preparandoCuota.set(false);
     }
@@ -447,7 +448,6 @@ export class AlumnoForm {
           this.alumnoCreado.set(true);
           this.form.disable({ emitEvent: false });
           if (await this.guardarComplementos()) {
-            this.toast.mostrar('Alumno creado e información adicional guardada.', 'exito');
             this.ref.close(true);
           }
         } else this.ref.close(true);
@@ -470,7 +470,7 @@ export class AlumnoForm {
           .guardar(this.nuevoId, this.perfilAlta, null);
         this.perfilGuardado.set(true);
       } catch (e) {
-        this.errorPerfilAlta.set((e as Error).message);
+        this.errorPerfilAlta.set(mensajeError(e));
         perfilOK = false;
       }
     }

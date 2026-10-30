@@ -1,3 +1,4 @@
+import { ErrorUsuario } from '../../core/services/mensajes-usuario';
 import { Injectable, signal } from '@angular/core';
 import { ModalidadAlumno } from '../../core/alumno';
 
@@ -102,12 +103,12 @@ export class AgendaMemoria extends AgendaRepository {
     aceptarSuperposicion = false,
   ): number {
     if (!turnoValido(datos) || dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6))
-      throw new Error(
+      throw new ErrorUsuario(
         'Revisá fecha, horario, duración y alumnos. El turno debe terminar dentro del día.',
       );
     if (id && !this.turnos().some((t) => t.id === id && t.estado === 'programado'))
-      throw new Error('El turno ya no está disponible.');
-    if (id && dias.length) throw new Error('La edición se aplica únicamente a este turno.');
+      throw new ErrorUsuario('El turno ya no está disponible.');
+    if (id && dias.length) throw new ErrorUsuario('La edición se aplica únicamente a este turno.');
     const nuevos = (id ? [datos.fecha] : fechasRepetidas(datos.fecha, dias)).map((fecha) => ({
       ...datos,
       fecha,
@@ -120,7 +121,7 @@ export class AgendaMemoria extends AgendaRepository {
           (t) => superpone(t, nuevo) && t.alumnoIds.some((a) => nuevo.alumnoIds.includes(a)),
         )
       )
-        throw new Error(
+        throw new ErrorUsuario(
           'Un alumno ya tiene un turno en ese horario. Editá el turno existente para formar una clase grupal.',
         );
       if (
@@ -132,11 +133,11 @@ export class AgendaMemoria extends AgendaRepository {
             t.modalidad === nuevo.modalidad,
         )
       )
-        throw new Error(
+        throw new ErrorUsuario(
           'Ya existe ese turno. Agregá alumnos editándolo para formar una clase grupal.',
         );
       if (!aceptarSuperposicion && existentes.some((t) => superpone(t, nuevo)))
-        throw new Error(
+        throw new ErrorUsuario(
           'Hay horarios superpuestos. Revisalos y confirmá la superposición para continuar.',
         );
     }

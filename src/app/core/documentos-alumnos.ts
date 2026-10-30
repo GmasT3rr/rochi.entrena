@@ -1,3 +1,4 @@
+import { ErrorUsuario } from './services/mensajes-usuario';
 export const DOCUMENTOS_BUCKET = 'documentos-alumnos';
 export interface ConfigDocumentos {
   max_bytes: number;
@@ -27,18 +28,19 @@ export function validarDocumento(file: File, config: ConfigDocumentos): string {
     nombre.includes('..') ||
     /[. ]$/.test(nombre)
   )
-    throw Error(
+    throw new ErrorUsuario(
       'El nombre del archivo no es válido (máximo 180 caracteres, sin rutas ni caracteres especiales).',
     );
   const ext = nombre.split('.').pop()!.toLowerCase();
   const mime = Object.hasOwn(config.formatos, ext) ? config.formatos[ext] : undefined;
   if (!mime || /\.(exe|com|bat|cmd|ps1|js|vbs|scr|msi|html|svg|docm|xlsm)(\.|$)/i.test(nombre))
-    throw Error('Formato de archivo no permitido.');
+    throw new ErrorUsuario('Formato de archivo no permitido.');
   if (!Number.isSafeInteger(file.size) || file.size <= 0)
-    throw Error('No se permiten archivos vacíos.');
-  if (file.size > config.max_bytes) throw Error('El archivo supera el límite permitido.');
+    throw new ErrorUsuario('No se permiten archivos vacíos.');
+  if (file.size > config.max_bytes)
+    throw new ErrorUsuario('El archivo supera el límite permitido.');
   if (file.type && file.type !== 'application/octet-stream' && file.type.toLowerCase() !== mime)
-    throw Error('El tipo MIME no coincide con la extensión del archivo.');
+    throw new ErrorUsuario('El contenido no coincide con el formato del archivo.');
   return ext;
 }
 export function carpetaAlumno(alumno: string): string {

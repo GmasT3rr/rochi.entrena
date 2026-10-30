@@ -1,3 +1,4 @@
+import { mensajeError } from './mensajes-usuario';
 import { MinimumLoading } from '../../shared/skeleton/minimum-loading';
 import { Sort } from '@angular/material/sort';
 import { ToastService } from './toast-service';
@@ -10,6 +11,7 @@ import {
   signal,
   untracked,
   Injector,
+  isDevMode,
 } from '@angular/core';
 import { AlumnoRegistro, ConfiguracionMensual, DatosAlumno, esAlumno } from '../alumno';
 import { AuthService } from '../auth/auth-service';
@@ -166,10 +168,10 @@ export class AlumnosService {
           ? this.repository.guardar(alumno, !id)
           : this.repository.guardar(alumno, !id, primerPeriodo),
       id
-        ? 'Alumno y configuración actualizados. No se modificaron sus cuotas.'
+        ? 'Alumno actualizado'
         : primerPeriodo === undefined
-          ? 'Alumno guardado. No se crearon cuotas.'
-          : `Alumno y configuración guardados. Primera cuota de ${primerPeriodo} creada, sin pagos.`,
+          ? 'Alumno guardado'
+          : 'Alumno y primera cuota creados',
     );
   }
   async configurarMensual(id: string, configuracion: ConfiguracionMensual): Promise<boolean> {
@@ -211,11 +213,14 @@ export class AlumnosService {
     }
   }
   async cambiarEstado(id: string, estado: 'Activo' | 'Inactivo'): Promise<boolean> {
-    return this.persistir(() => this.repository.cambiarEstado(id, estado));
+    return this.persistir(
+      () => this.repository.cambiarEstado(id, estado),
+      estado === 'Activo' ? 'Alumno reactivado' : 'Alumno dado de baja',
+    );
   }
   private async persistir(
     operacion: () => Promise<AlumnoRegistro>,
-    mensaje = 'Cambios guardados.',
+    mensaje = 'Alumno guardado',
     alConfirmar?: () => void,
   ): Promise<boolean> {
     if (this.guardando() || this.cargando()) return false;
@@ -255,13 +260,17 @@ export class AlumnosService {
     const code = tecnico?.code;
     const diagnostico = listado ? this.detalleErrorListado : this.detalleError;
     const destino = listado ? this.errorListado : this.error;
-    diagnostico.set({
-      codigo: code,
-      mensaje: tecnico?.message,
-      estadoHttp: tecnico?.status,
-      operacion: tecnico?.operacion,
-      recurso: tecnico?.recurso,
-    });
+    diagnostico.set(
+      isDevMode()
+        ? {
+            codigo: code,
+            mensaje: 'Se omitió el contenido del error por privacidad.',
+            estadoHttp: tecnico?.status,
+            operacion: tecnico?.operacion,
+            recurso: tecnico?.recurso,
+          }
+        : null,
+    );
     if (code === '23505') {
       destino.set(
         'El alumno o la cuota ya existe. Actualizá el listado y revisá sus cuotas antes de reintentar.',
@@ -273,15 +282,15 @@ export class AlumnosService {
         ? code === '40001'
           ? 'La configuración, la cuota o sus pagos cambiaron. Cerrá la edición y actualizá antes de reintentar. No se guardaron cambios.'
           : code === 'PGRST202' || tecnico.status === 404
-            ? 'La operación conjunta requiere instalar la migración 015 revisada. No se guardó ninguna de las dos modificaciones.'
+            ? 'Esta opción no está disponible. No se guardaron cambios.'
             : code === '23514'
               ? 'No se puede aplicar ese importe a la cuota: revisá el total abonado y si ya está pagada. No se guardaron cambios.'
               : 'No se pudo confirmar la operación conjunta. Actualizá la ficha antes de reintentar; no repitas el guardado sin verificar su estado.'
         : tecnico?.recurso === 'crear_alumno_con_primera_cuota' &&
             (code === 'PGRST202' || tecnico.status === 404)
-          ? 'La función para crear la primera cuota no está disponible en Supabase. La administración debe revisar e instalar la migración 006. No se guardó el alta por partes.'
+          ? 'No se pudo crear el alumno con su primera cuota. Intentá más tarde.'
           : code === 'TCF_ESQUEMA_MENSUAL'
-            ? 'El inicio mensual personalizado requiere la actualización de base de datos pendiente. No se guardaron cambios.'
+            ? 'Esta opción no está disponible. No se guardaron cambios.'
             : code === '42501'
               ? 'Acceso denegado. Verificá tu sesión y autorización administrativa.'
               : [
@@ -295,9 +304,7 @@ export class AlumnosService {
                     'TCF_RESPUESTA_INVALIDA',
                   ].includes(code ?? '')
                 ? 'No pudimos completar la consulta. Reintentá; si el problema continúa, contactá al administrador.'
-                : guardado
-                  ? 'No se pudo guardar el cambio. Revisá la conexión e intentá nuevamente.'
-                  : 'No se pudo actualizar el listado. Revisá la conexión y reintentá.',
+                : mensajeError(error),
     );
     // La pantalla o el formulario ya muestran el error de esta operación.
   }

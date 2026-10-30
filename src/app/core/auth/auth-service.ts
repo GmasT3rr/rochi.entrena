@@ -11,7 +11,7 @@ export function authError(error: unknown): string {
   if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit')
     return 'Demasiados intentos. Esperá unos minutos y volvé a probar.';
   if (code === 'weak_password')
-    return 'La contraseña no cumple la política de seguridad del proyecto.';
+    return 'La contraseña no cumple los requisitos de seguridad.';
   if (code === 'same_password') return 'Elegí una contraseña diferente de la anterior.';
   if (code === 'password_policy')
     return 'Usá de 12 a 128 caracteres, con mayúscula, minúscula, número y símbolo.';
@@ -29,7 +29,7 @@ export function authError(error: unknown): string {
     return PASSWORD_LINK_ERROR;
   if (code === 'reauthentication_needed' || code === 'reauthentication_not_valid')
     return 'Necesitamos un enlace nuevo para verificar tu identidad. Solicitá otro correo de recuperación.';
-  return 'No se pudo completar la operación. Revisá la conexión y volvé a intentar.';
+  return 'Ocurrió un error. Intentá nuevamente.';
 }
 @Injectable({ providedIn: 'root' })
 export class AuthService {

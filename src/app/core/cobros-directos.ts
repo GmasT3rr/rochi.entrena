@@ -1,3 +1,4 @@
+import { ErrorUsuario } from './services/mensajes-usuario';
 import { PagoCuota, fechaValida, importeValido } from './cuentas';
 export interface CobroDirecto extends Omit<PagoCuota, 'cuotaId'> {
   alumnoId: string;
@@ -17,5 +18,5 @@ export function validarCobroDirecto(c: CobroDirecto): void {
     typeof c.observaciones !== 'string' ||
     c.observaciones.length > 3000
   )
-    throw Error('Revisá alumno, concepto, importe, fecha y medio de pago.');
+    throw new ErrorUsuario('Revisá alumno, concepto, importe, fecha y medio de pago.');
 }

@@ -1,3 +1,4 @@
+import { ErrorUsuario } from './mensajes-usuario';
 import { inject, Injectable } from '@angular/core';
 import { AuthService } from '../auth/auth-service';
 import { AdminAuthorization } from '../auth/admin-authorization';
@@ -78,7 +79,9 @@ export class PerfilesEntrenamientoRepository {
     version: string | null,
   ): Promise<PerfilEntrenamiento> {
     if (CAMPOS_PERFIL.some((c) => !(c.clave in datos)))
-      throw Error('Faltan campos en el perfil. Volvé a cargar la ficha antes de guardar.');
+      throw new ErrorUsuario(
+        'Faltan campos en el perfil. Volvé a cargar la ficha antes de guardar.',
+      );
     const limpio = normalizarPerfil(datos as unknown as Record<string, unknown>);
     const { client, vigente } = await this.contexto();
     const { data, error } = await client
@@ -90,11 +93,13 @@ export class PerfilesEntrenamientoRepository {
       .abortSignal(AbortSignal.timeout(20000));
     vigente();
     if (error?.code === '40001' || error?.code === '23505')
-      throw Error(
+      throw new ErrorUsuario(
         'El perfil cambió en otra sesión. Cerrá la edición y actualizá la ficha antes de guardar.',
       );
     if (error)
-      throw Error('No se pudo confirmar el perfil. Conservamos tus datos para reintentar.');
+      throw new ErrorUsuario(
+        'No se pudo confirmar el perfil. Conservamos tus datos para reintentar.',
+      );
     return this.mapear(data, alumno);
   }
 }

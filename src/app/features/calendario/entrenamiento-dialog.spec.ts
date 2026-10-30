@@ -31,15 +31,20 @@ describe('Formulario modal de entrenamientos', () => {
     const { c, repo, ref } = await setup();
     c.borrador.alumnoIds = ['a'];
     c.borrador.titulo = 'Conservar';
-    vi.spyOn(repo as AgendaRepository, 'guardar').mockRejectedValue(new Error('La versión cambió'));
+    vi.spyOn(repo as AgendaRepository, 'guardar').mockRejectedValue({
+      code: '40001',
+      message: 'private server text',
+    });
     await c.guardar(valido());
-    expect(c.error()).toContain('versión');
+    expect(c.error()).toContain('Los datos cambiaron');
     expect(c.borrador.titulo).toBe('Conservar');
     expect(ref.close).not.toHaveBeenCalled();
     expect(c.ocupado()).toBe(false);
     c.data.turno = { ...c.borrador, id: 't', estado: 'programado', version: 'version' };
     c.confirmarCancelacion.set(true);
-    vi.spyOn(repo as AgendaRepository, 'cancelar').mockRejectedValue(new Error('Sin conexión'));
+    vi.spyOn(repo as AgendaRepository, 'cancelar').mockRejectedValue(
+      new TypeError('Failed to fetch'),
+    );
     await c.cancelarTurno();
     expect(c.error()).toContain('conexión');
     expect(c.confirmarCancelacion()).toBe(true);

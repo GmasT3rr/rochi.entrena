@@ -61,7 +61,7 @@ describe('Cambio de contraseña de cuenta', () => {
       });
       expect(verifier.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
       expect(set).not.toHaveBeenCalled();
-      expect(s.mensaje()).toContain('correctamente');
+      expect(s.mensaje()).toBe('Contraseña actualizada');
     } finally {
       set.mockRestore();
     }

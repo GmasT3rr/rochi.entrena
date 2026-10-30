@@ -1,3 +1,4 @@
+import { ErrorUsuario } from './mensajes-usuario';
 import { inject, Injectable } from '@angular/core';
 import { AuthService } from '../auth/auth-service';
 import { AdminAuthorization } from '../auth/admin-authorization';
@@ -25,7 +26,7 @@ export class DocumentosAlumnosRepository {
       !authRuntime.client ||
       this.auth.session()?.access_token !== session.access_token
     )
-      throw Error('No tenés permisos para acceder a los documentos.');
+      throw new ErrorUsuario('No tenés permisos para acceder a los documentos.');
     const client = authRuntime.client;
     const vigente = () => {
       if (
@@ -33,7 +34,7 @@ export class DocumentosAlumnosRepository {
         this.auth.recovery() ||
         this.auth.initializationError()
       )
-        throw Error('La sesión cambió. Volvé a abrir la ficha.');
+        throw new ErrorUsuario('La sesión cambió. Volvé a abrir la ficha.');
     };
     return { client, session, vigente };
   }
@@ -44,8 +45,8 @@ export class DocumentosAlumnosRepository {
       .abortSignal(AbortSignal.timeout(20000));
     vigente();
     if (error || !data)
-      throw Error(
-        'No se pudieron cargar los documentos. Revisá la conexión, los permisos y la instalación de la migración 012.',
+      throw new ErrorUsuario(
+        'No se pudieron cargar los documentos. Revisá tu conexión e intentá nuevamente.',
       );
     return data as ListaDocumentos;
   }
@@ -56,7 +57,7 @@ export class DocumentosAlumnosRepository {
       .abortSignal(AbortSignal.timeout(20000));
     vigente();
     if (error || !data)
-      throw Error(
+      throw new ErrorUsuario(
         'No se pudo habilitar la selección de documentos. Reintentá o adjuntalos después desde la ficha.',
       );
     return data as ConfigDocumentos;
@@ -83,7 +84,7 @@ export class DocumentosAlumnosRepository {
           previo.tamano_bytes !== file.size ||
           previo.tipo_mime !== config.formatos[ext]
         )
-          throw Error(
+          throw new ErrorUsuario(
             'El documento pendiente no coincide con el seleccionado. Revisalo en la ficha.',
           );
         if (previo.estado === 'disponible') return;
@@ -104,7 +105,7 @@ export class DocumentosAlumnosRepository {
       // A network timeout can leave an object committed. The server listing also
       // returns objects without SQL metadata, so cleanup remains possible on reload.
       if (uploadError)
-        throw Error(
+        throw new ErrorUsuario(
           'No se confirmó la subida. Actualizá la lista antes de reintentar; si aparece un archivo pendiente, eliminá ese registro.',
         );
     }
@@ -128,11 +129,11 @@ export class DocumentosAlumnosRepository {
         const cleanup = await bucket.remove([path]);
         vigente();
         if (!cleanup.error)
-          throw Error(
-            'No se guardaron los metadatos. Se solicitó retirar el archivo; actualizá la lista para verificar.',
+          throw new ErrorUsuario(
+            'No se pudo adjuntar el documento. Actualizá la lista antes de reintentar.',
           );
       }
-      throw Error(
+      throw new ErrorUsuario(
         'La subida quedó pendiente de verificación. Actualizá la lista y eliminá el documento pendiente antes de volver a adjuntarlo.',
       );
     }
@@ -146,18 +147,20 @@ export class DocumentosAlumnosRepository {
       .eq('id', id)
       .maybeSingle();
     vigente();
-    if (error || !data) throw Error('Documento no disponible o sin permiso de acceso.');
+    if (error || !data) throw new ErrorUsuario('Documento no disponible o sin permiso de acceso.');
     return { ...data, estado: 'disponible' } as DocumentoAlumno;
   }
   async descargar(doc: DocumentoAlumno): Promise<Blob> {
-    if (doc.estado !== 'disponible') throw Error('El archivo no está disponible.');
+    if (doc.estado !== 'disponible') throw new ErrorUsuario('El archivo no está disponible.');
     const { client, vigente } = await this.contexto();
     const { data, error } = await client.storage
       .from(DOCUMENTOS_BUCKET)
       .download(doc.storage_path, {}, { cache: 'no-store' });
     vigente();
     if (error || !data)
-      throw Error('No se pudo descargar el archivo. Puede no existir o no tenés permiso.');
+      throw new ErrorUsuario(
+        'No se pudo descargar el archivo. Puede no existir o no tenés permiso.',
+      );
     return data;
   }
   async eliminar(doc: DocumentoAlumno): Promise<void> {
@@ -166,7 +169,9 @@ export class DocumentosAlumnosRepository {
     const { error } = await bucket.remove([doc.storage_path]);
     vigente();
     if (error)
-      throw Error('No se pudo eliminar el archivo. Podés reintentar sin duplicar la operación.');
+      throw new ErrorUsuario(
+        'No se pudo eliminar el archivo. Podés reintentar sin duplicar la operación.',
+      );
     // RPC checks object absence before deleting SQL metadata. Also handles an
     // already deleted record, so a partial delete can safely be retried.
     const result = await client.rpc('finalizar_eliminacion_documento', {
@@ -175,7 +180,7 @@ export class DocumentosAlumnosRepository {
     });
     vigente();
     if (result.error)
-      throw Error(
+      throw new ErrorUsuario(
         'La eliminación no se completó. Actualizá la lista y reintentá la limpieza del registro.',
       );
   }

@@ -1,3 +1,4 @@
+import { ErrorUsuario, mensajeError } from '../../core/services/mensajes-usuario';
 import { DestroyRef, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { AuthService } from '../../core/auth/auth-service';
 import { AdminAuthorization } from '../../core/auth/admin-authorization';
@@ -6,24 +7,17 @@ import { AgendaRepository, DatosTurno, Turno, fechasMes, minutos, turnoValido } 
 import { horaTexto } from './agenda-layout';
 
 export function errorAgenda(error: unknown): Error {
-  const e = error as { code?: string; message?: string };
+  if (error instanceof ErrorUsuario) return error;
+  const e = error as { code?: string };
   if (['42P01', '42883', '42703', 'PGRST202', 'PGRST204', 'PGRST205'].includes(e?.code ?? ''))
-    return new Error(
-      'Agenda no instalada o esquema desactualizado. Aplicá manualmente 016-agenda-entrenamientos.sql y actualizá la agenda.',
+    return new ErrorUsuario('La agenda no está disponible. Intentá más tarde.');
+  if (e?.code === '23P01')
+    return new ErrorUsuario(
+      'Un alumno ya tiene un entrenamiento en ese horario. Revisá el turno existente.',
     );
-  if (e?.code === '42501')
-    return new Error('No se pudo confirmar el acceso autorizado a la agenda.');
-  if (e?.code === '40001')
-    return new Error(
-      'El entrenamiento cambió en otra sesión. Actualizá la agenda y volvé a abrirlo.',
-    );
-  if (['23P01', 'P0001', '23514', '22023'].includes(e?.code ?? ''))
-    return new Error(e.message || 'Revisá los datos del entrenamiento.');
-  if (e?.code === '23505')
-    return new Error('Ya existe ese entrenamiento. Actualizá la agenda antes de reintentar.');
-  return new Error(
-    'No se pudo completar la operación de Agenda. Revisá la conexión y reintentá; si la respuesta se perdió, se reutilizará la misma solicitud.',
-  );
+  if (e?.code === 'P0001')
+    return new ErrorUsuario('Hay horarios superpuestos. Revisalos y confirmá para continuar.');
+  return new ErrorUsuario(mensajeError(error));
 }
 
 export function mapearTurno(fila: Record<string, unknown>): Turno {
@@ -265,11 +259,9 @@ export class AgendaSupabase extends AgendaRepository {
     version?: string,
   ): Promise<number> {
     if (!turnoValido(datos) || dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6))
-      throw new Error('Revisá los datos del entrenamiento.');
+      throw new ErrorUsuario('Revisá los datos del entrenamiento.');
     if (id && (!version || dias.length))
-      throw new Error(
-        'Falta la versión del entrenamiento o se intentó editar una serie. Actualizá la agenda.',
-      );
+      throw new ErrorUsuario('Actualizá la agenda y editá un entrenamiento por vez.');
     const normalizado = {
       ...datos,
       alumnoIds: [...datos.alumnoIds].sort(),
@@ -288,7 +280,7 @@ export class AgendaSupabase extends AgendaRepository {
     );
   }
   async cancelar(id: string, version?: string): Promise<void> {
-    if (!version) throw new Error('Falta la versión del entrenamiento. Actualizá la agenda.');
+    if (!version) throw new ErrorUsuario('Actualizá la agenda y volvé a abrir el entrenamiento.');
     return this.escribir(JSON.stringify(['cancelar', id, version]), (solicitud) =>
       this.api.cancelar(solicitud, id, version),
     );

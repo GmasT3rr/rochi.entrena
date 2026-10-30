@@ -1,3 +1,4 @@
+import { ErrorUsuario, mensajeError } from './mensajes-usuario';
 import { MinimumLoading } from '../../shared/skeleton/minimum-loading';
 import { CobroDirecto, validarCobroDirecto } from '../cobros-directos';
 import { Sort } from '@angular/material/sort';
@@ -99,11 +100,12 @@ export class CuentasService {
     };
     try {
       validarCobroDirecto(cobro);
-      if (cobro.fecha > this.hoy()) throw Error('La fecha de cobro no puede ser futura.');
+      if (cobro.fecha > this.hoy())
+        throw new ErrorUsuario('La fecha de cobro no puede ser futura.');
       if (!this.alumnos().some((a) => a.id === cobro.alumnoId))
-        throw Error('Seleccioná un alumno disponible.');
+        throw new ErrorUsuario('Seleccioná un alumno disponible.');
     } catch (e) {
-      return this.fallar((e as Error).message);
+      return this.fallar(mensajeError(e));
     }
     return this.mutar(
       () => this.repository.guardarCobro(cobro, crear, version),
@@ -249,7 +251,7 @@ export class CuentasService {
           this.datos.set(vacio());
           this.cargado.set(false);
         }
-        this.fallar(errorFinanciero(error));
+        this.error.set(errorFinanciero(error));
         this.errorCarga.set(this.error());
       }
     } finally {
@@ -267,10 +269,10 @@ export class CuentasService {
     try {
       validarCuentas(data);
       if (data.cuotas.some((c) => !this.alumnos().some((a) => a.id === c.alumnoId)))
-        throw Error('Seleccioná un alumno disponible en el listado.');
+        throw new ErrorUsuario('Seleccioná un alumno disponible en el listado.');
       return true;
     } catch (error) {
-      return this.fallar(error instanceof Error ? error.message : 'Datos inválidos.');
+      return this.fallar(mensajeError(error));
     }
   }
   async guardarCuota(
@@ -327,7 +329,10 @@ export class CuentasService {
       pagos: id ? this.pagos().map((p) => (p.id === id ? pago : p)) : [...this.pagos(), pago],
     };
     if (!this.validar(data)) return false;
-    return this.mutar(() => this.repository.guardarPago(pago, !id, version), 'Pago guardado.');
+    return this.mutar(
+      () => this.repository.guardarPago(pago, !id, version),
+      id ? 'Pago actualizado' : 'Pago registrado',
+    );
   }
   async eliminarCuota(id: string, version = this.versionCuota(id)): Promise<boolean> {
     if (!this.cuotas().some((c) => c.id === id)) return this.fallar('La cuota ya no existe.');
@@ -416,8 +421,7 @@ export function errorFinanciero(error: unknown): string {
   if (code === 'TCF_MENSUAL_DATOS')
     return 'No pudimos verificar el resultado mensual. Actualizá los datos antes de continuar.';
   if (code === '42501') return 'Acceso denegado. Verificá tu sesión y autorización administrativa.';
-  if (code === '23505')
-    return 'Ya existe una cuota equivalente o un registro con ese ID. Actualizá antes de reintentar.';
+  if (code === '23505') return 'El registro ya existe. Actualizá los datos.';
   if (code === '23503')
     return 'El alumno o la cuota no existe, o la cuota tiene pagos. Actualizá los datos.';
   if (['TCF_CONFLICTO', '40001', '40P01', 'PGRST116'].includes(code ?? ''))
@@ -426,5 +430,5 @@ export function errorFinanciero(error: unknown): string {
     return 'La consulta de cuentas no está disponible. Reintentá más tarde; si continúa, contactá al administrador.';
   if (['P0001', '23514', '23502', '22003', '22007', '22008'].includes(code ?? ''))
     return 'No se pudo guardar: revisá saldo, importe, fechas y relaciones. Actualizá los datos antes de reintentar.';
-  return 'No se pudo confirmar la operación. Revisá la conexión y actualizá antes de reintentar; no repitas un pago de resultado incierto.';
+  return mensajeError(error);
 }

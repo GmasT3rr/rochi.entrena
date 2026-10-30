@@ -1,3 +1,4 @@
+import { ErrorUsuario, mensajeError } from '../../core/services/mensajes-usuario';
 import { Component, DestroyRef, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -154,7 +155,7 @@ export class DocumentosAlta {
     this.error.set('');
     try {
       if (files.length + this.archivos().length > c.max_archivos)
-        throw Error(`Seleccioná hasta ${c.max_archivos} archivos en total.`);
+        throw new ErrorUsuario(`Seleccioná hasta ${c.max_archivos} archivos en total.`);
       for (const f of files) validarDocumento(f, c);
       this.archivos.update((prev) => [
         ...prev,
@@ -167,7 +168,7 @@ export class DocumentosAlta {
         })),
       ]);
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(mensajeError(e));
     }
   }
   quitar(id: string): void {
@@ -195,7 +196,7 @@ export class DocumentosAlta {
         if (this.alive) this.actualizar(f.id, { estado: 'guardado', intentado: true });
       } catch (e) {
         if (this.alive)
-          this.actualizar(f.id, { estado: 'error', intentado: true, error: (e as Error).message });
+          this.actualizar(f.id, { estado: 'error', intentado: true, error: mensajeError(e) });
       }
     }
     return this.archivos().every((f) => f.estado === 'guardado');

@@ -1,3 +1,4 @@
+import { ErrorUsuario } from './mensajes-usuario';
 export interface DiagnosticoPerfil {
   solicitud: string;
   http: number | null;
@@ -9,7 +10,7 @@ const solicitud =
   'GET /rest/v1/perfiles_entrenamiento?select=*&alumno_id=eq.[alumno]&propietario_id=eq.[propietario]';
 
 /** Never retain raw server errors: they may contain record values or credentials. */
-export class PerfilCargaError extends Error {
+export class PerfilCargaError extends ErrorUsuario {
   readonly diagnostico: DiagnosticoPerfil;
   constructor(error: { code?: string; details?: string } | null, status?: number, previa = false) {
     const codigo = error?.code && /^[A-Z0-9_]{1,40}$/i.test(error.code) ? error.code : 'TCF_RED';
@@ -22,7 +23,7 @@ export class PerfilCargaError extends Error {
       status === 403;
     super(
       esquema
-        ? 'El perfil no está disponible en la API. La administración debe verificar la tabla y su configuración antes de editar.'
+        ? 'El perfil no está disponible. Intentá más tarde.'
         : permisos
           ? 'No se pudo cargar el perfil por un problema de autorización o permisos. Reintentá con una sesión válida.'
           : codigo === 'TCF_RESPUESTA'

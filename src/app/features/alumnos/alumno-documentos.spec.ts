@@ -184,7 +184,7 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
     finish();
     await pending;
     expect(subir).toHaveBeenCalledTimes(4);
-    expect(mostrar).toHaveBeenCalledWith('4 documento(s) adjuntado(s).', 'exito');
+    expect(mostrar).toHaveBeenCalledWith('4 documentos adjuntados', 'exito');
     expect(c.ocupado()).toBe(false);
   });
   it('conserva listado y skeleton al abrir, descargar, reenfocar y renovar token del mismo usuario', async () => {
@@ -287,7 +287,7 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
     subir.mockResolvedValueOnce(undefined).mockRejectedValueOnce(Error('Error de red'));
     await c.seleccionar(selection([new File(['x'], 'a.pdf'), new File(['x'], 'b.pdf')]));
     expect(c.error()).toContain('1 de 2');
-    expect(c.error()).toContain('Error de red');
+    expect(c.error()).toBe('1 de 2 archivos confirmados. Ocurrió un error. Intentá nuevamente.');
     expect(mostrar).not.toHaveBeenCalled();
     expect(listar).toHaveBeenCalledTimes(2);
   });
@@ -299,7 +299,7 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
     expect(listar).toHaveBeenCalledTimes(1);
     eliminar.mockRejectedValueOnce(Error('La eliminación no se completó'));
     await c.eliminar(doc);
-    expect(c.error()).toContain('no se completó');
+    expect(c.error()).toBe('Ocurrió un error. Intentá nuevamente.');
     expect(mostrar).not.toHaveBeenCalled();
     await c.eliminar(doc);
     expect(mostrar).toHaveBeenCalledWith('Documento eliminado.', 'exito');

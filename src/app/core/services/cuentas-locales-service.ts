@@ -1,3 +1,4 @@
+import { ErrorUsuario, mensajeError } from './mensajes-usuario';
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import {
   VistaPreviaMensual,
@@ -71,7 +72,7 @@ export class CuentasLocalesService {
     const timer = setInterval(() => this.hoy.set(fechaLocal()), 30000);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
     try {
-      if (this.alumnos.error()) throw Error('No se pueden leer los alumnos.');
+      if (this.alumnos.error()) throw new ErrorUsuario('No se pueden leer los alumnos.');
       let data = this.repository.cargar();
       if (data === null) {
         data = { version: 1, cuotas: [], pagos: [] };
@@ -88,7 +89,8 @@ export class CuentasLocalesService {
   }
 
   previsualizarMensual(periodo: string): VistaPreviaMensual {
-    if (!periodoValido(periodo)) throw Error('Seleccioná un mes y año válidos (1900 a 9999).');
+    if (!periodoValido(periodo))
+      throw new ErrorUsuario('Seleccioná un mes y año válidos (1900 a 9999).');
     const vista: VistaPreviaMensual = { periodo, cuotas: [], omitidos: [] };
     const [anio, mes] = periodo.split('-').map(Number);
     const ultimoDia = new Date(anio, mes, 0).getDate();
@@ -256,14 +258,14 @@ export class CuentasLocalesService {
   private validarRelaciones(data: CuentasData): void {
     validarCuentas(data);
     if (data.cuotas.some((c) => !this.alumnos.alumnos().some((a) => a.id === c.alumnoId)))
-      throw Error('Hay cuotas sin alumno.');
+      throw new ErrorUsuario('Hay cuotas sin alumno.');
   }
   private persistir(data: CuentasData, mensaje: string): boolean {
     if (!this.disponible()) return false;
     try {
       this.validarRelaciones(data);
     } catch (e) {
-      return this.fallar(e instanceof Error ? e.message : 'Datos inválidos.');
+      return this.fallar(mensajeError(e));
     }
     try {
       this.repository.guardar(data);

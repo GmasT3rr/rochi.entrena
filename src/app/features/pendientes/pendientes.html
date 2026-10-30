@@ -18,7 +18,7 @@
 @if (service.cargandoInicial()) {
   <app-loading-layout variant="cuentas" label="Cargando pendientes" />
 } @else if (service.errorCarga()) {
-  <p role="alert">No pudimos cargar los pendientes. Usá Actualizar para reintentar.</p>
+  <p role="alert">{{ service.errorCarga() }} Usá Actualizar para reintentar.</p>
 } @else if (service.tieneDatos()) {
   <p>
     Saldo total pendiente: <strong>{{ total() | currency: 'ARS' : 'symbol' : '1.2-2' }}</strong>

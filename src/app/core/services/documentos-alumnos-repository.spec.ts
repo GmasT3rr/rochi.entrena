@@ -145,7 +145,9 @@ describe('Documentos: protocolo Storage/SQL con SDK simulado (no prueba RLS real
   });
   it('compensa un error SQL y conserva una recuperación si también falla Storage', async () => {
     insert.mockResolvedValue({ error: { code: 'network' } });
-    await expect(repo.subir('a', new File(['x'], 'a.pdf'), config)).rejects.toThrow('metadatos');
+    await expect(repo.subir('a', new File(['x'], 'a.pdf'), config)).rejects.toThrow(
+      'No se pudo adjuntar el documento',
+    );
     expect(remove).toHaveBeenCalledOnce();
     remove.mockResolvedValue({ error: { message: 'offline' } });
     await expect(repo.subir('a', new File(['x'], 'a.pdf'), config)).rejects.toThrow('pendiente');

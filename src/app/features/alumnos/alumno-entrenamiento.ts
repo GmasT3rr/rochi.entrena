@@ -7,6 +7,7 @@ import {
   input,
   signal,
   untracked,
+  isDevMode,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,6 +23,7 @@ import { MinimumLoading } from '../../shared/skeleton/minimum-loading';
 import { LoadingLayout } from '../../shared/skeleton/loading-layout';
 import { PerfilEditor } from './perfil-editor';
 import { DiagnosticoPerfil, PerfilCargaError } from '../../core/services/perfil-carga-error';
+import { mensajeError } from '../../core/services/mensajes-usuario';
 
 @Component({
   selector: 'app-alumno-entrenamiento',
@@ -32,17 +34,6 @@ import { DiagnosticoPerfil, PerfilCargaError } from '../../core/services/perfil-
         <app-loading-layout variant="ficha" label="Cargando perfil de entrenamiento" />
       } @else if (error()) {
         <p role="alert">{{ error() }}</p>
-        @if (diagnostico(); as d) {
-          <details>
-            <summary>Detalles para soporte</summary>
-            <p>{{ d.solicitud }}</p>
-            <p>HTTP: {{ d.http ?? 'sin respuesta HTTP' }} · Código: {{ d.codigo }}</p>
-            <p>{{ d.mensaje }}</p>
-            @if (d.detalles) {
-              <p>{{ d.detalles }}</p>
-            }
-          </details>
-        }
         <button mat-stroked-button (click)="cargar()" [disabled]="cargando()">Reintentar</button>
       } @else if (cargado()) {
         <div class="hub-actions">
@@ -149,12 +140,10 @@ export class AlumnoEntrenamiento {
       }
     } catch (error) {
       if (this.alive && generation === this.generation) {
-        this.diagnostico.set(error instanceof PerfilCargaError ? error.diagnostico : null);
-        this.error.set(
-          error instanceof PerfilCargaError
-            ? error.message
-            : 'No se pudo cargar el perfil. Revisá la conexión y los permisos antes de editar.',
+        this.diagnostico.set(
+          isDevMode() && error instanceof PerfilCargaError ? error.diagnostico : null,
         );
+        this.error.set(mensajeError(error));
       }
     } finally {
       if (this.alive && generation === this.generation) {

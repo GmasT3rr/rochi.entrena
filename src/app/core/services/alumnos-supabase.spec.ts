@@ -414,7 +414,7 @@ describe('Signals remotos y aislamiento de finanzas locales', () => {
       codigo: '42703',
       estadoHttp: 400,
       operacion: 'Listar alumnos',
-      mensaje: expect.stringContaining('periodo_inicio'),
+      mensaje: expect.stringContaining('privacidad'),
     });
     expect(service.alumnos()).toEqual([alumno]);
     expect(service.listadoCargado()).toBe(true);
@@ -437,7 +437,7 @@ describe('Signals remotos y aislamiento de finanzas locales', () => {
       recurso: 'crear_alumno_con_primera_cuota',
     });
     expect(await service.guardar(alumno, undefined, alumno.id, '2028-02')).toBe(false);
-    expect(service.error()).toContain('migración 006');
+    expect(service.error()).toContain('No se pudo crear el alumno');
     expect(service.errorListado()).toBe('');
     expect(service.alumnos()).toEqual([]);
     expect(service.mensaje()).toBe('');
@@ -448,7 +448,7 @@ describe('Signals remotos y aislamiento de finanzas locales', () => {
       operacion: 'Listar alumnos',
     });
     await service.recargar();
-    expect(service.error()).toContain('migración 006');
+    expect(service.error()).toContain('No se pudo crear el alumno');
     expect(service.errorListado()).toContain('No pudimos');
     expect(service.detalleError()?.estadoHttp).toBe(404);
     expect(service.detalleErrorListado()?.estadoHttp).toBe(400);
@@ -463,7 +463,7 @@ describe('Signals remotos y aislamiento de finanzas locales', () => {
     expect(service.alumnos()).toEqual([]);
     resolver(alumno);
     expect(await guardado).toBe(true);
-    expect(service.mensaje()).toContain('Primera cuota de 2028-02 creada, sin pagos');
+    expect(service.mensaje()).toBe('Alumno y primera cuota creados');
     expect(repo.guardar).toHaveBeenCalledWith(
       expect.objectContaining({ id: alumno.id }),
       true,

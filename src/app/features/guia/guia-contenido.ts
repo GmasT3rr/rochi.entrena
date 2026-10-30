@@ -135,7 +135,7 @@ export const explicacionesGuia: readonly ExplicacionGuia[] = [
       'Si falta una cuota, avisá a la administración. En Configuración, Herramientas administrativas permite Revisar cuotas faltantes antes de confirmar.',
     ],
     aclaracion:
-      'Se incluyen alumnos activos con cobro mensual habilitado desde su primer período a cobrar. Se reintenta diariamente el mes actual; los meses anteriores requieren revisión. Generar una cuota no registra un pago. La activación de esta tarea todavía requiere validación en Supabase.',
+      'Se incluyen alumnos activos con cobro mensual habilitado desde su primer período a cobrar. Se reintenta diariamente el mes actual; los meses anteriores requieren revisión. Generar una cuota no registra un pago. La activación de esta tarea está pendiente de confirmación.',
     ruta: '/cuentas',
     enlace: 'Ir a Cuotas y cobros',
   },

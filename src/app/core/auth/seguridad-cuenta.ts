@@ -90,7 +90,7 @@ export class SeguridadCuenta {
       )
         throw { code: '42501' };
       this.requiereCodigo.set(false);
-      this.mensaje.set('Tu contraseña se cambió correctamente.');
+      this.mensaje.set('Contraseña actualizada');
       return true;
     } catch (error) {
       const code = (error as { code?: string })?.code;
@@ -145,5 +145,5 @@ function mensajePassword(code?: string): string {
     return 'No pudimos verificar tu acceso. Volvé a iniciar sesión.';
   if (code?.includes('rate_limit'))
     return 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.';
-  return 'No pudimos confirmar el cambio. Revisá tu conexión y volvé a intentarlo.';
+  return 'Ocurrió un error. Intentá nuevamente.';
 }

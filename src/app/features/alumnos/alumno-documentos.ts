@@ -1,3 +1,4 @@
+import { ErrorUsuario, mensajeError } from '../../core/services/mensajes-usuario';
 import {
   Component,
   DestroyRef,
@@ -166,10 +167,10 @@ export class AlumnoDocumentos {
     this.error.set('');
     try {
       if (files.length > config.max_archivos)
-        throw Error(`Seleccioná hasta ${config.max_archivos} archivos por vez.`);
+        throw new ErrorUsuario(`Seleccioná hasta ${config.max_archivos} archivos por vez.`);
       for (const file of files) validarDocumento(file, config);
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(mensajeError(e));
       return;
     }
     const alumno = this.alumno();
@@ -184,12 +185,13 @@ export class AlumnoDocumentos {
         exitos++;
       }
       if (this.vigente(generation))
-        this.toast.mostrar(`${exitos} documento(s) adjuntado(s).`, 'exito');
+        this.toast.mostrar(
+          exitos === 1 ? 'Documento adjuntado' : `${exitos} documentos adjuntados`,
+          'exito',
+        );
     } catch (e) {
       if (this.vigente(generation))
-        this.error.set(
-          `${exitos} de ${files.length} archivos confirmados. ${(e as Error).message}`,
-        );
+        this.error.set(`${exitos} de ${files.length} archivos confirmados. ${mensajeError(e)}`);
     } finally {
       if (this.vigente(generation)) {
         this.ocupado.set(false);
@@ -308,7 +310,7 @@ export class AlumnoDocumentos {
       await this.repo.eliminar(doc);
       if (this.vigente(generation)) this.toast.mostrar('Documento eliminado.', 'exito');
     } catch (e) {
-      if (this.vigente(generation)) this.error.set((e as Error).message);
+      if (this.vigente(generation)) this.error.set(mensajeError(e));
     } finally {
       if (this.vigente(generation)) {
         this.ocupado.set(false);

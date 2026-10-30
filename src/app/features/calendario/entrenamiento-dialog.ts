@@ -1,3 +1,4 @@
+import { mensajeError } from '../../core/services/mensajes-usuario';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -132,10 +133,13 @@ export class EntrenamientoDialog {
         this.data.turno?.version,
       );
       this.completado.set(true);
-      this.toast.mostrar(`${cantidad} entrenamiento(s) guardado(s) en Supabase.`, 'exito');
+      this.toast.mostrar(
+        cantidad === 1 ? 'Entrenamiento guardado' : `${cantidad} entrenamientos guardados`,
+        'exito',
+      );
       this.ref.close({ fecha: this.borrador.fecha });
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(mensajeError(e));
     } finally {
       this.ocupado.set(false);
       this.ref.disableClose = false;
@@ -162,10 +166,10 @@ export class EntrenamientoDialog {
     try {
       await this.agenda.cancelar(this.data.turno.id, this.data.turno.version);
       this.completado.set(true);
-      this.toast.mostrar('Entrenamiento cancelado en Supabase.', 'exito');
+      this.toast.mostrar('Entrenamiento cancelado', 'exito');
       this.ref.close({ fecha: this.borrador.fecha });
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(mensajeError(e));
     } finally {
       this.ocupado.set(false);
       this.ref.disableClose = false;

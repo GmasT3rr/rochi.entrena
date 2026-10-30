@@ -125,7 +125,7 @@ describe('Agenda API con SDK simulado; no prueba RLS real', () => {
   it('identifica esquema pendiente, rechaza respuesta inválida y no reemplaza fallos por memoria', async () => {
     query.abortSignal.mockResolvedValueOnce({ error: { code: '42P01' }, data: null });
     await expect(api.listar('2026-10-01', '2026-10-31')).rejects.toMatchObject({ code: '42P01' });
-    expect(errorAgenda({ code: '42P01' }).message).toContain('016-agenda');
+    expect(errorAgenda({ code: '42P01' }).message).toContain('La agenda no está disponible');
     query.abortSignal.mockResolvedValueOnce({
       data: [{ ...fila, hora_fin: '23:00:00' }],
       error: null,
@@ -217,12 +217,12 @@ describe('Estado remoto de Agenda', () => {
     listar.mockRejectedValueOnce({ code: '42P01' });
     await expect(service.guardar(datos)).resolves.toBe(1);
     expect(guardar).toHaveBeenCalledTimes(1);
-    expect(service.errorListado()).toContain('016-agenda');
+    expect(service.errorListado()).toContain('La agenda no está disponible');
     expect(service.listar()).toEqual([]);
   });
   it('rechaza edición o cancelación sin versión y no expone datos en recuperación', async () => {
-    await expect(service.guardar(datos, [], 't')).rejects.toThrow('versión');
-    await expect(service.cancelar('t')).rejects.toThrow('versión');
+    await expect(service.guardar(datos, [], 't')).rejects.toThrow('Actualizá la agenda');
+    await expect(service.cancelar('t')).rejects.toThrow('Actualizá la agenda');
     expect(guardar).not.toHaveBeenCalled();
     await service.cargar('2026-10-01', '2026-10-31');
     recovery.set(true);

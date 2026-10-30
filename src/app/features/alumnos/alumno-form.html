@@ -294,17 +294,6 @@
     </div>
     @if (errorGuardado()) {
       <p role="alert">{{ errorGuardado() }}</p>
-      @if (detalleGuardado(); as detalle) {
-        <details>
-          <summary>Detalles para soporte</summary>
-          <p>{{ detalle.operacion }} · {{ detalle.recurso }}</p>
-          <p>
-            Código: {{ detalle.codigo || 'no informado' }} · HTTP:
-            {{ detalle.estadoHttp || 'no informado' }}
-          </p>
-          <p>{{ detalle.mensaje }}</p>
-        </details>
-      }
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">

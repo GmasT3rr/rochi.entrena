@@ -1,8 +1,8 @@
 <h2 mat-dialog-title>Generar cuotas del mes</h2>
 <mat-dialog-content>
   <p>
-    Se usarán los alumnos activos y la configuración mensual vigente de PostgreSQL. Las cuotas
-    existentes conservarán sus importes.
+    Se usarán los alumnos activos y la configuración mensual vigente. Las cuotas existentes
+    conservarán sus importes.
   </p>
   <app-period-selector [formControl]="periodo" [readonly]="cargando() || generando()" />
   <button
@@ -101,7 +101,7 @@
     <p role="alert">{{ error() }}</p>
   }
   @if (generando()) {
-    <p role="status">Generando en PostgreSQL. Esperá el resultado antes de cerrar.</p>
+    <p role="status">Generando cuotas. Esperá el resultado antes de cerrar.</p>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">

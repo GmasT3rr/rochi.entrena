@@ -1,3 +1,4 @@
+import { mensajeError } from '../../core/services/mensajes-usuario';
 import { Component, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -67,7 +68,7 @@ export class PerfilEditor {
       this.toast.mostrar('Perfil de entrenamiento guardado.', 'exito');
       this.ref.close(true);
     } catch (e) {
-      this.error.set((e as Error).message);
+      this.error.set(mensajeError(e));
     } finally {
       this.guardando.set(false);
     }

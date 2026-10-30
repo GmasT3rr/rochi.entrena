@@ -269,7 +269,7 @@ describe('Formulario remoto de alumnos', () => {
       expect.objectContaining({ ciudad: 'Rosario', edad_declarada: null }),
       null,
     );
-    expect(form.errorPerfilAlta()).toContain('sin confirmar');
+    expect(form.errorPerfilAlta()).toBe('Ocurrió un error. Intentá nuevamente.');
     expect(subir).toHaveBeenCalledTimes(1);
     expect(close).not.toHaveBeenCalled();
     await form.guardar();
@@ -362,7 +362,7 @@ describe('Formulario remoto de alumnos', () => {
     expect(documentos.archivos().map((f) => f.estado)).toEqual(['guardado', 'error']);
     expect(fixture.nativeElement.textContent).toContain('El alumno ya fue creado');
     expect(fixture.nativeElement.textContent).toContain('b.pdf');
-    expect(fixture.nativeElement.textContent).toContain('Sin conexión');
+    expect(fixture.nativeElement.textContent).toContain('Ocurrió un error. Intentá nuevamente.');
     await form.guardar();
     expect(guardar).toHaveBeenCalledTimes(1);
     expect(subir).toHaveBeenCalledTimes(3);
@@ -461,7 +461,7 @@ describe('Formulario remoto de alumnos', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role=alert]')).toBeNull();
     guardar.mockResolvedValueOnce(false);
-    service.error.set('No está disponible la RPC de primera cuota');
+    service.error.set('No se pudo crear la primera cuota');
     service.detalleError.set({
       codigo: 'PGRST202',
       estadoHttp: 404,
@@ -481,9 +481,9 @@ describe('Formulario remoto de alumnos', () => {
     expect(close).not.toHaveBeenCalled();
     expect(form.form.getRawValue()).toEqual(datos);
     expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain(
-      'RPC de primera cuota',
+      'No se pudo crear la primera cuota',
     );
-    expect(fixture.nativeElement.textContent).toContain('PGRST202');
+    expect(fixture.nativeElement.textContent).not.toContain('PGRST202');
     service.error.set('Otro error de fondo');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role=alert]').textContent).not.toContain('fondo');

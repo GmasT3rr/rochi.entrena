@@ -48,17 +48,6 @@
     @if (service.listadoCargado()) {
       <p>No se muestra el listado anterior porque no pudo actualizarse.</p>
     }
-    @if (service.detalleErrorListado(); as detalle) {
-      <details>
-        <summary>Detalles para soporte</summary>
-        <p>{{ detalle.operacion }} · {{ detalle.recurso }}</p>
-        <p>
-          Código: {{ detalle.codigo || 'no informado' }} · HTTP:
-          {{ detalle.estadoHttp || 'no informado' }}
-        </p>
-        <p>{{ detalle.mensaje }}</p>
-      </details>
-    }
     <button
       mat-stroked-button
       (click)="service.recargar()"
