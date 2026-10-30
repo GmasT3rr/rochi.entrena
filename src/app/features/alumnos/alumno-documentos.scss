@@ -3,6 +3,17 @@
 .section {
   padding-block: var(--hub-space-4);
 }
+.thumbnail {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--hub-control-radius);
+  margin-inline-end: var(--hub-space-2);
+}
+.document-open .document-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .document-name {
   display: block;
   max-width: 28ch;

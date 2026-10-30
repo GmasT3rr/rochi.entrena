@@ -58,10 +58,25 @@
           @for (d of documentos(); track d.storage_path) {
             <tr>
               <td>
-                <span class="document-name" [title]="d.nombre_original">{{
-                  d.nombre_original
-                }}</span
-                ><small>{{ d.tipo_mime }}</small>
+                @if (d.estado === 'disponible') {
+                  <button
+                    mat-button
+                    class="document-open"
+                    (click)="abrir(d)"
+                    [disabled]="ocupado() || cargando()"
+                    [attr.aria-label]="
+                      'Abrir ' + d.nombre_original + ' en otra pestaña; Word y Excel se descargan'
+                    "
+                  >
+                    @if (miniaturas()[d.storage_path]; as imagen) {
+                      <img class="thumbnail" [src]="imagen" alt="" />
+                    }
+                    <span class="document-name">{{ d.nombre_original }}</span>
+                  </button>
+                } @else {
+                  <span class="document-name">{{ d.nombre_original }}</span>
+                }
+                <small>{{ d.tipo_mime }}</small>
                 @if (d.estado !== 'disponible') {
                   <small
                     >Pendiente de limpieza:
@@ -104,7 +119,24 @@
     <div class="mobile-records">
       @for (d of documentos(); track d.storage_path) {
         <article class="record-card">
-          <h4 class="document-name" [title]="d.nombre_original">{{ d.nombre_original }}</h4>
+          @if (d.estado === 'disponible') {
+            <button
+              mat-button
+              class="document-open"
+              (click)="abrir(d)"
+              [disabled]="ocupado() || cargando()"
+              [attr.aria-label]="
+                'Abrir ' + d.nombre_original + ' en otra pestaña; Word y Excel se descargan'
+              "
+            >
+              @if (miniaturas()[d.storage_path]; as imagen) {
+                <img class="thumbnail" [src]="imagen" alt="" />
+              }
+              <span class="document-name">{{ d.nombre_original }}</span>
+            </button>
+          } @else {
+            <h4 class="document-name">{{ d.nombre_original }}</h4>
+          }
           <p class="mime">{{ d.tipo_mime }}</p>
           <p>
             {{ d.tamano_bytes / 1024 | number: '1.0-1' }} KB ·

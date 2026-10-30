@@ -38,31 +38,125 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
     mostrar = vi.fn(),
     descargarBlob = vi.fn(),
     open = vi.fn();
-  const session = signal<any>({ access_token: 'token' });
+  const session = signal<any>({ user: { id: 'owner' }, access_token: 'token' });
   beforeEach(() => {
     for (const fn of [listar, subir, eliminar, descargar, mostrar, descargarBlob, open])
       fn.mockReset();
-    session.set({ access_token: 'token' });
+    session.set({ user: { id: 'owner' }, access_token: 'token' });
     listar.mockResolvedValue({ config, documentos: [doc] });
+    descargar.mockResolvedValue(new Blob(['original'], { type: 'application/pdf' }));
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static override createObjectURL = vi.fn(() => 'blob:local-documento');
+        static override revokeObjectURL = vi.fn();
+      },
+    );
     subir.mockResolvedValue(undefined);
     eliminar.mockResolvedValue(undefined);
     open.mockReturnValue({ afterClosed: () => of(true) });
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { session } },
-        { provide: DocumentosAlumnosRepository, useValue: { listar, subir, eliminar, descargar } },
+        {
+          provide: DocumentosAlumnosRepository,
+          useValue: { listar, subir, eliminar, descargar },
+        },
         { provide: ToastService, useValue: { mostrar } },
         { provide: DescargasService, useValue: { descargarBlob } },
         { provide: MatDialog, useValue: { open } },
       ],
     });
   });
+  afterEach(() => vi.unstubAllGlobals());
   async function crear() {
     const f = TestBed.createComponent(AlumnoDocumentos);
     f.componentRef.setInput('alumno', 'a');
     await f.whenStable();
     return f;
   }
+  it('abre el original desde desktop y mobile sin navegar por Angular ni descargar el PDF', async () => {
+    const f = await crear();
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await f.whenStable();
+    f.detectChanges();
+    const replace = vi.fn(),
+      close = vi.fn();
+    const ventana = { opener: {}, location: { replace }, close, closed: false };
+    const abrir = vi.spyOn(window, 'open').mockReturnValue(ventana as unknown as Window);
+    try {
+      const botones = f.nativeElement.querySelectorAll(
+        '.document-open',
+      ) as NodeListOf<HTMLButtonElement>;
+      expect(botones.length).toBe(2);
+      for (const boton of Array.from(botones)) {
+        boton.click();
+        expect(abrir).toHaveBeenCalledWith('about:blank', '_blank');
+        await f.whenStable();
+      }
+      expect(abrir.mock.invocationCallOrder[0]).toBeLessThan(descargar.mock.invocationCallOrder[0]);
+      expect(ventana.opener).toBeNull();
+      expect(replace).toHaveBeenCalledWith('blob:local-documento');
+      expect(close).not.toHaveBeenCalled();
+      expect(descargar).toHaveBeenCalledTimes(2);
+      expect(listar).toHaveBeenCalledTimes(1);
+      expect(f.componentInstance.documentos()).toEqual([doc]);
+      expect(f.componentInstance.inicial()).toBe(false);
+      expect(descargarBlob).not.toHaveBeenCalled();
+      expect(f.nativeElement.querySelector('[routerLink], iframe, app-documento-visor')).toBeNull();
+    } finally {
+      abrir.mockRestore();
+    }
+  });
+  it('informa ventanas bloqueadas y cierra la pestaña vacía si falla el acceso', async () => {
+    const c = (await crear()).componentInstance;
+    const abrir = vi.spyOn(window, 'open').mockReturnValue(null);
+    try {
+      await c.abrir(doc);
+      expect(c.error()).toContain('bloque');
+      expect(descargar).not.toHaveBeenCalled();
+      const close = vi.fn(),
+        replace = vi.fn();
+      abrir.mockReturnValue({
+        opener: {},
+        close,
+        closed: false,
+        location: { replace },
+      } as unknown as Window);
+      descargar.mockRejectedValueOnce(Error('Sin acceso al archivo'));
+      await c.abrir(doc);
+      expect(close).toHaveBeenCalled();
+      expect(replace).not.toHaveBeenCalled();
+      expect(c.error()).toContain('permisos');
+      expect(c.ocupado()).toBe(false);
+    } finally {
+      abrir.mockRestore();
+    }
+  });
+  it('descarta la apertura pendiente y cierra la pestaña al salir de sesión', async () => {
+    const f = await crear();
+    const close = vi.fn(),
+      replace = vi.fn();
+    const abrir = vi.spyOn(window, 'open').mockReturnValue({
+      opener: {},
+      close,
+      closed: false,
+      location: { replace },
+    } as unknown as Window);
+    let resolve!: (blob: Blob) => void;
+    descargar.mockReturnValueOnce(new Promise<Blob>((r) => (resolve = r)));
+    try {
+      const pendiente = f.componentInstance.abrir(doc);
+      session.set(null);
+      await f.whenStable();
+      expect(close).toHaveBeenCalled();
+      resolve(new Blob(['privado']));
+      await pendiente;
+      expect(replace).not.toHaveBeenCalled();
+    } finally {
+      abrir.mockRestore();
+    }
+  });
   it('lista y descarga con nombre original, carga varios formatos y evita doble envío', async () => {
     const f = await crear();
     const c = f.componentInstance;
@@ -90,6 +184,71 @@ describe('Documentos en ficha: interacción y respuestas tardías', () => {
     expect(subir).toHaveBeenCalledTimes(4);
     expect(mostrar).toHaveBeenCalledWith('4 documento(s) adjuntado(s).', 'exito');
     expect(c.ocupado()).toBe(false);
+  });
+  it('conserva listado y skeleton al abrir, descargar, reenfocar y renovar token del mismo usuario', async () => {
+    const f = await crear();
+    const c = f.componentInstance;
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await f.whenStable();
+    const lista = c.documentos(),
+      configuracion = c.config();
+    const ventana = { opener: null, closed: false, close: vi.fn(), location: { replace: vi.fn() } };
+    const abrir = vi.spyOn(window, 'open').mockReturnValue(ventana as unknown as Window);
+    try {
+      for (let i = 0; i < 3; i++) {
+        await c.abrir(doc);
+        await c.descargar(doc);
+        session.set({ user: { id: 'owner' }, access_token: 'token-' + i });
+        window.dispatchEvent(new Event('focus'));
+        await f.whenStable();
+        expect(c.documentos()).toBe(lista);
+        expect(c.config()).toBe(configuracion);
+        expect(c.cargando()).toBe(false);
+        expect(c.inicial()).toBe(false);
+      }
+      expect(listar).toHaveBeenCalledTimes(1);
+      expect(descargar).toHaveBeenCalledTimes(6);
+      await c.cargar();
+      expect(listar).toHaveBeenCalledTimes(2);
+    } finally {
+      abrir.mockRestore();
+    }
+  });
+  it.each(['doc', 'docx', 'xls', 'xlsx'])(
+    'descarga %s nativamente sin pestaña ni recarga de listado',
+    async (ext) => {
+      const c = (await crear()).componentInstance;
+      const abrir = vi.spyOn(window, 'open');
+      try {
+        await c.abrir({ ...doc, nombre_original: 'Archivo.' + ext });
+        expect(abrir).not.toHaveBeenCalled();
+        expect(descargarBlob).toHaveBeenCalledWith('Archivo.' + ext, expect.any(Blob));
+        expect(listar).toHaveBeenCalledTimes(1);
+      } finally {
+        abrir.mockRestore();
+      }
+    },
+  );
+  it('revoca la URL al cerrar la pestaña y al destruir la ficha, sin revocarla prematuramente', async () => {
+    const f = await crear();
+    vi.useFakeTimers();
+    const ventana = { opener: null, closed: false, close: vi.fn(), location: { replace: vi.fn() } };
+    const abrir = vi.spyOn(window, 'open').mockReturnValue(ventana as unknown as Window);
+    try {
+      await f.componentInstance.abrir(doc);
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+      ventana.closed = true;
+      vi.advanceTimersByTime(1000);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local-documento');
+      ventana.closed = false;
+      await f.componentInstance.abrir(doc);
+      f.destroy();
+      expect(ventana.close).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+    } finally {
+      abrir.mockRestore();
+      vi.useRealTimers();
+    }
   });
   it('valida toda la selección antes de subir e informa cargas parciales sin éxito falso', async () => {
     const c = (await crear()).componentInstance;

@@ -139,8 +139,11 @@ export class DocumentosAlumnosRepository {
     vigente();
   }
   async descargar(doc: DocumentoAlumno): Promise<Blob> {
+    if (doc.estado !== 'disponible') throw Error('El archivo no está disponible.');
     const { client, vigente } = await this.contexto();
-    const { data, error } = await client.storage.from(DOCUMENTOS_BUCKET).download(doc.storage_path);
+    const { data, error } = await client.storage
+      .from(DOCUMENTOS_BUCKET)
+      .download(doc.storage_path, {}, { cache: 'no-store' });
     vigente();
     if (error || !data)
       throw Error('No se pudo descargar el archivo. Puede no existir o no tenés permiso.');

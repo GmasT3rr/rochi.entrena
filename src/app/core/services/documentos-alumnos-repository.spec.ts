@@ -59,6 +59,60 @@ describe('Documentos: protocolo Storage/SQL con SDK simulado (no prueba RLS real
   afterEach(() => {
     authRuntime.client = null;
   });
+  it.each(['pdf', 'png', 'docx', 'xlsx'])(
+    'obtiene %s con download autenticado sin consultas de listado',
+    async (ext) => {
+      const blob = new Blob(['original']);
+      download.mockResolvedValue({ data: blob, error: null });
+      expect(await repo.descargar({ ...documento, nombre_original: 'Original.' + ext })).toBe(blob);
+      expect(download).toHaveBeenCalledWith(documento.storage_path, {}, { cache: 'no-store' });
+      expect(rpc).not.toHaveBeenCalled();
+    },
+  );
+  it('rechaza descargas sin sesion, permisos, archivo o si cambia la sesion', async () => {
+    session.set(null);
+    await expect(repo.descargar(documento)).rejects.toThrow('permisos');
+    session.set({ user: { id: 'owner' }, access_token: 'token' });
+    verify.mockResolvedValueOnce(false);
+    await expect(repo.descargar(documento)).rejects.toThrow('permisos');
+    await expect(repo.descargar({ ...documento, estado: 'sin_archivo' })).rejects.toThrow(
+      'disponible',
+    );
+    expect(download).not.toHaveBeenCalled();
+    download.mockImplementationOnce(async () => {
+      session.set(null);
+      return { data: new Blob(['privado']), error: null };
+    });
+    await expect(repo.descargar(documento)).rejects.toThrow(/cambi/);
+  });
+  it('el SDK solicita bytes por la ruta privada con Authorization y sin cache ni firma', async () => {
+    const requests: { url: string; init: RequestInit }[] = [];
+    const storage = new StorageClient(
+      'https://storage.example.test/storage/v1',
+      { Authorization: 'Bearer synthetic-test-credential' },
+      async (url, init) => {
+        requests.push({ url: String(url), init: init! });
+        return new Response('synthetic-file', {
+          status: 200,
+          headers: { 'Content-Type': 'application/pdf' },
+        });
+      },
+    );
+    download.mockImplementationOnce((path, options, parameters) =>
+      storage.from('documentos-alumnos').download(path, options, parameters),
+    );
+    const blob = await repo.descargar(documento);
+    expect(blob.type).toBe('application/pdf');
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toBe(
+      'https://storage.example.test/storage/v1/object/documentos-alumnos/' + documento.storage_path,
+    );
+    expect(new Headers(requests[0].init.headers).get('Authorization')).toBe(
+      'Bearer synthetic-test-credential',
+    );
+    expect(requests[0].init.cache).toBe('no-store');
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it('usa ruta UUID sin nombre original, upsert false y luego inserta metadatos', async () => {
     await repo.subir('a/b', new File(['x'], 'Original.pdf', { type: 'application/pdf' }), config);
     const [path, archivo, options] = upload.mock.calls[0];
