@@ -1,0 +1,246 @@
+<app-page-header title="Calendario" subtitle="Organizá tus entrenamientos, hora por hora">
+  <button mat-flat-button (click)="abrir(undefined, $any($event.currentTarget))">
+    Nuevo entrenamiento
+  </button>
+</app-page-header>
+<p class="aviso" role="note">
+  Horarios de America/Argentina/Buenos_Aires. La agenda consulta únicamente el mes visible y los
+  días vecinos de la semana mostrada.
+</p>
+@if (agenda.cargando()) {
+  <app-loading-layout variant="ficha" label="Cargando entrenamientos del período visible" />
+}
+@if (agenda.errorListado()) {
+  <p role="alert">{{ agenda.errorListado() }}</p>
+  <button
+    mat-stroked-button
+    (click)="recargar()"
+    [disabled]="agenda.cargando() || agenda.guardando()"
+  >
+    Actualizar agenda
+  </button>
+}
+<div class="agenda-layout">
+  <details class="mini-panel" [open]="!mobile()">
+    <summary>Elegir fecha · {{ fecha() }}</summary>
+    <aside aria-label="Selector de fecha">
+      <mat-card
+        ><mat-card-content>
+          <div class="hub-actions mini-nav">
+            <button
+              mat-button
+              aria-label="Mes anterior del calendario pequeño"
+              (click)="moverMes(-1)"
+            >
+              ‹
+            </button>
+            <span>{{ periodo() }}</span>
+            <button
+              mat-button
+              aria-label="Mes siguiente del calendario pequeño"
+              (click)="moverMes(1)"
+            >
+              ›
+            </button>
+          </div>
+          <app-period-selector
+            label="Mes de la agenda"
+            [value]="periodo()"
+            (periodChange)="cambiarMes($event)"
+          />
+          <div class="mini-mes" role="group" [attr.aria-label]="'Días de ' + periodo()">
+            @for (dia of diasSemana; track dia) {
+              <span class="semana" aria-hidden="true">{{ dia }}</span>
+            }
+            @for (dia of celdas(); track $index) {
+              @if (dia) {
+                <button
+                  mat-button
+                  class="dia"
+                  [class.hoy]="dia === hoy"
+                  [class.elegido]="dia === fecha()"
+                  [attr.aria-label]="dia + ': ' + cantidad(dia) + ' entrenamientos'"
+                  [attr.aria-pressed]="dia === fecha()"
+                  [attr.aria-current]="dia === hoy ? 'date' : null"
+                  (click)="nuevoEn(dia, '09:00', $any($event.currentTarget))"
+                >
+                  {{ +dia.slice(8)
+                  }}<span
+                    class="punto"
+                    [class.con-turnos]="cantidad(dia) > 0"
+                    aria-hidden="true"
+                  ></span>
+                </button>
+              } @else {
+                <span></span>
+              }
+            }
+          </div>
+          <p class="leyenda">Borde: hoy · Fondo: selección · Punto: entrenamientos</p>
+        </mat-card-content></mat-card
+      >
+    </aside>
+  </details>
+  <section class="agenda-principal" aria-label="Agenda de entrenamientos">
+    <div class="barra-agenda">
+      <div class="hub-actions agenda-nav">
+        <button mat-stroked-button (click)="irHoy()">Hoy</button>
+        <button
+          mat-button
+          (click)="recargar()"
+          [disabled]="agenda.cargando() || agenda.guardando()"
+        >
+          Actualizar
+        </button>
+        <button mat-button aria-label="Período anterior" (click)="navegar(-1)">Anterior</button>
+        <button mat-button aria-label="Período siguiente" (click)="navegar(1)">Siguiente</button>
+      </div>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="selector-vista">
+        <mat-label>Vista</mat-label>
+        <mat-select [value]="vistaEfectiva()" (selectionChange)="vista.set($event.value)">
+          @for (opcion of vistas; track opcion.valor) {
+            <mat-option
+              [value]="opcion.valor"
+              [disabled]="mobile() && (opcion.valor === 'laboral' || opcion.valor === 'semana')"
+              >{{ opcion.nombre }}</mat-option
+            >
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <h3 class="titulo-rango" aria-live="polite">{{ tituloRango() }}</h3>
+    @if (mobile() && vistaEfectiva() !== 'mes') {
+      <p class="leyenda">
+        Vista diaria adaptada al móvil. Deslizá verticalmente para recorrer las horas.
+      </p>
+    }
+    @if (vistaEfectiva() === 'mes') {
+      <div class="vista-mes" role="group" aria-label="Agenda mensual">
+        @for (dia of diasSemana; track dia) {
+          <div class="semana">{{ dia }}</div>
+        }
+        @for (dia of mesCompleto(); track $index) {
+          <div class="casilla-mes" [class.hoy]="dia === hoy" [class.elegido]="dia === fecha()">
+            @if (dia) {
+              <button
+                mat-button
+                [attr.aria-label]="'Crear entrenamiento el ' + dia"
+                (click)="nuevoEn(dia, '09:00', $any($event.currentTarget))"
+              >
+                {{ +dia.slice(8) }} <small>({{ cantidad(dia) }})</small>
+              </button>
+              @for (turno of turnosDia(dia); track turno.id) {
+                <button
+                  class="evento-mes"
+                  [attr.aria-label]="
+                    turno.inicio + ' ' + participantes(turno) + ' ' + turno.modalidad
+                  "
+                  (click)="verDetalle(turno, $any($event.currentTarget))"
+                >
+                  {{ turno.inicio }} {{ turno.titulo }} {{ participantes(turno) }} ·
+                  {{ turno.modalidad }}
+                </button>
+              }
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <p id="ayuda-agenda" class="leyenda">
+        Seleccioná una celda para crear o un bloque para ver detalles. Teclado: flechas para
+        moverte, Inicio/Fin y Enter para crear.
+      </p>
+      <div
+        class="horario-scroll"
+        tabindex="0"
+        aria-label="Grilla horaria con desplazamiento"
+        aria-describedby="ayuda-agenda"
+      >
+        <div class="horario" [style.--dias]="dias().length">
+          <div class="cabecera-hora">Hora</div>
+          @for (dia of dias(); track $index) {
+            <div class="cabecera-dia" [class.hoy]="dia === hoy" [class.elegido]="dia === fecha()">
+              <span>{{ etiquetaDia(dia) }}</span
+              ><small>{{ cantidad(dia) }} entrenamientos</small>
+            </div>
+          }
+          <div class="eje-horas" [style.height.px]="altura()" aria-hidden="true">
+            @for (hora of horas(); track hora) {
+              <div class="marca-hora">{{ hora }}</div>
+            }
+            <span class="hora-final">{{ horas().length ? finRango() : '' }}</span>
+          </div>
+          @for (columna of columnas(); track $index) {
+            <div
+              class="columna-dia"
+              [style.height.px]="altura()"
+              role="group"
+              [attr.aria-label]="etiquetaDia(columna.fecha)"
+            >
+              @for (hora of horas(); track hora) {
+                <button
+                  type="button"
+                  class="celda-hora"
+                  [class.tarde]="hora >= '12:00' && hora < '20:00'"
+                  [class.noche]="hora >= '20:00'"
+                  [attr.data-celda]="columna.fecha + '_' + hora"
+                  [attr.aria-label]="
+                    'Nuevo entrenamiento: ' + etiquetaDia(columna.fecha) + ', ' + hora
+                  "
+                  [attr.tabindex]="
+                    columna.fecha === (dias().includes(fecha()) ? fecha() : dias()[0]) &&
+                    hora === focoHora()
+                      ? 0
+                      : -1
+                  "
+                  (keydown)="tecladoCelda($event, columna.fecha, hora)"
+                  (click)="nuevoEn(columna.fecha, hora, $any($event.currentTarget))"
+                ></button>
+              }
+              @for (bloque of columna.bloques; track bloque.turno.id) {
+                <button
+                  type="button"
+                  class="evento"
+                  [class.online]="bloque.turno.modalidad === 'Online'"
+                  [class.corto]="bloque.altura < 48"
+                  [style.top.px]="bloque.top"
+                  [style.height.px]="bloque.altura"
+                  [style.left.%]="(bloque.columna * 100) / bloque.columnas"
+                  [style.width.%]="100 / bloque.columnas"
+                  [attr.aria-label]="
+                    bloque.turno.inicio +
+                    ' a ' +
+                    fin(bloque.turno) +
+                    ', ' +
+                    participantes(bloque.turno) +
+                    ', ' +
+                    bloque.turno.modalidad
+                  "
+                  [title]="
+                    bloque.turno.inicio +
+                    '–' +
+                    fin(bloque.turno) +
+                    ' · ' +
+                    participantes(bloque.turno) +
+                    ' · ' +
+                    bloque.turno.modalidad
+                  "
+                  (click)="verDetalle(bloque.turno, $any($event.currentTarget))"
+                >
+                  <strong>{{ bloque.turno.inicio }}–{{ fin(bloque.turno) }}</strong>
+                  <span>{{ bloque.turno.titulo || 'Entrenamiento' }}</span
+                  ><span>{{ participantes(bloque.turno) }}</span>
+                  <small>{{ bloque.turno.modalidad }}</small>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      <p class="leyenda">
+        Mañana hasta las 12 · Tarde hasta las 20 · Noche desde las 20. Horario inicial 07–22 h; se
+        amplía si hay turnos fuera de ese rango.
+      </p>
+    }
+  </section>
+</div>

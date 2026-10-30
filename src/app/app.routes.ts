@@ -40,6 +40,11 @@ export const routes: Routes = [
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
+        path: 'calendario',
+        title: 'Calendario',
+        loadComponent: () => import('./features/calendario/calendario').then((m) => m.Calendario),
+      },
+      {
         path: 'dashboard',
         canDeactivate: [cambiosGuard],
         title: 'Dashboard',

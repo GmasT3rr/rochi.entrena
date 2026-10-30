@@ -1,0 +1,30 @@
+:host {
+  display: contents;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.form-grid {
+  row-gap: var(--hub-space-4);
+}
+.memoria,
+.ayuda {
+  color: var(--hub-muted);
+  font-size: var(--hub-text-small);
+}
+.ayuda {
+  margin: 0 0 var(--hub-space-2);
+}
+.observaciones {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.confirmacion,
+.advertencia {
+  padding: var(--hub-space-3);
+  background: var(--hub-accent-soft);
+  border-radius: var(--hub-control-radius);
+}

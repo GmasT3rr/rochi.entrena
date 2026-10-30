@@ -49,8 +49,10 @@ describe('Usuario del encabezado compartido', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.navItems.map((item) => item.label)).toEqual([
       'Dashboard',
+      'Calendario',
       'Alumnos',
       'Cuotas y cobros',
+      'Pendientes',
       'Guía de uso',
       'Configuración',
       'Te quiero, Rochi ❤️',

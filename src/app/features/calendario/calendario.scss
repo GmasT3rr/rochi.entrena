@@ -1,0 +1,300 @@
+@use '../../shared/breakpoints' as bp;
+:host {
+  display: block;
+  min-width: 0;
+}
+.mini-panel > summary {
+  display: none;
+}
+.aviso {
+  padding: var(--hub-space-3) var(--hub-space-4);
+  background: var(--hub-accent-soft);
+  border-radius: var(--hub-control-radius);
+  font-size: var(--hub-text-small);
+}
+.agenda-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--hub-space-4);
+  align-items: start;
+}
+.agenda-principal {
+  min-width: 0;
+}
+.mini-nav {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  text-align: center;
+  justify-content: space-between;
+  margin-bottom: var(--hub-space-2);
+}
+.mini-mes {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-top: var(--hub-space-3);
+}
+.semana {
+  text-align: center;
+  color: var(--hub-muted);
+  font-size: 0.75rem;
+  padding-block: var(--hub-space-2);
+}
+.mini-mes .dia {
+  min-width: 0;
+  padding-inline: 0;
+  border-radius: var(--hub-control-radius);
+  position: relative;
+}
+.punto {
+  display: block;
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  bottom: 3px;
+  left: calc(50% - 2px);
+}
+.con-turnos {
+  background: var(--hub-accent-strong);
+}
+.hoy {
+  outline: 2px solid var(--hub-accent-strong);
+  outline-offset: -2px;
+}
+.elegido {
+  background: var(--hub-accent-soft);
+}
+.leyenda {
+  color: var(--hub-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.barra-agenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hub-space-2);
+}
+.selector-vista {
+  width: 195px;
+}
+.titulo-rango {
+  margin-block: var(--hub-space-3);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.horario-scroll {
+  max-height: 68vh;
+  min-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--hub-border);
+  border-radius: var(--hub-control-radius);
+  background: var(--hub-surface);
+  scrollbar-gutter: stable;
+}
+.horario {
+  display: grid;
+  grid-template-columns: 56px repeat(var(--dias), minmax(100px, 1fr));
+  position: relative;
+}
+.cabecera-hora,
+.cabecera-dia {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--hub-surface);
+  border-bottom: 1px solid var(--hub-border);
+  padding: var(--hub-space-3) var(--hub-space-1);
+  text-align: center;
+  font-size: var(--hub-text-small);
+}
+.cabecera-dia {
+  border-left: 1px solid var(--hub-border);
+}
+.cabecera-dia small {
+  display: block;
+  color: var(--hub-muted);
+  font-size: 0.7rem;
+}
+.cabecera-dia.elegido {
+  background: var(--hub-accent-soft);
+}
+.cabecera-hora {
+  left: 0;
+  z-index: 5;
+}
+.eje-horas {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--hub-surface);
+}
+.marca-hora {
+  height: 48px;
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--hub-muted);
+  border-top: 1px solid var(--hub-border);
+  padding-top: 2px;
+}
+.hora-final {
+  position: absolute;
+  right: 5px;
+  bottom: 0;
+  font-size: 0.7rem;
+  color: var(--hub-muted);
+}
+.columna-dia {
+  position: relative;
+  min-width: 0;
+  border-left: 1px solid var(--hub-border);
+}
+/* These are calendar intervals, not action buttons: geometry follows actual time. */
+.celda-hora {
+  display: block;
+  width: 100%;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--hub-border);
+  background: color-mix(in srgb, var(--hub-accent) 3%, var(--hub-surface));
+  cursor: pointer;
+}
+.celda-hora.tarde {
+  background: var(--hub-surface);
+}
+.celda-hora.noche {
+  background: color-mix(in srgb, var(--hub-accent) 8%, var(--hub-surface));
+}
+.celda-hora:hover {
+  background: var(--hub-accent-soft);
+}
+.evento,
+.evento-mes {
+  color: var(--hub-ink);
+  background: var(--hub-accent-soft);
+  border: 1px solid var(--hub-border);
+  border-left: 3px solid var(--hub-accent);
+  border-radius: var(--hub-control-radius);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evento {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  position: absolute;
+  z-index: 2;
+  padding: 3px 5px;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  box-shadow: inset -2px 0 var(--hub-surface);
+}
+.evento strong,
+.evento span,
+.evento small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evento.online {
+  border-left-style: dashed;
+}
+.evento.corto {
+  padding-block: 0;
+}
+.evento:hover,
+.evento-mes:hover {
+  filter: brightness(1.12);
+}
+.celda-hora:focus-visible,
+.evento:focus-visible,
+.evento-mes:focus-visible {
+  outline: 2px solid var(--hub-accent-strong);
+  outline-offset: -2px;
+  z-index: 3;
+}
+.vista-mes {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border: 1px solid var(--hub-border);
+  border-radius: var(--hub-control-radius);
+  overflow: hidden;
+  background: var(--hub-surface);
+}
+.casilla-mes {
+  min-height: 120px;
+  min-width: 0;
+  border-top: 1px solid var(--hub-border);
+  border-right: 1px solid var(--hub-border);
+  padding: 2px;
+}
+.casilla-mes > button[mat-button] {
+  min-width: 0;
+  padding-inline: var(--hub-space-1);
+}
+.evento-mes {
+  display: block;
+  width: 100%;
+  margin-bottom: 3px;
+  padding: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.7rem;
+  min-height: 32px;
+}
+@media (max-width: bp.$navigation) {
+  .agenda-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mini-panel {
+    max-width: 320px;
+  }
+}
+@media (max-width: bp.$phone) {
+  .agenda-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .mini-panel > summary {
+    display: list-item;
+    cursor: pointer;
+    padding: var(--hub-space-3);
+    color: var(--hub-accent-strong);
+  }
+  .mini-panel {
+    max-width: none;
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .barra-agenda {
+    align-items: stretch;
+  }
+  .selector-vista {
+    width: 100%;
+  }
+  .horario {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  .horario-scroll {
+    max-height: 65vh;
+  }
+  .vista-mes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vista-mes > .semana,
+  .casilla-mes:empty {
+    display: none;
+  }
+  .casilla-mes {
+    min-height: 64px;
+  }
+}

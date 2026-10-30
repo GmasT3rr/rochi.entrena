@@ -1,0 +1,217 @@
+<h2 mat-dialog-title>
+  {{
+    modo() === 'detalles'
+      ? 'Detalles del entrenamiento'
+      : data.turno
+        ? 'Editar entrenamiento'
+        : 'Nuevo entrenamiento'
+  }}
+</h2>
+<mat-dialog-content>
+  <p class="memoria">Los cambios se confirman solo cuando Supabase responde correctamente.</p>
+  @if (modo() === 'detalles') {
+    <h3>{{ borrador.titulo || 'Entrenamiento' }}</h3>
+    <p>
+      {{ borrador.fecha }} · {{ borrador.inicio }}–{{ fin() }} · {{ borrador.duracion }} minutos
+    </p>
+    <p>{{ borrador.modalidad }}</p>
+    <div class="hub-actions">
+      @for (id of borrador.alumnoIds; track id) {
+        <button [disabled]="ocupado()" mat-button (click)="ficha(id)">{{ nombre(id) }}</button>
+      }
+    </div>
+    @if (borrador.observaciones) {
+      <p class="observaciones">{{ borrador.observaciones }}</p>
+    }
+    @if (confirmarCancelacion()) {
+      <div class="confirmacion" role="alert">
+        <p>¿Cancelar este entrenamiento para todos sus alumnos? Solo afecta a esta fecha.</p>
+        <div class="hub-actions">
+          <button
+            [disabled]="ocupado()"
+            mat-stroked-button
+            class="hub-danger"
+            (click)="cancelarTurno()"
+          >
+            Confirmar cancelación</button
+          ><button [disabled]="ocupado()" mat-button (click)="confirmarCancelacion.set(false)">
+            Conservar entrenamiento
+          </button>
+        </div>
+      </div>
+    }
+  } @else {
+    @if (alumnos.cargando()) {
+      <app-loading-layout label="Cargando alumnos reales" />
+    }
+    @if (alumnos.errorListado()) {
+      <p role="alert">{{ alumnos.errorListado() }}</p>
+      <button [disabled]="ocupado()" mat-stroked-button (click)="alumnos.recargar()">
+        Reintentar carga de alumnos
+      </button>
+    }
+    @if (!alumnos.cargando() && !alumnos.errorListado() && !alumnos.alumnos().length) {
+      <p role="status">
+        No hay alumnos disponibles. Cargá alumnos en su módulo para poder agendarlos.
+      </p>
+    }
+    <form id="entrenamiento-form" #form="ngForm" (ngSubmit)="guardar(form)" novalidate>
+      <fieldset [disabled]="ocupado()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width"
+            ><mat-label>Título opcional</mat-label
+            ><input matInput name="titulo" maxlength="120" [(ngModel)]="borrador.titulo"
+          /></mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width"
+            ><mat-label>Fecha</mat-label
+            ><input
+              matInput
+              type="date"
+              name="fecha"
+              required
+              [min]="mes + '-01'"
+              [max]="ultimaFecha"
+              [(ngModel)]="borrador.fecha"
+            /><mat-error>Elegí una fecha válida del mes seleccionado.</mat-error></mat-form-field
+          >
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+            ><mat-label>Hora de inicio</mat-label
+            ><input
+              matInput
+              type="time"
+              name="inicio"
+              required
+              [(ngModel)]="borrador.inicio"
+            /><mat-error>Ingresá una hora válida.</mat-error></mat-form-field
+          >
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+            ><mat-label>Hora de finalización</mat-label
+            ><input
+              matInput
+              type="time"
+              name="finalizacion"
+              required
+              [(ngModel)]="finalizacion"
+            /><mat-error>Ingresá una hora válida.</mat-error></mat-form-field
+          >
+          <p class="full-width ayuda">
+            00:00 como finalización indica medianoche al terminar el día seleccionado.
+          </p>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width"
+            ><mat-label>Alumnos</mat-label
+            ><mat-select
+              name="alumnos"
+              [disabled]="ocupado()"
+              required
+              multiple
+              [(ngModel)]="borrador.alumnoIds"
+            >
+              @for (alumno of alumnos.alumnos(); track alumno.id) {
+                <mat-option [value]="alumno.id"
+                  >{{ alumno.nombre }} {{ alumno.apellido }}</mat-option
+                >
+              }</mat-select
+            ><mat-hint>Seleccioná varios alumnos para un entrenamiento grupal.</mat-hint
+            ><mat-error>Seleccioná al menos un alumno.</mat-error></mat-form-field
+          >
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width"
+            ><mat-label>Modalidad</mat-label
+            ><mat-select
+              name="modalidad"
+              [disabled]="ocupado()"
+              required
+              [(ngModel)]="borrador.modalidad"
+              ><mat-option value="Presencial">Presencial</mat-option
+              ><mat-option value="Online">Online</mat-option></mat-select
+            ></mat-form-field
+          >
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width"
+            ><mat-label>Observaciones opcionales</mat-label
+            ><textarea
+              matInput
+              name="observaciones"
+              rows="3"
+              [(ngModel)]="borrador.observaciones"
+            ></textarea>
+          </mat-form-field>
+          @if (!data.turno) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width"
+              ><mat-label>Repetición semanal opcional</mat-label
+              ><mat-select
+                name="repeticion"
+                [disabled]="ocupado()"
+                multiple
+                [(ngModel)]="repeticion"
+              >
+                @for (dia of dias; track dia; let i = $index) {
+                  <mat-option [value]="(i + 1) % 7">{{ dia }}</mat-option>
+                }</mat-select
+              ><mat-hint
+                >Desde la fecha elegida hasta fin de {{ mes }}. Incluye la fecha inicial; no genera
+                meses futuros.</mat-hint
+              ></mat-form-field
+            >
+          } @else {
+            <p class="full-width ayuda">
+              La edición afecta solo a este entrenamiento; las demás repeticiones conservan sus
+              datos.
+            </p>
+          }
+          @if (superposiciones().length) {
+            <p class="full-width advertencia" role="status">
+              Hay {{ superposiciones().length }} entrenamiento(s) que coinciden con este horario.
+              Para formar un grupo, agregá los alumnos al turno existente.
+            </p>
+          }
+          <mat-checkbox
+            class="full-width"
+            name="superposicion"
+            [disabled]="ocupado()"
+            [(ngModel)]="aceptarSuperposicion"
+            >Revisé los horarios y acepto superposiciones con otros turnos, sin duplicar
+            alumnos.</mat-checkbox
+          >
+        </div>
+      </fieldset>
+      @if (error()) {
+        <p class="hub-field-error" role="alert">{{ error() }}</p>
+      }
+    </form>
+  }
+  @if (modo() === 'detalles' && error()) {
+    <p class="hub-field-error" role="alert">{{ error() }}</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  @if (modo() === 'detalles') {
+    <button
+      [disabled]="ocupado()"
+      mat-button
+      class="hub-danger"
+      (click)="confirmarCancelacion.set(true)"
+    >
+      Cancelar entrenamiento
+    </button>
+    <button [disabled]="ocupado()" mat-stroked-button (click)="editar()">Editar</button>
+    <button [disabled]="ocupado()" mat-button (click)="ref.close()">Cerrar</button>
+  } @else {
+    <button [disabled]="ocupado()" mat-stroked-button type="button" (click)="ref.close()">
+      Cancelar
+    </button>
+    <button
+      mat-flat-button
+      [attr.aria-busy]="ocupado()"
+      type="submit"
+      form="entrenamiento-form"
+      [disabled]="
+        ocupado() ||
+        completado() ||
+        alumnos.cargando() ||
+        !!alumnos.errorListado() ||
+        !alumnos.alumnos().length
+      "
+    >
+      {{ ocupado() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  }
+</mat-dialog-actions>

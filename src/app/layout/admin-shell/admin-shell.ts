@@ -66,8 +66,10 @@ export class AdminShell {
 
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+    { label: 'Calendario', path: '/calendario', icon: 'calendar_month' },
     { label: 'Alumnos', path: '/alumnos', icon: 'groups' },
     { label: 'Cuotas y cobros', path: '/cuentas', icon: 'account_balance_wallet' },
+    { label: 'Pendientes', path: '/pendientes', icon: 'pending_actions' },
     { label: 'Guía de uso', path: '/guia', icon: 'menu_book' },
     { label: 'Configuración', path: '/configuracion', icon: 'settings' },
     { label: 'Te quiero, Rochi ❤️', path: '/te-quiero-rochy', icon: 'favorite' },
