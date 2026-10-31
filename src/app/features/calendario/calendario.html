@@ -59,24 +59,20 @@
                   class="dia"
                   [class.hoy]="dia === hoy"
                   [class.elegido]="dia === fecha()"
+                  [class.con-turnos]="cantidad(dia) > 0"
                   [attr.aria-label]="dia + ': ' + cantidad(dia) + ' entrenamientos'"
                   [attr.aria-pressed]="dia === fecha()"
                   [attr.aria-current]="dia === hoy ? 'date' : null"
                   (click)="nuevoEn(dia, '09:00', $any($event.currentTarget))"
                 >
-                  {{ +dia.slice(8)
-                  }}<span
-                    class="punto"
-                    [class.con-turnos]="cantidad(dia) > 0"
-                    aria-hidden="true"
-                  ></span>
+                  {{ +dia.slice(8) }}
                 </button>
               } @else {
                 <span></span>
               }
             }
           </div>
-          <p class="leyenda">Borde: hoy · Fondo: selección · Punto: entrenamientos</p>
+          <p class="leyenda">Borde: hoy · Subrayado: selección · Fondo violeta: entrenamientos</p>
         </mat-card-content></mat-card
       >
     </aside>
