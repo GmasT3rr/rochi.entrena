@@ -18,6 +18,15 @@
         <strong>TusCuentasFacil</strong>
         <span>Panel administrativo</span>
       </div>
+      <button
+        matIconButton
+        type="button"
+        class="sidebar__close"
+        aria-label="Cerrar menú de navegación"
+        (click)="closeSidenav()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
 
     <mat-nav-list class="nav">
@@ -26,6 +35,12 @@
           mat-list-item
           [routerLink]="item.path"
           routerLinkActive="nav-item--active"
+          [routerLinkActiveOptions]="{
+            paths: 'exact',
+            queryParams: 'ignored',
+            matrixParams: 'ignored',
+            fragment: 'ignored',
+          }"
           ariaCurrentWhenActive="page"
           (click)="closeSidenav()"
         >

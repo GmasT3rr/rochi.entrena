@@ -1,3 +1,4 @@
+@use '@angular/material' as mat;
 :host {
   display: block;
   height: 100%;
@@ -17,11 +18,19 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 1.35rem 1.15rem 1rem;
+  position: relative;
+  gap: var(--hub-space-2);
+  padding: var(--hub-space-6) 56px var(--hub-space-4) var(--hub-space-4);
+}
+
+.sidebar__close {
+  position: absolute;
+  top: var(--hub-space-2);
+  right: var(--hub-space-1);
 }
 
 .brand__mark {
+  flex-shrink: 0;
   display: grid;
   place-items: center;
   width: 2.5rem;
@@ -39,6 +48,7 @@
   min-width: 0;
 
   strong {
+    overflow-wrap: anywhere;
     font-size: 1.05rem;
     font-weight: 700;
     color: var(--hub-ink);
@@ -51,10 +61,19 @@
 }
 
 .nav {
+  @include mat.list-overrides(
+    (
+      list-item-container-color: transparent,
+      list-item-focus-state-layer-opacity: 0,
+      list-item-hover-state-layer-color: var(--hub-accent),
+      list-item-hover-state-layer-opacity: 0.08,
+    )
+  );
   padding: 0.35rem 0.7rem 5.5rem;
 }
 
 .nav a {
+  background: transparent;
   margin-bottom: 0.2rem;
   border-radius: 0.8rem;
 }

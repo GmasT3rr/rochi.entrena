@@ -63,18 +63,46 @@ describe('Usuario del encabezado compartido', () => {
       expect(component.sidenavOpened()).toBe(false);
       toggle.click();
       await fixture.whenStable();
-      fixture.nativeElement.querySelector('mat-sidenav').dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }),
-      );
+      fixture.nativeElement
+        .querySelector('mat-sidenav')
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
       await fixture.whenStable();
       expect(component.sidenavOpened()).toBe(false);
-      expect(fixture.nativeElement.querySelector('mat-sidenav button')).toBeNull();
+      toggle.click();
+      await fixture.whenStable();
+      fixture.nativeElement.querySelector('.sidebar__close').click();
+      await fixture.whenStable();
+      expect(component.sidenavOpened()).toBe(false);
+      expect(fixture.nativeElement.querySelectorAll('mat-sidenav button')).toHaveLength(1);
       component.toggleSidenav();
       await TestBed.inject(Router).navigateByUrl('/otra');
       await fixture.whenStable();
       expect(component.sidenavOpened()).toBe(false);
     },
   );
+
+  it('resalta exclusivamente la ruta activa en todas las opciones, incluso con filtros', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([{ path: '**', children: [] }]),
+        { provide: AuthService, useValue: { session: signal(null), signOut: vi.fn() } },
+        { provide: AdminAuthorization, useValue: { status: signal('authorized') } },
+        { provide: BreakpointObserver, useValue: { observe: () => of({ matches: false }) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(AdminShell);
+    await fixture.whenStable();
+    const router = TestBed.inject(Router);
+    for (const item of fixture.componentInstance.navItems) {
+      await router.navigateByUrl(item.path + '?filtro=activo#seccion');
+      await fixture.whenStable();
+      const activos = fixture.nativeElement.querySelectorAll('.nav-item--active');
+      expect(activos).toHaveLength(1);
+      expect(activos[0].getAttribute('href')).toBe(item.path);
+      expect(activos[0].getAttribute('aria-current')).toBe('page');
+      expect(fixture.nativeElement.querySelectorAll('.nav a[aria-current="page"]')).toHaveLength(1);
+    }
+  });
 
   it('refleja cambios de sesión y borra el correo anterior al salir sin consultas', () => {
     const session = signal<{ user: { email: string } } | null>({
