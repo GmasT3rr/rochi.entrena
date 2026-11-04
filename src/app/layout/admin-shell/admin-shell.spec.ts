@@ -33,6 +33,49 @@ describe('Usuario del encabezado compartido', () => {
     expect(link.classList.contains('nav-item--active')).toBe(true);
   });
 
+  it.each([false, true])(
+    'mantiene el menu superpuesto y cerrado al entrar (movil: %s)',
+    async (mobile) => {
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([{ path: 'otra', component: AdminShell }]),
+          { provide: AuthService, useValue: { session: signal(null), signOut: vi.fn() } },
+          { provide: AdminAuthorization, useValue: { status: signal('authorized') } },
+          { provide: BreakpointObserver, useValue: { observe: () => of({ matches: mobile }) } },
+        ],
+      });
+      const fixture = TestBed.createComponent(AdminShell);
+      await fixture.whenStable();
+      const component = fixture.componentInstance;
+      const toggle = fixture.nativeElement.querySelector('.topbar__menu');
+      expect(component.sidenavMode()).toBe('over');
+      expect(component.sidenavOpened()).toBe(false);
+      toggle.click();
+      await fixture.whenStable();
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      toggle.click();
+      await fixture.whenStable();
+      expect(component.sidenavOpened()).toBe(false);
+      toggle.click();
+      await fixture.whenStable();
+      fixture.nativeElement.querySelector('.mat-drawer-backdrop').click();
+      await fixture.whenStable();
+      expect(component.sidenavOpened()).toBe(false);
+      toggle.click();
+      await fixture.whenStable();
+      fixture.nativeElement.querySelector('mat-sidenav').dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }),
+      );
+      await fixture.whenStable();
+      expect(component.sidenavOpened()).toBe(false);
+      expect(fixture.nativeElement.querySelector('mat-sidenav button')).toBeNull();
+      component.toggleSidenav();
+      await TestBed.inject(Router).navigateByUrl('/otra');
+      await fixture.whenStable();
+      expect(component.sidenavOpened()).toBe(false);
+    },
+  );
+
   it('refleja cambios de sesión y borra el correo anterior al salir sin consultas', () => {
     const session = signal<{ user: { email: string } } | null>({
       user: { email: 'admin@example.test' },

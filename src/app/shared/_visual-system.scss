@@ -35,7 +35,7 @@
   );
 }
 /* Material supplies keyboard behavior, ripple, selected, disabled and focus states. */
-.mat-mdc-button-base:not(.mat-mdc-icon-button):not(.mat-mdc-mini-fab):not(.mat-mdc-fab) {
+.mat-mdc-button-base:not(.mat-mdc-icon-button):not(.mat-mdc-mini-fab):not(.mat-mdc-fab):not(.hub-calendar-day) {
   min-height: var(--hub-button-height);
   height: auto;
   padding: 10px var(--hub-space-4);
@@ -338,4 +338,15 @@ div[role='alert'] {
 /* Monetary column headings follow the alignment of their values. */
 .hub-table .mat-column-saldo .mat-sort-header-container {
   justify-content: flex-end;
+}
+
+/* Calendar date controls use a seven-column grid instead of action-button geometry. */
+.mat-mdc-button-base.hub-calendar-day {
+  min-width: 0;
+  min-height: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }

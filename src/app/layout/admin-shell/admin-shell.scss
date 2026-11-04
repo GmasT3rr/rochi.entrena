@@ -213,3 +213,8 @@
     display: none;
   }
 }
+
+/* Keep the menu toggle reachable while the navigation overlays the page. */
+:host ::ng-deep .shell > .mat-drawer-backdrop {
+  top: 64px;
+}

@@ -27,6 +27,41 @@ describe('Calendario con modal de entrenamiento', () => {
     await fixture.whenStable();
     expect(cargar).toHaveBeenLastCalledWith('2026-10-01', '2026-10-31');
   });
+  it('combina hoy, seleccion y entrenamientos, y marca la semana completa', async () => {
+    const { component, fixture } = await setup();
+    component.irHoy();
+    await component.agenda.guardar({
+      fecha: component.hoy,
+      inicio: '09:00',
+      duracion: 60,
+      modalidad: 'Online',
+      alumnoIds: ['a'],
+      observaciones: '',
+    });
+    fixture.detectChanges();
+    const dia = fixture.nativeElement.querySelector('[data-dia="' + component.hoy + '"]');
+    expect(dia.classList.contains('hoy')).toBe(true);
+    expect(dia.classList.contains('elegido')).toBe(true);
+    expect(dia.classList.contains('con-turnos')).toBe(true);
+    expect(dia.closest('.semana-elegida')).toBeTruthy();
+    expect(dia.getAttribute('aria-current')).toBe('date');
+    expect(dia.getAttribute('aria-pressed')).toBe('true');
+  });
+  it('navega por teclado entre meses y sincroniza la grilla sin crear turnos', async () => {
+    const { component, fixture, dialog } = await setup();
+    component.seleccionarFecha('2026-12-31');
+    fixture.detectChanges();
+    fixture.nativeElement
+      .querySelector('[data-dia="2026-12-31"]')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    await fixture.whenStable();
+    expect(component.fecha()).toBe('2027-01-01');
+    expect(component.periodo()).toBe('2027-01');
+    expect(component.mesesLaterales().map((m) => m.periodo)).toEqual(['2027-01', '2027-02']);
+    expect(document.activeElement?.getAttribute('data-dia')).toBe('2027-01-01');
+    expect(component.dias()).toContain('2027-01-01');
+    expect(dialog.openDialogs).toHaveLength(0);
+  });
   async function setup(mobile = false) {
     TestBed.configureTestingModule({
       providers: [
@@ -54,17 +89,15 @@ describe('Calendario con modal de entrenamiento', () => {
     return { fixture, component: fixture.componentInstance, dialog };
   }
   afterEach(() => TestBed.inject(MatDialog).closeAll());
-  it('abre desde el calendario lateral con fecha seleccionada y el botón usa el mismo modal', async () => {
+  it('selecciona desde el lateral sin abrir un modal y crea desde el boton', async () => {
     const { component, fixture, dialog } = await setup();
     component.cambiarMes('2026-10');
     fixture.detectChanges();
     fixture.nativeElement.querySelector('[aria-label^="2026-10-02:"]').click();
     await fixture.whenStable();
     expect(component.fecha()).toBe('2026-10-02');
-    expect(dialog.openDialogs[0].componentInstance).toBeInstanceOf(EntrenamientoDialog);
-    expect(dialog.openDialogs[0].componentInstance.borrador.fecha).toBe('2026-10-02');
-    dialog.closeAll();
-    await vi.waitFor(() => expect(dialog.openDialogs).toHaveLength(0));
+    expect(dialog.openDialogs).toHaveLength(0);
+    expect(component.dias()).toContain('2026-10-02');
     await fixture.whenStable();
     fixture.nativeElement.querySelector('app-page-header button').click();
     await fixture.whenStable();

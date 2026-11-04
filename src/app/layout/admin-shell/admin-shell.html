@@ -2,11 +2,13 @@
 
 <mat-sidenav-container class="shell">
   <mat-sidenav
+    id="navegacion-principal"
     class="sidebar"
     [mode]="sidenavMode()"
     [opened]="sidenavOpened()"
     [fixedInViewport]="true"
-    (openedChange)="onOpenedChange($event)"
+    [fixedTopGap]="64"
+    (closedStart)="closeSidenav()"
     role="navigation"
     aria-label="Navegación principal"
   >
@@ -25,7 +27,7 @@
           [routerLink]="item.path"
           routerLinkActive="nav-item--active"
           ariaCurrentWhenActive="page"
-          (click)="closeIfMobile()"
+          (click)="closeSidenav()"
         >
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
           <span matListItemTitle>{{ item.label }}</span>
@@ -41,17 +43,19 @@
 
   <mat-sidenav-content class="content">
     <mat-toolbar class="topbar">
-      @if (isMobile()) {
-        <button
-          matIconButton
-          type="button"
-          class="topbar__menu"
-          aria-label="Abrir menú de navegación"
-          (click)="toggleSidenav()"
-        >
-          <mat-icon>menu</mat-icon>
-        </button>
-      }
+      <button
+        matIconButton
+        type="button"
+        class="topbar__menu"
+        [attr.aria-label]="
+          sidenavOpened() ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'
+        "
+        [attr.aria-expanded]="sidenavOpened()"
+        aria-controls="navegacion-principal"
+        (click)="toggleSidenav()"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
 
       <h1 class="topbar__title">{{ pageTitle() }}</h1>
 

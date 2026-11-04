@@ -15,7 +15,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 
 import { MatSelectModule } from '@angular/material/select';
@@ -55,7 +55,7 @@ import {
   selector: 'app-calendario',
   imports: [
     MatButtonModule,
-    MatCardModule,
+    MatIconModule,
     MatFormFieldModule,
 
     MatSelectModule,
@@ -104,6 +104,50 @@ export class Calendario {
     const offset = (new Date(`${fechas[0]}T12:00:00`).getDay() + 6) % 7;
     return [...Array<string>(offset).fill(''), ...fechas];
   });
+  readonly mesesLaterales = computed(() => {
+    const siguiente = new Date(this.periodo() + '-01T12:00:00');
+    siguiente.setMonth(siguiente.getMonth() + 1);
+    const periodos = [this.periodo()];
+    if (siguiente.getFullYear() <= 9999) periodos.push(fechaLocal(siguiente).slice(0, 7));
+    return periodos.map((periodo) => {
+      const fechas = fechasMes(periodo);
+      const offset = (new Date(fechas[0] + 'T12:00:00').getDay() + 6) % 7;
+      const celdas = [...Array<string>(offset).fill(''), ...fechas];
+      while (celdas.length % 7) celdas.push('');
+      return {
+        periodo,
+        titulo: new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(
+          new Date(periodo + '-01T12:00:00'),
+        ),
+        semanas: Array.from({ length: celdas.length / 7 }, (_, i) =>
+          celdas.slice(i * 7, i * 7 + 7),
+        ),
+      };
+    });
+  });
+  readonly semanaSeleccionada = computed(() => diasVisibles(this.fecha(), 'semana'));
+  readonly esSemanaSeleccionada = (dia: string): boolean =>
+    !!dia && this.semanaSeleccionada().includes(dia);
+  tecladoDia(event: KeyboardEvent, dia: string): void {
+    const saltos: Record<string, number> = {
+      ArrowLeft: -1,
+      ArrowRight: 1,
+      ArrowUp: -7,
+      ArrowDown: 7,
+    };
+    if (!(event.key in saltos)) return;
+    event.preventDefault();
+    const destino = sumarDias(dia, saltos[event.key]);
+    if (destino.slice(0, 4) < '1900' || destino.slice(0, 4) > '9999') return;
+    this.seleccionarFecha(destino);
+    afterNextRender(
+      () =>
+        this.host.nativeElement
+          .querySelector<HTMLButtonElement>('[data-dia="' + destino + '"]')
+          ?.focus(),
+      { injector: this.injector },
+    );
+  }
   readonly activos = computed(() => this.agenda.listar().filter((t) => t.estado === 'programado'));
   readonly dias = computed(() => diasVisibles(this.fecha(), this.vistaEfectiva()));
   readonly intervaloVisible = computed(

@@ -1,7 +1,7 @@
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
@@ -80,8 +80,8 @@ export class AdminShell {
     { initialValue: false },
   );
 
-  readonly sidenavOpened = signal(true);
-  readonly sidenavMode = computed(() => (this.isMobile() ? 'over' : 'side'));
+  readonly sidenavOpened = signal(false);
+  readonly sidenavMode = signal<'over'>('over');
 
   readonly pageTitle = toSignal(
     this.router.events.pipe(
@@ -92,21 +92,20 @@ export class AdminShell {
   );
 
   constructor() {
-    effect(() => this.sidenavOpened.set(!this.isMobile()));
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.closeSidenav());
   }
 
   toggleSidenav(): void {
     this.sidenavOpened.update((opened) => !opened);
   }
 
-  onOpenedChange(opened: boolean): void {
-    this.sidenavOpened.set(opened);
-  }
-
-  closeIfMobile(): void {
-    if (this.isMobile()) {
-      this.sidenavOpened.set(false);
-    }
+  closeSidenav(): void {
+    this.sidenavOpened.set(false);
   }
 
   private currentTitle(): string {
